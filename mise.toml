@@ -52,3 +52,11 @@ run = "npx stylelint 'public/css/src/**/*.css'"
 [tasks.fmtcss]
 description = "Format CSS source files with Prettier"
 run = "npx prettier --write 'public/css/src/**/*.css'"
+
+[tasks.test]
+description = "Run Go tests"
+run = "go test ./..."
+
+[tasks."test:identity"]
+description = "Run the SQLite identity integration check against a local on-disk database"
+run = "mkdir -p tmp && IDENTITY_TEST_DSN=\"file:$PWD/tmp/identity.db\" go test -run TestSQLiteLocalDB -v ./identity/"
