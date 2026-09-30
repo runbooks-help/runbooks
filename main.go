@@ -69,12 +69,11 @@ func main() {
 
 	cfg := loadConfig()
 
+	// An empty content/ is not an error: the index renders a welcome that says
+	// how to add runbooks, so a fresh checkout still boots.
 	runbooks, err := parser.LoadDir("content")
 	if err != nil {
 		log.Fatalf("load runbooks: %v", err)
-	}
-	if len(runbooks) == 0 {
-		log.Fatal("no runbooks found in content/")
 	}
 
 	groups := parser.GroupBySystem(runbooks)

@@ -617,6 +617,39 @@
 	font-size: var(--text-sm);
 }
 
+.index-empty {
+	margin-top: var(--space-5);
+	color: var(--muted);
+	font-size: var(--text-sm);
+}
+
+.index-welcome {
+	margin-top: var(--space-6);
+	padding: var(--space-6);
+	background: var(--surface);
+	border: 1px dashed var(--border);
+	border-radius: var(--radius-md);
+	color: var(--muted);
+	font-size: var(--text-sm);
+	line-height: var(--leading-normal);
+}
+
+.index-welcome-title {
+	margin-bottom: var(--space-2);
+	color: var(--text);
+	font-size: var(--text-md);
+	font-weight: 600;
+}
+
+.index-welcome code {
+	padding: 0.1em 0.35em;
+	background: var(--nav-hover);
+	border-radius: var(--radius-sm);
+	font-family: var(--font-mono);
+	font-size: 0.9em;
+	color: var(--text);
+}
+
 .runbook-card[hidden],
 .index-group[hidden],
 .index-category[hidden],

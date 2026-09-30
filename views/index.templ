@@ -14,49 +14,65 @@ templ IndexPage(systems []parser.SystemGroup) {
 		<div class="main index-main">
 			<div class="main-header">
 				<h1>Runbooks</h1>
-				<p>Start from the symptom. Type to filter, or jump to a common issue.</p>
+				if len(systems) == 0 {
+					<p>Once you add content, it will show here.</p>
+				} else {
+					<p>Start from the symptom. Type to filter, or jump to a common issue.</p>
+				}
 			</div>
 			<div class="content">
 				<div class="index-inner">
-					<input
-						class="index-search"
-						type="search"
-						placeholder="What's wrong? e.g. replication lag, primary down"
-						aria-label="Filter runbooks"
-						autocomplete="off"
-						spellcheck="false"
-						autofocus
-					/>
-					@commonIssues(parser.CommonIssues(systems))
-					<p class="section-label index-catalogue-label">All runbooks</p>
-					<div class="index-empty" hidden>
-						<p>No runbooks match that. Try another word, or clear the search.</p>
-					</div>
-					for _, system := range systems {
-						<div class="index-group">
-							<h2 class="index-system">{ system.Name }</h2>
-							for _, group := range system.Categories {
-								<div class="index-category">
-									if group.Name != "" {
-										<p class="index-category-label">{ group.Name }</p>
-									}
-									<div class="card-grid">
-										for _, rb := range group.Runbooks {
-											<a
-												href={ templ.SafeURL("/" + rb.Slug) }
-												class="runbook-card"
-												data-search={ runbookSearchText(rb, system.Name, group.Name) }
-											>
-												<span class="card-title">{ rb.Title }</span>
-												if rb.Description != "" {
-													<span class="card-desc">@templ.Raw(proseHTML(rb.Description))</span>
-												}
-											</a>
-										}
-									</div>
-								</div>
-							}
+					if len(systems) == 0 {
+						<div class="index-welcome">
+							<p class="index-welcome-title">No runbooks yet</p>
+							<p>
+								Add a Markdown file under
+								<code>{ "content/<system>/<category>/<file>.md" }</code>
+								and it will appear here. Its URL and heading come from the file's
+								frontmatter (<code>slug</code> and <code>title</code>).
+							</p>
 						</div>
+					} else {
+						<input
+							class="index-search"
+							type="search"
+							placeholder="What's wrong? e.g. replication lag, primary down"
+							aria-label="Filter runbooks"
+							autocomplete="off"
+							spellcheck="false"
+							autofocus
+						/>
+						@commonIssues(parser.CommonIssues(systems))
+						<p class="section-label index-catalogue-label">All runbooks</p>
+						<div class="index-empty" hidden>
+							<p>No runbooks match that. Try another word, or clear the search.</p>
+						</div>
+						for _, system := range systems {
+							<div class="index-group">
+								<h2 class="index-system">{ system.Name }</h2>
+								for _, group := range system.Categories {
+									<div class="index-category">
+										if group.Name != "" {
+											<p class="index-category-label">{ group.Name }</p>
+										}
+										<div class="card-grid">
+											for _, rb := range group.Runbooks {
+												<a
+													href={ templ.SafeURL("/" + rb.Slug) }
+													class="runbook-card"
+													data-search={ runbookSearchText(rb, system.Name, group.Name) }
+												>
+													<span class="card-title">{ rb.Title }</span>
+													if rb.Description != "" {
+														<span class="card-desc">@templ.Raw(proseHTML(rb.Description))</span>
+													}
+												</a>
+											}
+										</div>
+									</div>
+								}
+							</div>
+						}
 					}
 				</div>
 			</div>
