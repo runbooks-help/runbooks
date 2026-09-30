@@ -77,14 +77,18 @@ run = """
 """
 
 [tasks."test:mutation"]
-description = "Mutation-test the SQLite store contract (fast, no database)"
-run = "gremlins unleash ./stores/sqlite"
+description = "Mutation-test the SQLite store and the identity service (fast, no database)"
+run = """
+  gremlins unleash ./stores/sqlite
+  gremlins unleash ./identity
+"""
 
 [tasks."test:mutation:all"]
-description = "Mutation-test all three store contracts (starts the compose databases)"
+description = "Mutation-test every package with a contract (starts the compose databases)"
 run = """
   podman compose up -d --wait mysql postgres
   gremlins unleash ./stores/sqlite
+  gremlins unleash ./identity
   # The database-backed stores share one database, so the mutants must run
   # serially — parallel runs would race on the tables they reset.
   STORES_MYSQL_DSN="root:root@tcp(127.0.0.1:3307)/runbooks_identity" gremlins unleash --workers 1 ./stores/mysql
