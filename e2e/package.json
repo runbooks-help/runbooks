@@ -1,0 +1,9 @@
+{
+	"name": "runbooks-e2e",
+	"private": true,
+	"type": "module",
+	"description": "Browser end-to-end test: the real WebAuthn ceremony against a throwaway instance.",
+	"devDependencies": {
+		"playwright-core": "^1.63.0"
+	}
+}

@@ -22,10 +22,14 @@ All tasks are mise tasks (`mise install` once to pull Go, templ, gofumpt, Node).
 | `mise run generate` | templ codegen only (`views/*_templ.go`). |
 | `mise run css` / `mise run js` | One-shot esbuild bundle. |
 | `mise run lintcss` / `mise run fmtcss` | stylelint / Prettier over `public/css/src/**`. |
+| `mise run test` | Go tests + JS unit tests (`node --test`). |
+| `mise run test:e2e` | Browser E2E: the real WebAuthn ceremony via a CDP virtual authenticator, against a throwaway instance. Needs a system Chromium (`CHROMIUM=/path` to override); `playwright-core` installs into `e2e/` on demand. |
+| `mise run test:e2e:headed` | The same test in a visible window. `E2E_SLOWMO=ms` paces the actions, `E2E_HOLD_MS=ms` auto-closes after a hold (default: close the window yourself). |
+| `mise run test:e2e:inspect` | Headed run with the **Playwright Inspector** (`page.pause()` breakpoints before setup, before each submit, and after login). Step over / resume from the inspector window. |
 
-There are no tests. `gofumpt -l .`, `go vet ./...`, and `mise run build` are the
-verification gate before handing work back. `git-sync` has Go tests
-(`GIT_ALLOW_PROTOCOL=file go test ./...`).
+The verification gate before handing work back is `gofumpt -l .`, `go vet ./...`,
+`mise run test`, and `mise run build`. The store contract also runs live against
+compose MySQL/Postgres (`mise run test:mysql` / `test:postgres`).
 
 Ports: dev serves `8091` (air proxies `8090` → `8091`). The binary reads `PORT`,
 default `8090`; the container listens on `8090`.
@@ -154,9 +158,8 @@ Authoring conventions that have bitten us:
   is not for release.
 - **Build outputs are gitignored** (`/runbooks`, `/tmp/`). `mise run build`
   produces the binary, `air` writes `tmp/`. Never commit them.
-- **`content/` is currently empty.** `parser.LoadDir` finds zero runbooks and `main`
-  exits with `no runbooks found in content/`. Add at least one runbook (or a test
-  fixture) before running the server.
+- **`content/` is empty in a fresh checkout.** That is fine — the index renders a
+  welcome page. Add a runbook under `content/<system>/<category>/<file>.md` to populate it.
 - `mise run build` also rewrites `public/css/bundle.css` and `public/js/*.js`.
   Those are committed on purpose; include them in the same change as their src.
 - `/` serves the welcome/index page (`views.IndexPage`), not a redirect;
@@ -164,6 +167,10 @@ Authoring conventions that have bitten us:
   `GroupBySystem`, so it needs no content file of its own.
 - stylelint bans `!important` (`declaration-no-important`). Prettier uses tabs,
   width 100.
+- **E2E virtual-authenticator options**: Chromium's `WebAuthn.addVirtualAuthenticator`
+  names the backup flags `defaultBackupEligibility` / `defaultBackupState`; the
+  `hasBackup*` spellings are silently ignored (so BE never gets set). `e2e/passkey.test.mjs`
+  relies on the `default*` names to present a synced-passkey (BE=1) shape.
 - The notes **Sync** button only renders when the server has git sync enabled
   (`GITSYNC_REPO` + a credential + endpoint auth). See the git-sync spec for the
   config; the dev config lives in `mise.toml` `[env]`.

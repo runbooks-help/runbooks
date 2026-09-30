@@ -79,6 +79,21 @@ run = """
 description = "Run JS unit tests"
 run = "node --test public/js/src/*.test.mjs"
 
+[tasks."test:e2e"]
+description = "Browser E2E: real WebAuthn ceremony (CDP virtual authenticator) against a throwaway instance"
+depends = ["build"]
+run = "npm --prefix e2e install --silent && node --test e2e/"
+
+[tasks."test:e2e:headed"]
+description = "Browser E2E with a visible window (E2E_SLOWMO to pace it); close the window to finish"
+depends = ["build"]
+run = "npm --prefix e2e install --silent && E2E_HEADED=1 E2E_SLOWMO=${E2E_SLOWMO:-600} node --test e2e/"
+
+[tasks."test:e2e:inspect"]
+description = "Browser E2E in headed mode with the Playwright Inspector (page.pause breakpoints; step over / resume)"
+depends = ["build"]
+run = "npm --prefix e2e install --silent && E2E_INSPECT=1 node --test e2e/"
+
 [tasks."test:fuzz"]
 description = "Run a bounded fuzzing round (Go fuzz targets + JS differential fuzz)"
 run = """
