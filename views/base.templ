@@ -1,0 +1,215 @@
+package views
+
+import "runbooks/parser"
+
+// Shell wraps the full HTML document. Children are rendered inside <body>.
+templ Shell(title string) {
+	<!DOCTYPE html>
+	<html lang="en" data-theme="light">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ pageTitle(title) }</title>
+			<link rel="stylesheet" href="/public/css/bundle.css"/>
+			@templ.Raw("<script>" + themeScript + "</script>")
+		</head>
+		<body>
+			{ children... }
+			<script src="/public/js/vendor/jszip.min.js"></script>
+			<script src="/public/js/vendor/marked.min.js"></script>
+			<script src="/public/js/vendor/highlight.min.js"></script>
+			<script src="/public/js/bundle.js"></script>
+		</body>
+	</html>
+}
+
+templ SidebarHeader() {
+	<a class="sidebar-logo" href="/">
+		<span class="logo-badge">LL</span>
+		<span class="sidebar-title">Runbooks</span>
+	</a>
+}
+
+templ SidebarNav(groups []parser.SystemGroup, active string) {
+	for _, system := range groups {
+		<p class="nav-system">{ system.Name }</p>
+		for _, group := range system.Categories {
+			if group.Name != "" {
+				<p class="nav-section">{ group.Name }</p>
+			}
+			<nav>
+				for _, rb := range group.Runbooks {
+					<a href={ templ.SafeURL("/" + rb.Slug) } class={ navClass(active, rb.Slug) }>{ rb.Title }</a>
+				}
+			</nav>
+		}
+	}
+}
+
+templ ThemeToggle() {
+	<div class="theme-row">
+		<button class="theme-btn" data-theme="light" type="button">Light</button>
+		<button class="theme-btn" data-theme="system" type="button">System</button>
+		<button class="theme-btn" data-theme="dark" type="button">Dark</button>
+	</div>
+}
+
+// VarsPanel renders the sidebar variables section for a runbook page.
+templ VarsPanel(fields []parser.VarField) {
+	<div class="vars-panel">
+		<p class="vars-heading">Variables</p>
+		for _, f := range fields {
+			<div class="var-field">
+				<div class="var-label-row">
+					<label class="var-label" for={ f.ID }>{ f.Label }</label>
+					if f.Hint != "" {
+						<button class="hint-btn" data-hint={ f.Hint } type="button" aria-label="How to find this value">?</button>
+					}
+				</div>
+				if f.Secret {
+					<input
+						id={ f.ID }
+						class="var-input"
+						type="password"
+						autocomplete="off"
+						spellcheck="false"
+						data-var={ f.VarName }
+					/>
+				} else {
+					<input
+						id={ f.ID }
+						class="var-input"
+						type="text"
+						autocomplete="off"
+						spellcheck="false"
+						data-var={ f.VarName }
+						placeholder={ f.Placeholder }
+					/>
+				}
+			</div>
+		}
+	</div>
+}
+
+// CodeBlock renders a terminal-style code block with variable substitution and copy button.
+// Labeled blocks are wrapped in a .code-group so the label + block can be ticked off together.
+templ CodeBlock(label, tpl, lang string) {
+	if label != "" {
+		<div class="code-group">
+			<div class="code-label-row">
+				<span class="code-label">{ label }</span>
+				<button class="block-check" type="button" aria-label="Mark done">✓</button>
+			</div>
+			<div class="code-block" data-template={ tpl } data-lang={ lang }>
+				<pre><code>{ toInitialDisplay(tpl) }</code></pre>
+				<button class="copy-btn" type="button">Copy</button>
+			</div>
+		</div>
+	} else {
+		<div class="code-block" data-template={ tpl } data-lang={ lang }>
+			<pre><code>{ toInitialDisplay(tpl) }</code></pre>
+			<button class="copy-btn" type="button">Copy</button>
+		</div>
+	}
+}
+
+// Step renders a numbered step card.
+templ Step(n int, title string) {
+	<div class="step-card" id={ slugify(title) }>
+		<div class="step-header">
+			<span class="step-num">{ numStr(n) }</span>
+			<h2 class="step-title">{ title }</h2>
+			<button class="step-check" type="button" aria-label="Mark step done">✓</button>
+		</div>
+		<div class="step-body">
+			{ children... }
+		</div>
+	</div>
+}
+
+// RollbackStep renders a step card in danger styling.
+templ RollbackStep(title string) {
+	<div class="step-card rollback-card" id={ slugify(title) }>
+		<div class="step-header">
+			<span class="step-num">↩</span>
+			<h2 class="step-title">{ title }</h2>
+		</div>
+		<div class="step-body">
+			{ children... }
+		</div>
+	</div>
+}
+
+// BranchBlock renders a [!branch] decision callout.
+templ BranchBlock(body string) {
+	<div class="notice notice-branch">
+		@templ.Raw(branchHTML(body))
+	</div>
+}
+
+templ Notice(variant, msg string) {
+	<div class={ "notice " + noticeClass(variant) }>@templ.Raw(noticeHTML(msg))</div>
+}
+
+templ ListBlock(items []string) {
+	<ul class="prose-list">
+		for _, item := range items {
+			<li>@templ.Raw(proseHTML(item))</li>
+		}
+	</ul>
+}
+
+templ TableBlock(headers []string, rows [][]string) {
+	<div class="table-wrap">
+		<table>
+			<thead>
+				<tr>
+					for _, h := range headers {
+						<th>@templ.Raw(proseHTML(h))</th>
+					}
+				</tr>
+			</thead>
+			<tbody>
+				for _, row := range rows {
+					<tr>
+						for _, cell := range row {
+							<td>@templ.Raw(proseHTML(cell))</td>
+						}
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+templ FrontmatterNotice(msg string) {
+	<div class="runbook-notice">
+		<span class="runbook-notice-icon" aria-hidden="true">⚠</span>
+		<p>@templ.Raw(proseHTML(msg))</p>
+	</div>
+}
+
+func numStr(n int) string {
+	return itoa(n)
+}
+
+func noticeClass(v string) string {
+	switch v {
+	case "warn":
+		return "notice-warn"
+	case "danger":
+		return "notice-danger"
+	default:
+		return ""
+	}
+}
+
+func itoa(n int) string {
+	if n < 0 {
+		return "-" + itoa(-n)
+	}
+	if n < 10 {
+		return string(rune('0' + n))
+	}
+	return itoa(n/10) + string(rune('0'+n%10))
+}

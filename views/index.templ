@@ -1,0 +1,86 @@
+package views
+
+import "runbooks/parser"
+
+// IndexPage is the welcome / navigation page: a filter box, the symptom-first
+// shortcuts declared in runbook frontmatter, then the full catalogue as cards.
+templ IndexPage(systems []parser.SystemGroup) {
+	@Shell("") {
+		<aside class="sidebar">
+			@SidebarHeader()
+			@SidebarNav(systems, "")
+			@ThemeToggle()
+		</aside>
+		<div class="main index-main">
+			<div class="main-header">
+				<h1>Runbooks</h1>
+				<p>Start from the symptom. Type to filter, or jump to a common issue.</p>
+			</div>
+			<div class="content">
+				<div class="index-inner">
+					<input
+						class="index-search"
+						type="search"
+						placeholder="What's wrong? e.g. replication lag, primary down"
+						aria-label="Filter runbooks"
+						autocomplete="off"
+						spellcheck="false"
+						autofocus
+					/>
+					@commonIssues(parser.CommonIssues(systems))
+					<p class="section-label index-catalogue-label">All runbooks</p>
+					<div class="index-empty" hidden>
+						<p>No runbooks match that. Try another word, or clear the search.</p>
+					</div>
+					for _, system := range systems {
+						<div class="index-group">
+							<h2 class="index-system">{ system.Name }</h2>
+							for _, group := range system.Categories {
+								<div class="index-category">
+									if group.Name != "" {
+										<p class="index-category-label">{ group.Name }</p>
+									}
+									<div class="card-grid">
+										for _, rb := range group.Runbooks {
+											<a
+												href={ templ.SafeURL("/" + rb.Slug) }
+												class="runbook-card"
+												data-search={ runbookSearchText(rb, system.Name, group.Name) }
+											>
+												<span class="card-title">{ rb.Title }</span>
+												if rb.Description != "" {
+													<span class="card-desc">@templ.Raw(proseHTML(rb.Description))</span>
+												}
+											</a>
+										}
+									</div>
+								</div>
+							}
+						</div>
+					}
+				</div>
+			</div>
+		</div>
+	}
+}
+
+// commonIssues renders the symptom-first shortcut list. Each entry is the first
+// `symptoms:` phrase of a runbook that declares any.
+templ commonIssues(issues []parser.CommonIssue) {
+	if len(issues) > 0 {
+		<section class="common-issues">
+			<p class="section-label">Common issues</p>
+			<ul class="ci-list">
+				for _, ci := range issues {
+					<li>
+						<a href={ templ.SafeURL("/" + ci.Slug) }>
+							<span class="ci-label">{ ci.Label }</span>
+							<span class="ci-dots" aria-hidden="true"></span>
+							<span class="ci-title">{ ci.Title }</span>
+						</a>
+					</li>
+				}
+			</ul>
+		</section>
+	}
+}

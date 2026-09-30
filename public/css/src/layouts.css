@@ -1,0 +1,113 @@
+/*
+ * LAYOUT PRIMITIVES — single source of truth for structural patterns.
+ *
+ * Stack      flex column; data-gap="sm|md|lg"
+ * Cluster    flex row wrap; for chips/actions; data-gap="sm|md|lg"
+ * Row        flex row; min-width:0 baked in; data-gap="sm|md|lg"
+ * InlineIcon inline-flex + align-items:center + gap; no line-height hacks
+ * Grid       CSS grid; data-cols="2|3|4|auto"; --grid-min for auto-fit
+ * Truncate   single utility for overflow:hidden + nowrap + ellipsis
+ * ListRow    grid auto|1fr|auto; icon + content + action rows
+ * DetailShell two-column list|detail grid; replaces hand-rolled .lower-row
+ *
+ * Rule: new layout code uses these classes, not bespoke flex/grid.
+ */
+
+.stack {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+}
+.stack[data-gap="sm"] {
+	gap: var(--space-2);
+}
+.stack[data-gap="md"] {
+	gap: var(--space-4);
+}
+.stack[data-gap="lg"] {
+	gap: var(--space-5);
+}
+
+.cluster {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-2);
+}
+.cluster[data-gap="sm"] {
+	gap: var(--space-1);
+}
+.cluster[data-gap="md"] {
+	gap: var(--space-2);
+}
+.cluster[data-gap="lg"] {
+	gap: var(--space-4);
+}
+
+.row {
+	display: flex;
+	align-items: center;
+	min-width: 0;
+}
+.row > * {
+	min-width: 0;
+}
+.row[data-gap="sm"] {
+	gap: var(--space-1);
+}
+.row[data-gap="md"] {
+	gap: var(--space-2);
+}
+.row[data-gap="lg"] {
+	gap: var(--space-4);
+}
+
+.inline-icon {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1);
+}
+
+.grid {
+	display: grid;
+	gap: var(--space-4);
+}
+.grid[data-cols="2"] {
+	grid-template-columns: repeat(2, 1fr);
+}
+.grid[data-cols="3"] {
+	grid-template-columns: repeat(3, 1fr);
+}
+.grid[data-cols="4"] {
+	grid-template-columns: repeat(4, 1fr);
+}
+.grid[data-cols="auto"] {
+	grid-template-columns: repeat(auto-fit, minmax(var(--grid-min, 200px), 1fr));
+}
+
+/* Fill remaining space in a .row; pairs with the flex:1 pattern */
+.grow {
+	flex: 1;
+	min-width: 0;
+}
+
+.truncate {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	min-width: 0;
+}
+
+.list-row {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	align-items: flex-start;
+	gap: var(--space-2);
+}
+
+.detail-shell {
+	display: grid;
+	grid-template-columns: 1fr var(--size-detail-min);
+	gap: var(--space-4);
+	align-items: start;
+}

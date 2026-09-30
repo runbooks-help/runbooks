@@ -1,0 +1,54 @@
+[tools]
+go = "latest"
+"aqua:a-h/templ" = "latest"
+gofumpt = "latest"
+node = "latest"
+
+[env]
+PORT = "8091"
+# Git sync dev config (see ~/openspec/plans/specs/runbook-notes-git-sync.md).
+# Uses the SSH key rather than a token so no secret lives in this tracked file;
+# GITSYNC_API_TOKEN is a local-dev shared secret the browser prompts for on Sync.
+GITSYNC_REPO = "git@github.com:ladydascalie/runbooks-sync-test.git"
+GITSYNC_BRANCH = "main"
+GITSYNC_BASE_PATH = "runs"
+GITSYNC_AUTHOR_NAME = "Runbooks Sync Bot"
+GITSYNC_AUTHOR_EMAIL = "cable.benjamin@protonmail.com"
+GITSYNC_SSH_KEY = "~/.ssh/personal"
+GITSYNC_API_TOKEN = "dev-local-bearer"
+
+[tasks.generate]
+description = "Run templ code generation"
+run = "templ generate ./..."
+
+[tasks.css]
+description = "Compile CSS bundle (one-shot)"
+run = "go run ./cmd/css"
+
+[tasks.js]
+description = "Compile JS bundles (one-shot)"
+run = "go run ./cmd/js"
+
+[tasks.build]
+description = "Generate templ components, compile CSS + JS, and build binary"
+depends = ["generate", "css", "js"]
+run = "go build -o runbooks ."
+
+[tasks.dev]
+description = "Live-reload dev server (templ watch + CSS/JS watch + air)"
+depends = ["css", "js"]
+run = """
+  templ generate --watch ./... & TEMPL_PID=$!
+  go run ./cmd/css --watch & CSS_PID=$!
+  go run ./cmd/js --watch & JS_PID=$!
+  trap "kill $CSS_PID $JS_PID $TEMPL_PID 2>/dev/null" EXIT
+  air -c .air.toml
+"""
+
+[tasks.lintcss]
+description = "Lint CSS source files"
+run = "npx stylelint 'public/css/src/**/*.css'"
+
+[tasks.fmtcss]
+description = "Format CSS source files with Prettier"
+run = "npx prettier --write 'public/css/src/**/*.css'"

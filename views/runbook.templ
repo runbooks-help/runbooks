@@ -1,0 +1,104 @@
+package views
+
+import "runbooks/parser"
+
+templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageConfig) {
+	@Shell(rb.Title) {
+		@templ.Raw("<script id=\"runbook-source\" type=\"application/json\">" + jsonString(rb.Source) + "</script>")
+		@templ.Raw("<script id=\"page-config\" type=\"application/json\">" + pageConfigJSON(cfg) + "</script>")
+		<aside class="sidebar">
+			@SidebarHeader()
+			@SidebarNav(groups, rb.Slug)
+			@ThemeToggle()
+		</aside>
+		<aside class="notes-panel">
+			<div class="notes-resize" aria-hidden="true"></div>
+			<div class="notes-header">
+				<div class="notes-tabs">
+					<button class="notes-tab active" data-mode="edit" type="button">Edit</button>
+					<button class="notes-tab" data-mode="preview" type="button">Preview</button>
+				</div>
+				<label class="notes-record" title="Append completed steps to the notes as a timestamped timeline">
+					<input class="notes-record-check" type="checkbox" checked/>
+					Record timeline
+				</label>
+				<div class="notes-actions">
+					<button class="notes-export" type="button" title="Download this record as a ZIP — no repo credential needed">Export</button>
+					<button class="notes-print" type="button">Print</button>
+					<button class="notes-clear" type="button">Clear</button>
+					if cfg.GitSyncEnabled {
+						<button class="notes-sync" type="button">Sync</button>
+					}
+				</div>
+			</div>
+			<textarea class="notes-textarea" spellcheck="false" placeholder="Markdown supported — paste screenshots too"></textarea>
+			<div class="notes-preview" hidden></div>
+			<div class="notes-sync-toast" hidden role="status">
+				<span class="notes-sync-toast-msg"></span>
+				<button class="notes-sync-toast-close" type="button" aria-label="Dismiss">✕</button>
+			</div>
+		</aside>
+		<div class="main">
+			<div class="main-header">
+				<h1>{ rb.Title }</h1>
+				<p>@templ.Raw(proseHTML(rb.Description))</p>
+			</div>
+			if rb.Notice != "" {
+				@FrontmatterNotice(rb.Notice)
+			}
+			if len(rb.Vars) > 0 {
+				@VarsPanel(rb.Vars)
+			}
+			<div class="content">
+				<div class="steps">
+					for i, step := range rb.Steps {
+						@stepCard(i+1, step, false)
+					}
+					if len(rb.Rollback) > 0 {
+						<div id="rollback">
+							<p class="section-label">Rollback</p>
+							for _, step := range rb.Rollback {
+								@stepCard(0, step, true)
+							}
+						</div>
+					}
+				</div>
+			</div>
+		</div>
+	}
+}
+
+templ stepCard(n int, step parser.Step, rollback bool) {
+	if rollback {
+		@RollbackStep(step.Title) {
+			for _, block := range step.Blocks {
+				@renderBlock(block)
+			}
+		}
+	} else {
+		@Step(n, step.Title) {
+			for _, block := range step.Blocks {
+				@renderBlock(block)
+			}
+		}
+	}
+}
+
+templ renderBlock(b parser.Block) {
+	switch b.Kind {
+	case parser.KindCode:
+		@CodeBlock(b.Label, b.Body, b.Lang)
+	case parser.KindNotice:
+		@Notice(b.Variant, b.Message)
+	case parser.KindBranch:
+		@BranchBlock(b.Body)
+	case parser.KindHeading:
+		<h3 class="step-subheading">{ b.Text }</h3>
+	case parser.KindList:
+		@ListBlock(b.Items)
+	case parser.KindTable:
+		@TableBlock(b.Headers, b.Rows)
+	default:
+		<p>@templ.Raw(proseHTML(b.Text))</p>
+	}
+}
