@@ -18,6 +18,15 @@ GITSYNC_AUTHOR_EMAIL = "cable.benjamin@protonmail.com"
 GITSYNC_SSH_KEY = "~/.ssh/personal"
 GITSYNC_API_TOKEN = "dev-local-bearer"
 
+# Identity dev config (see ~/openspec/plans/specs/runbooks-identity.md).
+# Turns passkey auth on for `mise run dev` so it can be exercised in a browser:
+# open http://localhost:8091/setup and paste IDENTITY_BOOTSTRAP_TOKEN.
+IDENTITY_DB_DRIVER = "sqlite"
+IDENTITY_DB_DSN = "file:./tmp/identity.db"
+IDENTITY_PUBLIC_URL = "http://localhost:8091"
+IDENTITY_BOOTSTRAP_TOKEN = "dev-bootstrap-token"
+IDENTITY_SECURE_COOKIES = "false"
+
 [tasks.generate]
 description = "Run templ code generation"
 run = "templ generate ./..."
