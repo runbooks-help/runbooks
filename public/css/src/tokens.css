@@ -1,3 +1,9 @@
+/* Runbooks design tokens — dark-first.
+   Palette seeded from the mallard: head green #3D6756 (brand), wing slate #363341
+   (surfaces), neck lavender #ACAFC4 (text), speculum #7B8CAB (links/info), chest
+   oxblood #54140A (danger); the bill amber #E0A94C is derived for warn. Status is
+   never the brand accent. See specs/runbooks-design-system.md. */
+
 *,
 *::before,
 *::after {
@@ -7,31 +13,40 @@
 }
 
 :root {
-	color-scheme: light;
-	--bg: #ededed;
-	--surface: #ffffff;
-	--nav-bg: #f5f5f5;
-	--nav-text: #1f2937;
-	--nav-muted: #636c79;
-	--nav-border: rgba(0, 0, 0, 0.08);
-	--nav-hover: rgba(0, 0, 0, 0.04);
-	--nav-active-bg: rgba(62, 189, 94, 0.1);
-	--nav-active-text: #1a6b35;
-	--accent: #3ebd5e;
-	--accent-lt: #e6f7ec;
-	--success: #3ebd5e;
-	--warn: #f59e0b;
-	--danger: #ef4444;
-	--text: #1a1a1a;
-	--muted: #585f6c;
-	--border: #e0e0e0;
-	--row-hover: #f5f5f5;
-	--row-sel: #e6f7ec;
-	--radius: 8px;
-	--shadow: 0 1px 3px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.04);
-	--tip-bg: #1a1a1a;
-	--tip-text: #e5e5e5;
-	--tip-border: rgba(62, 189, 94, 0.25);
+	color-scheme: dark;
+
+	--bg: #17161d;
+	--surface: #201f29;
+	--surface-2: #272633;
+	--nav-bg: #121118;
+	--nav-text: #d7d9e3;
+	--nav-muted: #80849a;
+	--nav-border: rgba(172, 175, 196, 0.14);
+	--nav-hover: rgba(172, 175, 196, 0.07);
+	--nav-active-bg: rgba(123, 140, 171, 0.18);
+	--nav-active-text: #c6cfe2;
+
+	--accent: #3d6756;
+	--accent-strong: #6aa88d;
+	--accent-lt: rgba(61, 103, 86, 0.32);
+	--on-accent: #eef4f0;
+	--link: #9fb0cf;
+	--success: #5fa887;
+	--warn: #e0a94c;
+	--danger: #e0705a;
+
+	--text: #e9eaf1;
+	--muted: #9a9db2;
+	--border: rgba(172, 175, 196, 0.14);
+	--border-strong: rgba(172, 175, 196, 0.26);
+	--row-hover: #24232e;
+	--row-sel: rgba(61, 103, 86, 0.22);
+
+	--radius: 10px;
+	--shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+	--tip-bg: #2a2933;
+	--tip-text: #e9eaf1;
+	--tip-border: rgba(106, 168, 141, 0.3);
 
 	/* Spacing scale */
 	--space-0: 0px;
@@ -52,10 +67,12 @@
 	/* Component sizing */
 	--ctrl-pad-y: 7px; /* vertical padding that sets interactive control height — btn, input, select */
 
-	/* Monospace font — swap comment to switch between Krypton and Geist */
-	/*--font-mono: "Monaspace Krypton", ui-monospace, monospace;*/
-	/*--font-mono: "Geist Mono", ui-monospace, monospace;*/
-	--font-mono: "Noto Sans Mono", ui-monospace, monospace;
+	/* Type — Atkinson Hyperlegible Next (UI) + Mono (commands) */
+	--font-sans: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, -apple-system, sans-serif;
+	--font-mono: "Atkinson Hyperlegible Mono", ui-monospace, monospace;
+	/* Light-on-dark strokes read thinner, so code sits above regular; the
+	   appearance preference switches this to 500. */
+	--mono-weight: 450;
 
 	/* Type scale — compact/dense */
 	--text-2xs: 12px;
@@ -73,15 +90,15 @@
 	--leading-normal: 1.5;
 
 	/* Radius scale */
-	--radius-sm: 6px;
-	--radius-md: 8px; /* same as --radius */
-	--radius-lg: 12px;
+	--radius-sm: 7px;
+	--radius-md: 10px; /* same as --radius */
+	--radius-lg: 14px;
 	--radius-pill: 99px;
 
 	/* Shadow scale */
-	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
-	--shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
-	--shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.08);
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+	--shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.35);
+	--shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.35);
 
 	/* Motion */
 	--duration-fast: 120ms;
@@ -89,42 +106,53 @@
 	--ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-html[data-theme="dark"] {
-	color-scheme: dark;
-	--bg: #1a1a1a;
-	--surface: #252525;
-	--nav-bg: #111111;
-	--nav-text: #e5e5e5;
-	--nav-muted: #888888;
-	--nav-border: rgba(255, 255, 255, 0.07);
-	--nav-hover: rgba(255, 255, 255, 0.05);
-	--nav-active-bg: rgba(62, 189, 94, 0.15);
-	--nav-active-text: #3ebd5e;
-	--accent: #3ebd5e;
-	--accent-lt: #1a2e1f;
-	--success: #3ebd5e;
-	--warn: #fbbf24;
-	--danger: #f87171;
-	--text: #fff;
-	--muted: #909090;
-	--border: #333333;
-	--row-hover: #2a2a2a;
-	--row-sel: #1a2e1f;
-	--shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
-	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-	--shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2);
-	--shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.3);
-	--tip-bg: #2a2a2a;
-	--tip-text: #e5e5e5;
-	--tip-border: rgba(62, 189, 94, 0.3);
+html[data-theme="light"] {
+	color-scheme: light;
+
+	--bg: #f2f1f6;
+	--surface: #ffffff;
+	--surface-2: #f7f6fa;
+	--nav-bg: #ebeaf1;
+	--nav-text: #2e2d38;
+	--nav-muted: #6f728a;
+	--nav-border: rgba(54, 51, 65, 0.14);
+	--nav-hover: rgba(54, 51, 65, 0.05);
+	--nav-active-bg: rgba(123, 140, 171, 0.16);
+	--nav-active-text: #33405a;
+
+	--accent: #2f5546;
+	--accent-strong: #345c4c;
+	--accent-lt: rgba(61, 103, 86, 0.14);
+	--on-accent: #f4f8f5;
+	--link: #4c5f80;
+	--success: #2f6b52;
+	--warn: #976a1c;
+	--danger: #a8402c;
+
+	--text: #23222c;
+	--muted: #5f6273;
+	--border: rgba(54, 51, 65, 0.14);
+	--border-strong: rgba(54, 51, 65, 0.24);
+	--row-hover: #f4f3f8;
+	--row-sel: rgba(47, 85, 70, 0.1);
+
+	--shadow: 0 1px 3px rgba(35, 34, 44, 0.1), 0 1px 2px rgba(35, 34, 44, 0.06);
+	--tip-bg: #23222c;
+	--tip-text: #f2f1f6;
+	--tip-border: rgba(52, 92, 76, 0.3);
+
+	--shadow-sm: 0 1px 2px rgba(35, 34, 44, 0.08);
+	--shadow-md: 0 4px 12px rgba(35, 34, 44, 0.12), 0 2px 4px rgba(35, 34, 44, 0.07);
+	--shadow-lg: 0 8px 24px rgba(35, 34, 44, 0.16), 0 4px 8px rgba(35, 34, 44, 0.08);
+}
+
+/* Code-weight preference (appearance control) */
+html[data-code-weight="bold"] {
+	--mono-weight: 500;
 }
 
 body {
-	font-family:
-		"Noto Sans",
-		system-ui,
-		-apple-system,
-		sans-serif;
+	font-family: var(--font-sans);
 	background: var(--bg);
 	color: var(--text);
 	font-size: 1em;

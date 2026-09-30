@@ -417,7 +417,7 @@ if (notesHandle) {
 const html = document.documentElement;
 
 function setTheme(t) {
-	localStorage.setItem('ll-theme', t);
+	localStorage.setItem('runbooks-theme', t);
 	const dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 	html.dataset.theme = dark ? 'dark' : 'light';
 	document.querySelectorAll('.theme-btn').forEach(btn => {
@@ -430,7 +430,7 @@ document.querySelectorAll('.theme-btn').forEach(btn => {
 });
 
 // Sync active state on load
-const saved = localStorage.getItem('ll-theme') || 'system';
+const saved = localStorage.getItem('runbooks-theme') || 'dark';
 document.querySelectorAll('.theme-btn').forEach(btn => {
 	btn.classList.toggle('active', btn.dataset.theme === saved);
 });

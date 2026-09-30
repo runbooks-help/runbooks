@@ -178,8 +178,8 @@ nav a.active {
 .hint-btn:hover,
 .hint-btn.active {
 	background: var(--accent-lt);
-	border-color: var(--accent);
-	color: var(--accent);
+	border-color: var(--accent-strong);
+	color: var(--accent-strong);
 }
 
 /* ── Hint popup ──────────────────────────────────────────────────── */
@@ -216,6 +216,7 @@ nav a.active {
 
 .hint-popup pre {
 	font-family: var(--font-mono);
+	font-weight: var(--mono-weight);
 	font-size: var(--text-2xs);
 	line-height: 1.6;
 	color: #e5e5e5;
@@ -231,14 +232,15 @@ nav a.active {
 	border-radius: var(--radius-sm);
 	font-size: var(--text-2xs);
 	font-family: var(--font-mono);
+	font-weight: var(--mono-weight);
 	color: var(--text);
 	outline: none;
 	transition: border-color var(--duration-fast);
 }
 
 .var-input:focus {
-	border-color: var(--accent);
-	box-shadow: 0 0 0 2px rgba(62, 189, 94, 0.2);
+	border-color: var(--accent-strong);
+	box-shadow: 0 0 0 2px rgba(106, 168, 141, 0.2);
 }
 
 /* ── Main content ────────────────────────────────────────────────── */
@@ -454,6 +456,7 @@ body.resizing-notes {
 	background: transparent;
 	color: var(--text);
 	font-family: var(--font-mono);
+	font-weight: var(--mono-weight);
 	font-size: var(--text-2xs);
 	line-height: 1.7;
 	caret-color: var(--accent);
@@ -499,6 +502,7 @@ body.resizing-notes {
 
 .notes-preview code {
 	font-family: var(--font-mono);
+	font-weight: var(--mono-weight);
 	font-size: var(--text-2xs);
 	background: rgba(128, 128, 128, 0.15);
 	padding: 1px 4px;
