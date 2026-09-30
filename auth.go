@@ -271,6 +271,109 @@ func (a *auth) inviteFinish(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
 }
 
+func (a *auth) recoveryPage(w http.ResponseWriter, r *http.Request) {
+	views.RecoveryPage().Render(r.Context(), w)
+}
+
+// recoveryBegin starts a passkey ceremony for the instance's sole admin, guarded
+// by IDENTITY_RECOVERY_TOKEN. The target is derived server-side, never trusted
+// from the client.
+func (a *auth) recoveryBegin(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Token string `json:"token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	if !a.validRecovery(req.Token) {
+		writeJSONError(w, http.StatusUnauthorized, "invalid recovery token")
+		return
+	}
+	admin, ok, err := a.soleAdmin(r.Context())
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "could not look up admins")
+		return
+	}
+	if !ok {
+		writeJSONError(w, http.StatusConflict, "recovery is for an instance with a single admin")
+		return
+	}
+	token, options, err := a.svc.BeginRegistration(r.Context(), admin.ID)
+	if err != nil {
+		logAuthFailure("recovery/begin", err)
+		writeJSONError(w, http.StatusInternalServerError, "could not begin registration")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"challenge": token, "options": options})
+}
+
+func (a *auth) recoveryFinish(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Token      string          `json:"token"`
+		Challenge  string          `json:"challenge"`
+		Credential json.RawMessage `json:"credential"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	if !a.validRecovery(req.Token) {
+		writeJSONError(w, http.StatusUnauthorized, "invalid recovery token")
+		return
+	}
+	admin, ok, err := a.soleAdmin(r.Context())
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "could not look up admins")
+		return
+	}
+	if !ok {
+		writeJSONError(w, http.StatusConflict, "recovery is for an instance with a single admin")
+		return
+	}
+	if _, err := a.svc.FinishRegistration(r.Context(), admin.ID, req.Challenge, req.Credential); err != nil {
+		logAuthFailure("recovery/finish", err)
+		writeJSONError(w, http.StatusBadRequest, "registration failed")
+		return
+	}
+	raw, err := a.svc.Create(r.Context(), admin.ID, r.UserAgent(), clientIP(r))
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "could not start session")
+		return
+	}
+	a.setSession(w, raw)
+	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
+}
+
+// validRecovery reports whether the break-glass token matches the configured
+// one. An unset token disables recovery entirely (the routes are not registered).
+func (a *auth) validRecovery(token string) bool {
+	if a.cfg.IdentityRecoveryToken == "" {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(token), []byte(a.cfg.IdentityRecoveryToken)) == 1
+}
+
+// soleAdmin returns the only enabled admin. Break-glass recovery is for a sole
+// admin with no other admin to help; with none or several the operator has
+// another way in.
+func (a *auth) soleAdmin(ctx context.Context) (stores.User, bool, error) {
+	users, err := a.st.ListUsers(ctx)
+	if err != nil {
+		return stores.User{}, false, err
+	}
+	var admins []stores.User
+	for _, u := range users {
+		if u.IsAdmin() && u.Enabled() {
+			admins = append(admins, u)
+		}
+	}
+	if len(admins) != 1 {
+		return stores.User{}, false, nil
+	}
+	return admins[0], true, nil
+}
+
 func (a *auth) adminPage(w http.ResponseWriter, r *http.Request) {
 	users, err := a.st.ListUsers(r.Context())
 	if err != nil {

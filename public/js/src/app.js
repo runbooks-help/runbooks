@@ -582,6 +582,50 @@ function authStatus(message, isError) {
 	el.hidden = !message;
 }
 
+// createPasskey runs the WebAuthn registration ceremony and returns the
+// credential JSON the server expects.
+async function createPasskey(options) {
+	const pk = options.publicKey;
+	pk.challenge = decodeBase64URL(pk.challenge);
+	pk.user.id = decodeBase64URL(pk.user.id);
+	(pk.excludeCredentials || []).forEach(c => {
+		c.id = decodeBase64URL(c.id);
+	});
+	const cred = await navigator.credentials.create({ publicKey: pk });
+	return {
+		id: cred.id,
+		rawId: encodeBase64URL(cred.rawId),
+		type: cred.type,
+		response: {
+			clientDataJSON: encodeBase64URL(cred.response.clientDataJSON),
+			attestationObject: encodeBase64URL(cred.response.attestationObject),
+			transports: cred.response.getTransports ? cred.response.getTransports() : undefined,
+		},
+	};
+}
+
+// getPasskey runs the WebAuthn assertion ceremony and returns the credential
+// JSON the server expects.
+async function getPasskey(options) {
+	const pk = options.publicKey;
+	pk.challenge = decodeBase64URL(pk.challenge);
+	(pk.allowCredentials || []).forEach(c => {
+		c.id = decodeBase64URL(c.id);
+	});
+	const cred = await navigator.credentials.get({ publicKey: pk });
+	return {
+		id: cred.id,
+		rawId: encodeBase64URL(cred.rawId),
+		type: cred.type,
+		response: {
+			clientDataJSON: encodeBase64URL(cred.response.clientDataJSON),
+			authenticatorData: encodeBase64URL(cred.response.authenticatorData),
+			signature: encodeBase64URL(cred.response.signature),
+			userHandle: cred.response.userHandle ? encodeBase64URL(cred.response.userHandle) : undefined,
+		},
+	};
+}
+
 const loginButton = document.querySelector('[data-auth="login"]');
 if (loginButton) {
 	loginButton.addEventListener('click', async () => {
@@ -589,23 +633,7 @@ if (loginButton) {
 		authStatus('Waiting for your passkey…');
 		try {
 			const begin = await authPost('/api/auth/v1/login/begin');
-			const pk = begin.options.publicKey;
-			pk.challenge = decodeBase64URL(pk.challenge);
-			(pk.allowCredentials || []).forEach(c => {
-				c.id = decodeBase64URL(c.id);
-			});
-			const cred = await navigator.credentials.get({ publicKey: pk });
-			const credential = {
-				id: cred.id,
-				rawId: encodeBase64URL(cred.rawId),
-				type: cred.type,
-				response: {
-					clientDataJSON: encodeBase64URL(cred.response.clientDataJSON),
-					authenticatorData: encodeBase64URL(cred.response.authenticatorData),
-					signature: encodeBase64URL(cred.response.signature),
-					userHandle: cred.response.userHandle ? encodeBase64URL(cred.response.userHandle) : undefined,
-				},
-			};
+			const credential = await getPasskey(begin.options);
 			await authPost('/api/auth/v1/login/finish', { challenge: begin.challenge, credential });
 			window.location.assign('/');
 		} catch (err) {
@@ -629,23 +657,7 @@ if (setupForm) {
 				display_name: fields.display_name,
 				email: fields.email,
 			});
-			const pk = begin.options.publicKey;
-			pk.challenge = decodeBase64URL(pk.challenge);
-			pk.user.id = decodeBase64URL(pk.user.id);
-			(pk.excludeCredentials || []).forEach(c => {
-				c.id = decodeBase64URL(c.id);
-			});
-			const cred = await navigator.credentials.create({ publicKey: pk });
-			const credential = {
-				id: cred.id,
-				rawId: encodeBase64URL(cred.rawId),
-				type: cred.type,
-				response: {
-					clientDataJSON: encodeBase64URL(cred.response.clientDataJSON),
-					attestationObject: encodeBase64URL(cred.response.attestationObject),
-					transports: cred.response.getTransports ? cred.response.getTransports() : undefined,
-				},
-			};
+			const credential = await createPasskey(begin.options);
 			await authPost('/api/auth/v1/setup/finish', {
 				token: fields.token,
 				user_id: begin.user_id,
@@ -675,31 +687,31 @@ if (inviteForm) {
 				display_name: fields.display_name,
 				email: fields.email,
 			});
-			const pk = begin.options.publicKey;
-			pk.challenge = decodeBase64URL(pk.challenge);
-			pk.user.id = decodeBase64URL(pk.user.id);
-			(pk.excludeCredentials || []).forEach(c => {
-				c.id = decodeBase64URL(c.id);
-			});
-			const cred = await navigator.credentials.create({ publicKey: pk });
-			const credential = {
-				id: cred.id,
-				rawId: encodeBase64URL(cred.rawId),
-				type: cred.type,
-				response: {
-					clientDataJSON: encodeBase64URL(cred.response.clientDataJSON),
-					attestationObject: encodeBase64URL(cred.response.attestationObject),
-					transports: cred.response.getTransports ? cred.response.getTransports() : undefined,
-				},
-			};
-			await authPost('/api/auth/v1/invite/finish', {
-				token,
-				challenge: begin.challenge,
-				credential,
-			});
+			const credential = await createPasskey(begin.options);
+			await authPost('/api/auth/v1/invite/finish', { token, challenge: begin.challenge, credential });
 			window.location.assign('/');
 		} catch (err) {
 			authStatus(`Could not join: ${err.message}`, true);
+			if (submit) submit.disabled = false;
+		}
+	});
+}
+
+const recoveryForm = document.querySelector('[data-auth="recovery"]');
+if (recoveryForm) {
+	recoveryForm.addEventListener('submit', async event => {
+		event.preventDefault();
+		const fields = Object.fromEntries(new FormData(recoveryForm).entries());
+		const submit = recoveryForm.querySelector('button[type="submit"]');
+		if (submit) submit.disabled = true;
+		authStatus('Creating your passkey…');
+		try {
+			const begin = await authPost('/api/auth/v1/recovery/begin', { token: fields.token });
+			const credential = await createPasskey(begin.options);
+			await authPost('/api/auth/v1/recovery/finish', { token: fields.token, challenge: begin.challenge, credential });
+			window.location.assign('/');
+		} catch (err) {
+			authStatus(`Recovery failed: ${err.message}`, true);
 			if (submit) submit.disabled = false;
 		}
 	});

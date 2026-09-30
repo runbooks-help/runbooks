@@ -158,6 +158,12 @@ func main() {
 		mux.HandleFunc("/admin", authn.requireAdmin(authn.adminPage))
 		mux.HandleFunc("/api/auth/v1/invites", authn.requireAdminAPI(authn.createInvite))
 		mux.HandleFunc("/api/auth/v1/sessions/revoke", authn.requireAdminAPI(authn.revokeSessions))
+		// Break-glass recovery is only reachable when a token is configured.
+		if cfg.IdentityRecoveryToken != "" {
+			mux.HandleFunc("/recovery", authn.recoveryPage)
+			mux.HandleFunc("/api/auth/v1/recovery/begin", authn.recoveryBegin)
+			mux.HandleFunc("/api/auth/v1/recovery/finish", authn.recoveryFinish)
+		}
 
 		index = authn.requirePage(index)
 		log.Printf("identity enabled (%s)", cfg.IdentityDriver)

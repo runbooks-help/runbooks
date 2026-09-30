@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,10 +22,11 @@ import (
 )
 
 const (
-	testRPID   = "localhost"
-	testOrigin = "http://localhost"
-	testRPName = "Runbooks"
-	testToken  = "test-bootstrap"
+	testRPID     = "localhost"
+	testOrigin   = "http://localhost"
+	testRPName   = "Runbooks"
+	testToken    = "test-bootstrap"
+	testRecovery = "test-recovery"
 )
 
 func testRP() virtualwebauthn.RelyingParty {
@@ -31,6 +34,13 @@ func testRP() virtualwebauthn.RelyingParty {
 }
 
 func newTestServer(t *testing.T) (*httptest.Server, *identity.Service, stores.Store) {
+	t.Helper()
+	return newTestServerWith(t, nil)
+}
+
+// newTestServerWith builds the test server, letting a test tweak the config
+// (e.g. to disable the recovery token) before wiring.
+func newTestServerWith(t *testing.T, mutate func(*config)) (*httptest.Server, *identity.Service, stores.Store) {
 	t.Helper()
 	st, err := sqlite.Open(context.Background(), "file:"+filepath.Join(t.TempDir(), "auth.db"))
 	if err != nil {
@@ -43,9 +53,13 @@ func newTestServer(t *testing.T) (*httptest.Server, *identity.Service, stores.St
 		IdentityDriver:         "sqlite",
 		IdentityPublicURL:      testOrigin,
 		IdentityBootstrapToken: testToken,
+		IdentityRecoveryToken:  testRecovery,
 		IdentitySecureCookies:  false,
 		IdentitySessionTTL:     720 * time.Hour,
 		IdentitySessionIdleTTL: 168 * time.Hour,
+	}
+	if mutate != nil {
+		mutate(&cfg)
 	}
 	svc, err := identity.New(identity.Config{
 		RPID:           testRPID,
@@ -73,6 +87,11 @@ func newTestServer(t *testing.T) (*httptest.Server, *identity.Service, stores.St
 	mux.HandleFunc("/admin", a.requireAdmin(a.adminPage))
 	mux.HandleFunc("/api/auth/v1/invites", a.requireAdminAPI(a.createInvite))
 	mux.HandleFunc("/api/auth/v1/sessions/revoke", a.requireAdminAPI(a.revokeSessions))
+	if cfg.IdentityRecoveryToken != "" {
+		mux.HandleFunc("/recovery", a.recoveryPage)
+		mux.HandleFunc("/api/auth/v1/recovery/begin", a.recoveryBegin)
+		mux.HandleFunc("/api/auth/v1/recovery/finish", a.recoveryFinish)
+	}
 	mux.HandleFunc("/{$}", a.requirePage(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, "index")
 	}))
@@ -120,6 +139,15 @@ type beginResponse struct {
 	UserID    string          `json:"user_id"`
 	Challenge string          `json:"challenge"`
 	Options   json.RawMessage `json:"options"`
+}
+
+func TestClientIP(t *testing.T) {
+	if got := clientIP(&http.Request{RemoteAddr: "127.0.0.1:1234"}); got != "127.0.0.1" {
+		t.Errorf("clientIP with port = %q, want 127.0.0.1", got)
+	}
+	if got := clientIP(&http.Request{RemoteAddr: "127.0.0.1"}); got != "127.0.0.1" {
+		t.Errorf("clientIP without port = %q, want the raw address", got)
+	}
 }
 
 func TestSetupLoginGatingFlow(t *testing.T) {
@@ -171,12 +199,48 @@ func TestSetupLoginGatingFlow(t *testing.T) {
 		t.Fatalf("authenticated GET / = %d, want 200", code)
 	}
 
-	// Log out, then sign back in with the passkey.
-	if code, _ := postJSON(t, client, srv.URL+"/api/auth/v1/logout", nil); code != http.StatusOK {
-		t.Fatalf("logout = %d, want 200", code)
+	// Setup is closed once an admin exists (exercises adminExists's scan).
+	if code, _ := get(t, anon, srv.URL+"/setup"); code != http.StatusFound {
+		t.Fatalf("GET /setup with an admin = %d, want 302", code)
+	}
+
+	// Log out: the session row is revoked server-side and the cookie is cleared.
+	u, err := url.Parse(srv.URL)
+	if err != nil {
+		t.Fatalf("parse server URL: %v", err)
+	}
+	var sessionValue string
+	for _, c := range client.Jar.Cookies(u) {
+		if c.Name == sessionCookieName {
+			sessionValue = c.Value
+		}
+	}
+	if sessionValue == "" {
+		t.Fatal("no session cookie before logout")
+	}
+	logoutReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/auth/v1/logout", nil)
+	if err != nil {
+		t.Fatalf("new logout request: %v", err)
+	}
+	logoutRes, err := client.Do(logoutReq)
+	if err != nil {
+		t.Fatalf("logout: %v", err)
+	}
+	logoutRes.Body.Close()
+	if logoutRes.StatusCode != http.StatusOK {
+		t.Fatalf("logout = %d, want 200", logoutRes.StatusCode)
+	}
+	if sc := logoutRes.Header.Get("Set-Cookie"); !strings.Contains(sc, "Max-Age=0") {
+		t.Errorf("logout Set-Cookie = %q, want Max-Age=0", sc)
 	}
 	if code, _ := get(t, client, srv.URL+"/"); code != http.StatusFound {
 		t.Fatalf("GET / after logout = %d, want 302", code)
+	}
+	// The revoked session is dead even if its cookie is replayed.
+	replay := newClient(t)
+	replay.Jar.SetCookies(u, []*http.Cookie{{Name: sessionCookieName, Value: sessionValue, Path: "/"}})
+	if code, _ := get(t, replay, srv.URL+"/"); code != http.StatusFound {
+		t.Fatalf("replayed revoked cookie GET / = %d, want 302", code)
 	}
 	code, body = postJSON(t, client, srv.URL+"/api/auth/v1/login/begin", nil)
 	if code != http.StatusOK {
@@ -239,8 +303,8 @@ func TestInviteFlow(t *testing.T) {
 
 	// A live invite renders the join page; an unknown one renders the invalid page.
 	invited := newClient(t)
-	if code, _ := get(t, invited, srv.URL+"/invite/"+raw); code != http.StatusOK {
-		t.Fatalf("GET /invite = %d, want 200", code)
+	if code, body := get(t, invited, srv.URL+"/invite/"+raw); code != http.StatusOK || !bytes.Contains(body, []byte(`name="display_name"`)) {
+		t.Fatalf("GET /invite = %d %q, want the join form", code, body)
 	}
 	if code, body := get(t, invited, srv.URL+"/invite/nope"); code != http.StatusOK || !bytes.Contains(body, []byte("not valid")) {
 		t.Fatalf("GET /invite/nope = %d %q, want invalid page", code, body)
@@ -295,6 +359,10 @@ func TestInviteFlow(t *testing.T) {
 		t.Fatalf("CreateInvite re-enrol: %v", err)
 	}
 	reClient := newClient(t)
+	// A bound invite hides the name step — it re-enrols an existing user.
+	if code, body := get(t, reClient, srv.URL+"/invite/"+re); code != http.StatusOK || bytes.Contains(body, []byte(`name="display_name"`)) {
+		t.Fatalf("re-enrolment invite page = %d %q, want no name step", code, body)
+	}
 	reBegin := decodeBegin(t, reClient, srv.URL+"/api/auth/v1/invite/begin", map[string]string{"token": re})
 	reAttestation, err := virtualwebauthn.ParseAttestationOptions(string(reBegin.Options))
 	if err != nil {
@@ -347,6 +415,20 @@ func TestAdminFlow(t *testing.T) {
 		t.Fatalf("invite = %+v", invite)
 	}
 
+	// An admin-role invite is accepted; an unknown role and a bad expiry are not.
+	if code, body := postJSON(t, admin, srv.URL+"/api/auth/v1/invites", map[string]string{"role": "admin"}); code != http.StatusOK {
+		t.Fatalf("create admin invite = %d: %s", code, body)
+	}
+	if code, _ := postJSON(t, admin, srv.URL+"/api/auth/v1/invites", map[string]string{"role": "root"}); code != http.StatusBadRequest {
+		t.Fatalf("create invite with unknown role = %d, want 400", code)
+	}
+	if code, _ := postJSON(t, admin, srv.URL+"/api/auth/v1/invites", map[string]string{"role": "member", "ttl": "0s"}); code != http.StatusBadRequest {
+		t.Fatalf("create invite with zero expiry = %d, want 400", code)
+	}
+	if code, _ := postJSON(t, admin, srv.URL+"/api/auth/v1/invites", map[string]string{"role": "member", "ttl": "nonsense"}); code != http.StatusBadRequest {
+		t.Fatalf("create invite with bad expiry = %d, want 400", code)
+	}
+
 	member, memberUser := enrolInvite(t, srv, st, rp, invite.Token, "Sam")
 
 	// A member can neither open the admin page nor call the admin APIs.
@@ -374,6 +456,106 @@ func TestAdminFlow(t *testing.T) {
 	}
 	if code, _ := postJSON(t, admin, srv.URL+"/api/auth/v1/sessions/revoke", map[string]string{"user_id": "nope"}); code != http.StatusNotFound {
 		t.Fatalf("revoke unknown = %d, want 404", code)
+	}
+}
+
+func TestRecoveryFlow(t *testing.T) {
+	srv, _, st := newTestServer(t)
+	rp := testRP()
+	ctx := context.Background()
+	adminAuthn := virtualwebauthn.NewAuthenticator()
+	adminCred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	_, adminID := bootstrapAdmin(t, srv, rp, adminAuthn, adminCred)
+
+	// Simulate a lost passkey: remove the admin's only credential.
+	creds, err := st.ListCredentials(ctx, adminID)
+	if err != nil {
+		t.Fatalf("ListCredentials: %v", err)
+	}
+	if len(creds) != 1 {
+		t.Fatalf("admin credentials = %d, want 1", len(creds))
+	}
+	if err := st.DeleteCredential(ctx, creds[0].ID); err != nil {
+		t.Fatalf("DeleteCredential: %v", err)
+	}
+
+	// The recovery page renders, and a wrong token is refused.
+	if code, _ := get(t, newClient(t), srv.URL+"/recovery"); code != http.StatusOK {
+		t.Fatalf("GET /recovery = %d, want 200", code)
+	}
+	if code, _ := postJSON(t, newClient(t), srv.URL+"/api/auth/v1/recovery/begin", map[string]string{"token": "wrong"}); code != http.StatusUnauthorized {
+		t.Fatalf("recovery/begin wrong token = %d, want 401", code)
+	}
+
+	// The break-glass token re-enrols a passkey for the sole admin.
+	client := newClient(t)
+	code, body := postJSON(t, client, srv.URL+"/api/auth/v1/recovery/begin", map[string]string{"token": testRecovery})
+	if code != http.StatusOK {
+		t.Fatalf("recovery/begin = %d: %s", code, body)
+	}
+	var begin beginResponse
+	if err := json.Unmarshal(body, &begin); err != nil {
+		t.Fatalf("decode begin: %v", err)
+	}
+	recoveryAuthn := virtualwebauthn.NewAuthenticator()
+	recoveryCred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	attestation, err := virtualwebauthn.ParseAttestationOptions(string(begin.Options))
+	if err != nil {
+		t.Fatalf("parse attestation options: %v", err)
+	}
+	resp := virtualwebauthn.CreateAttestationResponse(rp, recoveryAuthn, recoveryCred, *attestation)
+	if code, body := postJSON(t, client, srv.URL+"/api/auth/v1/recovery/finish", map[string]any{
+		"token": testRecovery, "challenge": begin.Challenge, "credential": json.RawMessage(resp),
+	}); code != http.StatusOK {
+		t.Fatalf("recovery/finish = %d: %s", code, body)
+	}
+
+	// The recovered session opens the gated index.
+	if code, _ := get(t, client, srv.URL+"/"); code != http.StatusOK {
+		t.Fatalf("recovered GET / = %d, want 200", code)
+	}
+
+	// And the re-enrolled passkey signs in on its own.
+	recoveryAuthn.AddCredential(recoveryCred)
+	if code, _ := postJSON(t, client, srv.URL+"/api/auth/v1/logout", nil); code != http.StatusOK {
+		t.Fatalf("logout = %d, want 200", code)
+	}
+	lbCode, lbBody := postJSON(t, client, srv.URL+"/api/auth/v1/login/begin", nil)
+	if lbCode != http.StatusOK {
+		t.Fatalf("login/begin = %d: %s", lbCode, lbBody)
+	}
+	var lb beginResponse
+	if err := json.Unmarshal(lbBody, &lb); err != nil {
+		t.Fatalf("decode login begin: %v", err)
+	}
+	assertion, err := virtualwebauthn.ParseAssertionOptions(string(lb.Options))
+	if err != nil {
+		t.Fatalf("parse assertion options: %v", err)
+	}
+	assertionResp := virtualwebauthn.CreateAssertionResponse(rp, recoveryAuthn, recoveryCred, *assertion)
+	if code, body := postJSON(t, client, srv.URL+"/api/auth/v1/login/finish", map[string]any{
+		"challenge": lb.Challenge, "credential": json.RawMessage(assertionResp),
+	}); code != http.StatusOK {
+		t.Fatalf("login/finish after recovery = %d: %s", code, body)
+	}
+
+	// Break-glass is refused once a second admin exists.
+	secondAdmin := stores.User{ID: "second-admin", DisplayName: "Second", Role: stores.RoleAdmin, CreatedAt: time.Now()}
+	if err := st.InsertUser(ctx, secondAdmin); err != nil {
+		t.Fatalf("InsertUser: %v", err)
+	}
+	if code, _ := postJSON(t, client, srv.URL+"/api/auth/v1/recovery/begin", map[string]string{"token": testRecovery}); code != http.StatusConflict {
+		t.Fatalf("recovery/begin with two admins = %d, want 409", code)
+	}
+}
+
+func TestRecoveryDisabledWithoutToken(t *testing.T) {
+	srv, _, _ := newTestServerWith(t, func(c *config) { c.IdentityRecoveryToken = "" })
+	if code, _ := get(t, newClient(t), srv.URL+"/recovery"); code != http.StatusNotFound {
+		t.Fatalf("/recovery without a token = %d, want 404", code)
+	}
+	if code, _ := postJSON(t, newClient(t), srv.URL+"/api/auth/v1/recovery/begin", map[string]string{"token": "x"}); code != http.StatusNotFound {
+		t.Fatalf("recovery/begin without a token = %d, want 404", code)
 	}
 }
 
