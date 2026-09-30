@@ -127,8 +127,10 @@ Authoring conventions that have bitten us:
 
 ## Build pipeline and generated files
 
-- **templ**: edit `views/*.templ`. `views/*_templ.go` is generated and committed —
-  never hand-edit it; run `mise run generate` after changing a `.templ`.
+- **templ**: edit `views/*.templ`. `views/*_templ.go` is generated and **gitignored** —
+  never hand-edit it; it is rebuilt by `mise run build` and by CI/Docker
+  (`go tool templ generate ./...`), so run `mise run generate` after changing a
+  `.templ`.
 - **CSS**: `public/css/src/main.css` `@import`s `fonts`, `tokens`, `layouts`,
   `shell`, `runbooks`. esbuild bundles/minifies to `public/css/bundle.css`
   (committed). Put component styles in the relevant src file; the `.nav-system`

@@ -2,14 +2,12 @@ FROM golang:1.26 AS builder
 
 WORKDIR /app
 
-RUN go install github.com/a-h/templ/cmd/templ@v0.3.1020
-
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 
-RUN templ generate ./... && \
+RUN go tool templ generate ./... && \
     go run ./cmd/css && \
     go run ./cmd/js && \
     CGO_ENABLED=0 GOOS=linux go build -o runbooks .

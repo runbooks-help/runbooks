@@ -65,6 +65,7 @@ run = "npx prettier --write 'public/css/src/**/*.css'"
 
 [tasks.test]
 description = "Run Go and JS tests"
+depends = ["generate"]
 run = """
   go test ./...
   node --test public/js/src/*.test.mjs
