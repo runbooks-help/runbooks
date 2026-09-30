@@ -659,3 +659,48 @@ if (setupForm) {
 		}
 	});
 }
+
+const inviteForm = document.querySelector('[data-auth="invite"]');
+if (inviteForm) {
+	inviteForm.addEventListener('submit', async event => {
+		event.preventDefault();
+		const token = inviteForm.dataset.inviteToken;
+		const fields = Object.fromEntries(new FormData(inviteForm).entries());
+		const submit = inviteForm.querySelector('button[type="submit"]');
+		if (submit) submit.disabled = true;
+		authStatus('Creating your passkey…');
+		try {
+			const begin = await authPost('/api/auth/v1/invite/begin', {
+				token,
+				display_name: fields.display_name,
+				email: fields.email,
+			});
+			const pk = begin.options.publicKey;
+			pk.challenge = decodeBase64URL(pk.challenge);
+			pk.user.id = decodeBase64URL(pk.user.id);
+			(pk.excludeCredentials || []).forEach(c => {
+				c.id = decodeBase64URL(c.id);
+			});
+			const cred = await navigator.credentials.create({ publicKey: pk });
+			const credential = {
+				id: cred.id,
+				rawId: encodeBase64URL(cred.rawId),
+				type: cred.type,
+				response: {
+					clientDataJSON: encodeBase64URL(cred.response.clientDataJSON),
+					attestationObject: encodeBase64URL(cred.response.attestationObject),
+					transports: cred.response.getTransports ? cred.response.getTransports() : undefined,
+				},
+			};
+			await authPost('/api/auth/v1/invite/finish', {
+				token,
+				challenge: begin.challenge,
+				credential,
+			});
+			window.location.assign('/');
+		} catch (err) {
+			authStatus(`Could not join: ${err.message}`, true);
+			if (submit) submit.disabled = false;
+		}
+	});
+}

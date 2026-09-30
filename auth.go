@@ -153,6 +153,101 @@ func (a *auth) setupFinish(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
 }
 
+func (a *auth) invitePage(w http.ResponseWriter, r *http.Request) {
+	inv, err := a.svc.Invite(r.Context(), r.PathValue("token"))
+	if err != nil {
+		views.InviteInvalidPage().Render(r.Context(), w)
+		return
+	}
+	views.InvitePage(r.PathValue("token"), inv.UserID != "").Render(r.Context(), w)
+}
+
+// inviteBegin validates an invite and starts the passkey ceremony. For a
+// new-user invite it creates the user and binds it to the invite, so the finish
+// step cannot be pointed at a different account.
+func (a *auth) inviteBegin(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Token       string `json:"token"`
+		DisplayName string `json:"display_name"`
+		Email       string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	inv, err := a.svc.Invite(r.Context(), req.Token)
+	if err != nil {
+		writeJSONError(w, http.StatusUnauthorized, "invite is invalid or expired")
+		return
+	}
+
+	if inv.UserID == "" {
+		if strings.TrimSpace(req.DisplayName) == "" {
+			writeJSONError(w, http.StatusBadRequest, "display name is required")
+			return
+		}
+		user := stores.User{
+			ID:          newUserID(),
+			Email:       strings.TrimSpace(req.Email),
+			DisplayName: strings.TrimSpace(req.DisplayName),
+			Role:        inv.Role,
+			CreatedAt:   time.Now(),
+		}
+		if err := a.st.InsertUser(r.Context(), user); err != nil {
+			writeJSONError(w, http.StatusInternalServerError, "could not create user")
+			return
+		}
+		inv.UserID = user.ID
+		if err := a.st.UpdateInvite(r.Context(), inv); err != nil {
+			writeJSONError(w, http.StatusInternalServerError, "could not accept invite")
+			return
+		}
+	}
+
+	token, options, err := a.svc.BeginRegistration(r.Context(), inv.UserID)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "could not begin registration")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"challenge": token, "options": options})
+}
+
+func (a *auth) inviteFinish(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Token      string          `json:"token"`
+		Challenge  string          `json:"challenge"`
+		Credential json.RawMessage `json:"credential"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	inv, err := a.svc.Invite(r.Context(), req.Token)
+	if err != nil {
+		writeJSONError(w, http.StatusUnauthorized, "invite is invalid or expired")
+		return
+	}
+	if inv.UserID == "" {
+		writeJSONError(w, http.StatusConflict, "invite has not been started")
+		return
+	}
+	if _, err := a.svc.FinishRegistration(r.Context(), inv.UserID, req.Challenge, req.Credential); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "registration failed")
+		return
+	}
+	if err := a.svc.UseInvite(r.Context(), inv); err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "could not accept invite")
+		return
+	}
+	raw, err := a.svc.Create(r.Context(), inv.UserID, r.UserAgent(), clientIP(r))
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "could not start session")
+		return
+	}
+	a.setSession(w, raw)
+	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
+}
+
 func (a *auth) logout(w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie(sessionCookieName); err == nil {
 		_ = a.svc.Revoke(r.Context(), c.Value)

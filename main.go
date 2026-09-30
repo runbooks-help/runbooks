@@ -146,10 +146,13 @@ func main() {
 
 		mux.HandleFunc("/login", authn.loginPage)
 		mux.HandleFunc("/setup", authn.setupPage)
+		mux.HandleFunc("/invite/{token}", authn.invitePage)
 		mux.HandleFunc("/api/auth/v1/login/begin", authn.loginBegin)
 		mux.HandleFunc("/api/auth/v1/login/finish", authn.loginFinish)
 		mux.HandleFunc("/api/auth/v1/setup/begin", authn.setupBegin)
 		mux.HandleFunc("/api/auth/v1/setup/finish", authn.setupFinish)
+		mux.HandleFunc("/api/auth/v1/invite/begin", authn.inviteBegin)
+		mux.HandleFunc("/api/auth/v1/invite/finish", authn.inviteFinish)
 		mux.HandleFunc("/api/auth/v1/logout", authn.logout)
 
 		index = authn.requirePage(index)

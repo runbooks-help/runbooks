@@ -15,6 +15,7 @@ import (
 	"github.com/descope/virtualwebauthn"
 
 	"runbooks/identity"
+	"runbooks/stores"
 	"runbooks/stores/sqlite"
 )
 
@@ -29,7 +30,7 @@ func testRP() virtualwebauthn.RelyingParty {
 	return virtualwebauthn.RelyingParty{Name: testRPName, ID: testRPID, Origin: testOrigin}
 }
 
-func newTestServer(t *testing.T) *httptest.Server {
+func newTestServer(t *testing.T) (*httptest.Server, *identity.Service, stores.Store) {
 	t.Helper()
 	st, err := sqlite.Open(context.Background(), "file:"+filepath.Join(t.TempDir(), "auth.db"))
 	if err != nil {
@@ -61,10 +62,13 @@ func newTestServer(t *testing.T) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/login", a.loginPage)
 	mux.HandleFunc("/setup", a.setupPage)
+	mux.HandleFunc("/invite/{token}", a.invitePage)
 	mux.HandleFunc("/api/auth/v1/login/begin", a.loginBegin)
 	mux.HandleFunc("/api/auth/v1/login/finish", a.loginFinish)
 	mux.HandleFunc("/api/auth/v1/setup/begin", a.setupBegin)
 	mux.HandleFunc("/api/auth/v1/setup/finish", a.setupFinish)
+	mux.HandleFunc("/api/auth/v1/invite/begin", a.inviteBegin)
+	mux.HandleFunc("/api/auth/v1/invite/finish", a.inviteFinish)
 	mux.HandleFunc("/api/auth/v1/logout", a.logout)
 	mux.HandleFunc("/{$}", a.requirePage(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, "index")
@@ -72,7 +76,7 @@ func newTestServer(t *testing.T) *httptest.Server {
 
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
-	return srv
+	return srv, svc, st
 }
 
 func newClient(t *testing.T) *http.Client {
@@ -116,7 +120,7 @@ type beginResponse struct {
 }
 
 func TestSetupLoginGatingFlow(t *testing.T) {
-	srv := newTestServer(t)
+	srv, _, _ := newTestServer(t)
 	rp := testRP()
 	authn := virtualwebauthn.NewAuthenticator()
 	cred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
@@ -186,6 +190,121 @@ func TestSetupLoginGatingFlow(t *testing.T) {
 	}
 	if code, _ := get(t, client, srv.URL+"/"); code != http.StatusOK {
 		t.Fatalf("GET / after login = %d, want 200", code)
+	}
+}
+
+// bootstrapAdmin runs the first-admin /setup flow and returns the client holding
+// the admin session plus the admin's user id.
+func bootstrapAdmin(t *testing.T, srv *httptest.Server, rp virtualwebauthn.RelyingParty, authn virtualwebauthn.Authenticator, cred virtualwebauthn.Credential) (*http.Client, string) {
+	t.Helper()
+	client := newClient(t)
+	begin := decodeBegin(t, client, srv.URL+"/api/auth/v1/setup/begin", map[string]string{
+		"token": testToken, "display_name": "Ben", "email": "ben@example.com",
+	})
+	attestation, err := virtualwebauthn.ParseAttestationOptions(string(begin.Options))
+	if err != nil {
+		t.Fatalf("parse attestation options: %v", err)
+	}
+	attestationResp := virtualwebauthn.CreateAttestationResponse(rp, authn, cred, *attestation)
+	code, body := postJSON(t, client, srv.URL+"/api/auth/v1/setup/finish", map[string]any{
+		"token": testToken, "user_id": begin.UserID, "challenge": begin.Challenge,
+		"credential": json.RawMessage(attestationResp),
+	})
+	if code != http.StatusOK {
+		t.Fatalf("setup/finish = %d: %s", code, body)
+	}
+	return client, begin.UserID
+}
+
+func TestInviteFlow(t *testing.T) {
+	srv, svc, st := newTestServer(t)
+	rp := testRP()
+	adminAuthn := virtualwebauthn.NewAuthenticator()
+	adminCred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	_, adminID := bootstrapAdmin(t, srv, rp, adminAuthn, adminCred)
+
+	// The admin mints an invite (the admin HTTP endpoint lands in the next slice).
+	raw, err := svc.CreateInvite(context.Background(), adminID, stores.RoleMember, "", time.Hour)
+	if err != nil {
+		t.Fatalf("CreateInvite: %v", err)
+	}
+
+	// A live invite renders the join page; an unknown one renders the invalid page.
+	invited := newClient(t)
+	if code, _ := get(t, invited, srv.URL+"/invite/"+raw); code != http.StatusOK {
+		t.Fatalf("GET /invite = %d, want 200", code)
+	}
+	if code, body := get(t, invited, srv.URL+"/invite/nope"); code != http.StatusOK || !bytes.Contains(body, []byte("not valid")) {
+		t.Fatalf("GET /invite/nope = %d %q, want invalid page", code, body)
+	}
+
+	// Enrol the invited member's passkey.
+	memberAuthn := virtualwebauthn.NewAuthenticator()
+	memberCred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	begin := decodeBegin(t, invited, srv.URL+"/api/auth/v1/invite/begin", map[string]string{
+		"token": raw, "display_name": "Sam", "email": "sam@example.com",
+	})
+	attestation, err := virtualwebauthn.ParseAttestationOptions(string(begin.Options))
+	if err != nil {
+		t.Fatalf("parse attestation options: %v", err)
+	}
+	attestationResp := virtualwebauthn.CreateAttestationResponse(rp, memberAuthn, memberCred, *attestation)
+	code, body := postJSON(t, invited, srv.URL+"/api/auth/v1/invite/finish", map[string]any{
+		"token": raw, "challenge": begin.Challenge, "credential": json.RawMessage(attestationResp),
+	})
+	if code != http.StatusOK {
+		t.Fatalf("invite/finish = %d: %s", code, body)
+	}
+	memberAuthn.AddCredential(memberCred)
+
+	// The member is signed in and the gated index opens.
+	if code, _ := get(t, invited, srv.URL+"/"); code != http.StatusOK {
+		t.Fatalf("member GET / = %d, want 200", code)
+	}
+
+	// The invite's role was applied and the token is spent.
+	users, err := st.ListUsers(context.Background())
+	if err != nil {
+		t.Fatalf("ListUsers: %v", err)
+	}
+	var member stores.User
+	for _, u := range users {
+		if u.DisplayName == "Sam" {
+			member = u
+		}
+	}
+	if member.ID == "" || member.Role != stores.RoleMember {
+		t.Fatalf("invited user = %+v, want a member named Sam", member)
+	}
+	if code, _ := postJSON(t, newClient(t), srv.URL+"/api/auth/v1/invite/begin", map[string]string{"token": raw, "display_name": "Eve"}); code != http.StatusUnauthorized {
+		t.Fatalf("reused invite begin = %d, want 401", code)
+	}
+
+	// A re-enrolment invite is bound to the existing member and adds a second
+	// passkey without creating another user.
+	re, err := svc.CreateInvite(context.Background(), adminID, stores.RoleMember, member.ID, time.Hour)
+	if err != nil {
+		t.Fatalf("CreateInvite re-enrol: %v", err)
+	}
+	reClient := newClient(t)
+	reBegin := decodeBegin(t, reClient, srv.URL+"/api/auth/v1/invite/begin", map[string]string{"token": re})
+	reAttestation, err := virtualwebauthn.ParseAttestationOptions(string(reBegin.Options))
+	if err != nil {
+		t.Fatalf("parse attestation options: %v", err)
+	}
+	secondAuthn := virtualwebauthn.NewAuthenticator()
+	secondCred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	reResp := virtualwebauthn.CreateAttestationResponse(rp, secondAuthn, secondCred, *reAttestation)
+	if code, body := postJSON(t, reClient, srv.URL+"/api/auth/v1/invite/finish", map[string]any{
+		"token": re, "challenge": reBegin.Challenge, "credential": json.RawMessage(reResp),
+	}); code != http.StatusOK {
+		t.Fatalf("re-enrol finish = %d: %s", code, body)
+	}
+	if users, err = st.ListUsers(context.Background()); err != nil {
+		t.Fatalf("ListUsers: %v", err)
+	}
+	if len(users) != 2 {
+		t.Fatalf("users after re-enrol = %d, want 2", len(users))
 	}
 }
 

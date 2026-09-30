@@ -44,3 +44,45 @@ templ SetupPage() {
 		</div>
 	}
 }
+
+// InvitePage accepts a single-use enrolment invite. For a re-enrolment bound to
+// an existing user there is no name to choose, so those fields are hidden.
+templ InvitePage(token string, reenrol bool) {
+	@Shell("Join") {
+		<div class="auth-main">
+			<div class="auth-card">
+				<h1 class="auth-title">You've been invited</h1>
+				<p class="auth-lede">Create a passkey to join this instance.</p>
+				<form class="auth-form" data-auth="invite" data-invite-token={ token }>
+					if !reenrol {
+						<label class="auth-field">
+							Display name
+							<input type="text" name="display_name" autocomplete="name" required/>
+						</label>
+						<label class="auth-field">
+							Email <span class="auth-optional">optional</span>
+							<input type="email" name="email" autocomplete="email"/>
+						</label>
+					}
+					<button class="auth-button" type="submit">Create passkey</button>
+				</form>
+				<p class="auth-status" data-auth-status hidden></p>
+			</div>
+		</div>
+	}
+}
+
+// InviteInvalidPage is shown when an invite link is missing, already used or
+// expired.
+templ InviteInvalidPage() {
+	@Shell("Invite") {
+		<div class="auth-main">
+			<div class="auth-card">
+				<h1 class="auth-title">Invite not valid</h1>
+				<p class="auth-lede">
+					This invite has already been used or has expired. Ask an admin for a new link.
+				</p>
+			</div>
+		</div>
+	}
+}
