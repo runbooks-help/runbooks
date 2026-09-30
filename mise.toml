@@ -57,6 +57,24 @@ run = "npx prettier --write 'public/css/src/**/*.css'"
 description = "Run Go tests"
 run = "go test ./..."
 
-[tasks."test:identity"]
-description = "Run the SQLite identity integration check against a local on-disk database"
-run = "mkdir -p tmp && IDENTITY_TEST_DSN=\"file:$PWD/tmp/identity.db\" go test -run TestSQLiteLocalDB -v ./identity/"
+[tasks."test:sqlite"]
+description = "Run the SQLite store against a local on-disk database"
+run = "mkdir -p tmp && STORES_SQLITE_DSN=\"file:$PWD/tmp/stores.db\" go test -run TestLocalDB -v ./stores/sqlite/"
+
+[tasks."test:mysql"]
+description = "Run the store contract against the local MySQL from compose.yaml"
+run = """
+  podman compose up -d --wait mysql
+  STORES_MYSQL_DSN="root:root@tcp(127.0.0.1:3307)/runbooks_identity" go test -v ./stores/mysql/
+"""
+
+[tasks."test:postgres"]
+description = "Run the store contract against the local PostgreSQL from compose.yaml"
+run = """
+  podman compose up -d --wait postgres
+  STORES_POSTGRES_DSN="postgres://postgres:postgres@127.0.0.1:5433/runbooks_identity?sslmode=disable" go test -v ./stores/postgres/
+"""
+
+[tasks."db:down"]
+description = "Stop the local test databases"
+run = "podman compose down -v"

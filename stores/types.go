@@ -1,10 +1,4 @@
-// Package identity is the app's identity primitive: named users, passkey
-// credentials and the storage contract behind them. It is the app's only
-// relational state.
-//
-// Identity is off until a database is configured; this package is the storage
-// layer only — WebAuthn ceremonies, sessions and the HTTP surface build on it.
-package identity
+package stores
 
 import (
 	"database/sql/driver"
@@ -64,7 +58,7 @@ func (t *Transports) Scan(src any) error {
 	case []byte:
 		joined = string(v)
 	default:
-		return fmt.Errorf("identity: cannot scan %T into Transports", src)
+		return fmt.Errorf("stores: cannot scan %T into Transports", src)
 	}
 	if joined == "" {
 		*t = nil

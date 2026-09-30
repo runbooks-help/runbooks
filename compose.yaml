@@ -1,0 +1,36 @@
+# Local databases for the identity integration checks.
+#
+# Started on demand — `mise run test:mysql` brings up the service and points the
+# test at it. Not used by the app; the dev stack (dev-mysql) is separate.
+name: runbooks-test
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: runbooks_identity
+    ports:
+      - "3307:3306" # 3306 is taken by the dev stack
+    tmpfs:
+      - /var/lib/mysql # throwaway: tests restart from an empty database
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: runbooks_identity
+    ports:
+      - "5433:5432" # 5432 is left for anything already running
+    tmpfs:
+      - /var/lib/postgresql/data # throwaway: tests restart from an empty database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d runbooks_identity"]
+      interval: 2s
+      timeout: 2s
+      retries: 30

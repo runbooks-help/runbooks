@@ -1,39 +1,29 @@
-package identity
+// Package storetest provides the contract every stores.Store implementation must
+// satisfy. Each store package runs it against a clean database.
+package storetest
 
 import (
 	"context"
 	"errors"
-	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+
+	"runbooks/stores"
 )
 
-func isConflict(err error) bool {
-	var ce *ConflictError
-	return errors.As(err, &ce)
-}
-
-func newSQLiteStore(t *testing.T) Store {
+// StoreContract runs the shared behaviour. newStore returns a store backed by a
+// clean database.
+func StoreContract(t *testing.T, newStore func(t *testing.T) stores.Store) {
 	t.Helper()
-	dsn := "file:" + filepath.Join(t.TempDir(), "identity.db")
-	s, err := OpenSQLite(context.Background(), dsn)
-	if err != nil {
-		t.Fatalf("OpenSQLite: %v", err)
-	}
-	t.Cleanup(func() { s.Close() })
-	return s
-}
-
-func TestSQLiteStore(t *testing.T) {
 	ctx := context.Background()
 	base := time.Date(2026, 9, 30, 12, 0, 0, 0, time.UTC)
 
 	t.Run("users", func(t *testing.T) {
-		s := newSQLiteStore(t)
+		s := newStore(t)
 
-		u := User{ID: "u1", Email: "ada@example.com", DisplayName: "Ada", Role: RoleAdmin, CreatedAt: base}
+		u := stores.User{ID: "u1", Email: "ada@example.com", DisplayName: "Ada", Role: stores.RoleAdmin, CreatedAt: base}
 		if err := s.InsertUser(ctx, u); err != nil {
 			t.Fatalf("InsertUser: %v", err)
 		}
@@ -65,7 +55,7 @@ func TestSQLiteStore(t *testing.T) {
 			t.Fatalf("ListUsers len = %d, want 1", len(users))
 		}
 
-		u.Role = RoleMember
+		u.Role = stores.RoleMember
 		u.DisabledAt = base.Add(time.Hour)
 		if err := s.UpdateUser(ctx, u); err != nil {
 			t.Fatalf("UpdateUser: %v", err)
@@ -78,37 +68,37 @@ func TestSQLiteStore(t *testing.T) {
 			t.Errorf("GetUser after update mismatch (-want +got):\n%s", diff)
 		}
 
-		if _, err := s.GetUser(ctx, "missing"); !errors.Is(err, ErrNotFound) {
+		if _, err := s.GetUser(ctx, "missing"); !errors.Is(err, stores.ErrNotFound) {
 			t.Errorf("GetUser missing err = %v, want ErrNotFound", err)
 		}
-		if _, err := s.GetUserByEmail(ctx, "missing@example.com"); !errors.Is(err, ErrNotFound) {
+		if _, err := s.GetUserByEmail(ctx, "missing@example.com"); !errors.Is(err, stores.ErrNotFound) {
 			t.Errorf("GetUserByEmail missing err = %v, want ErrNotFound", err)
 		}
-		if _, err := s.GetUserByEmail(ctx, ""); !errors.Is(err, ErrNotFound) {
+		if _, err := s.GetUserByEmail(ctx, ""); !errors.Is(err, stores.ErrNotFound) {
 			t.Errorf("GetUserByEmail empty err = %v, want ErrNotFound", err)
 		}
-		if err := s.UpdateUser(ctx, User{ID: "missing", Role: RoleMember, CreatedAt: base}); err != nil {
+		if err := s.UpdateUser(ctx, stores.User{ID: "missing", Role: stores.RoleMember, CreatedAt: base}); err != nil {
 			t.Errorf("UpdateUser missing err = %v, want nil (idempotent)", err)
 		}
 
-		dup := User{ID: "u2", Email: "ada@example.com", DisplayName: "Impostor", Role: RoleMember, CreatedAt: base}
+		dup := stores.User{ID: "u2", Email: "ada@example.com", DisplayName: "Impostor", Role: stores.RoleMember, CreatedAt: base}
 		if err := s.InsertUser(ctx, dup); !isConflict(err) {
 			t.Errorf("InsertUser duplicate email err = %v, want ConflictError", err)
 		}
 
 		// Email is optional: several users may have none.
 		for _, id := range []string{"u3", "u4"} {
-			if err := s.InsertUser(ctx, User{ID: id, DisplayName: id, Role: RoleMember, CreatedAt: base}); err != nil {
+			if err := s.InsertUser(ctx, stores.User{ID: id, DisplayName: id, Role: stores.RoleMember, CreatedAt: base}); err != nil {
 				t.Fatalf("InsertUser %s without email: %v", id, err)
 			}
 		}
 	})
 
 	t.Run("credentials", func(t *testing.T) {
-		s := newSQLiteStore(t)
+		s := newStore(t)
 		credID := []byte{1, 2, 3, 4}
 
-		c := Credential{
+		c := stores.Credential{
 			ID:           "c1",
 			UserID:       "u1",
 			CredentialID: credID,
@@ -154,7 +144,7 @@ func TestSQLiteStore(t *testing.T) {
 			t.Errorf("GetCredential after update mismatch (-want +got):\n%s", diff)
 		}
 
-		dup := Credential{ID: "c2", UserID: "u1", CredentialID: credID, PublicKey: []byte{1}, CreatedAt: base}
+		dup := stores.Credential{ID: "c2", UserID: "u1", CredentialID: credID, PublicKey: []byte{1}, CreatedAt: base}
 		if err := s.InsertCredential(ctx, dup); !isConflict(err) {
 			t.Errorf("InsertCredential duplicate err = %v, want ConflictError", err)
 		}
@@ -162,43 +152,19 @@ func TestSQLiteStore(t *testing.T) {
 		if err := s.DeleteCredential(ctx, "c1"); err != nil {
 			t.Fatalf("DeleteCredential: %v", err)
 		}
-		if _, err := s.GetCredential(ctx, credID); !errors.Is(err, ErrNotFound) {
+		if _, err := s.GetCredential(ctx, credID); !errors.Is(err, stores.ErrNotFound) {
 			t.Errorf("GetCredential after delete err = %v, want ErrNotFound", err)
 		}
 		if err := s.DeleteCredential(ctx, "c1"); err != nil {
 			t.Errorf("DeleteCredential twice err = %v, want nil (idempotent)", err)
 		}
-		if err := s.UpdateCredential(ctx, Credential{ID: "c1", CreatedAt: base}); err != nil {
+		if err := s.UpdateCredential(ctx, stores.Credential{ID: "c1", CreatedAt: base}); err != nil {
 			t.Errorf("UpdateCredential missing err = %v, want nil (idempotent)", err)
 		}
 	})
 }
 
-func TestSQLiteMigrationIdempotent(t *testing.T) {
-	ctx := context.Background()
-	dsn := "file:" + filepath.Join(t.TempDir(), "identity.db")
-
-	s, err := OpenSQLite(ctx, dsn)
-	if err != nil {
-		t.Fatalf("first open: %v", err)
-	}
-	if err := s.Close(); err != nil {
-		t.Fatalf("close: %v", err)
-	}
-
-	// Re-opening must re-apply the schema without error (all IF NOT EXISTS).
-	s, err = OpenSQLite(ctx, dsn)
-	if err != nil {
-		t.Fatalf("second open: %v", err)
-	}
-	defer s.Close()
-
-	for _, table := range []string{"users", "credentials", "sessions", "invites", "webauthn_challenges", "auth_events"} {
-		var name string
-		err := s.db.QueryRowContext(ctx,
-			`SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?`, table).Scan(&name)
-		if err != nil {
-			t.Errorf("table %q missing: %v", table, err)
-		}
-	}
+func isConflict(err error) bool {
+	var ce *stores.ConflictError
+	return errors.As(err, &ce)
 }

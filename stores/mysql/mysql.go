@@ -1,0 +1,238 @@
+// Package mysql is the MySQL implementation of stores.Store.
+package mysql
+
+import (
+	"context"
+	"database/sql"
+	"embed"
+	"errors"
+	"fmt"
+	"time"
+
+	mysqldriver "github.com/go-sql-driver/mysql"
+
+	"runbooks/internal/nullable"
+	"runbooks/stores"
+)
+
+//go:embed schema/*.sql
+var schemaFS embed.FS
+
+type store struct {
+	db *sql.DB
+}
+
+var _ stores.Store = (*store)(nil)
+
+// Open opens the MySQL database at dsn and applies the schema. dsn is a
+// go-sql-driver/mysql DSN, e.g.
+// "root:root@tcp(127.0.0.1:3307)/runbooks_identity".
+func Open(ctx context.Context, dsn string) (stores.Store, error) {
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, fmt.Errorf("mysql: open: %w", err)
+	}
+	db.SetMaxOpenConns(10)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
+	s := &store{db: db}
+	if err := s.migrate(ctx); err != nil {
+		db.Close()
+		return nil, err
+	}
+	return s, nil
+}
+
+// Close releases the database.
+func (s *store) Close() error { return s.db.Close() }
+
+// migrate applies every schema file, one per table, in filename order. Each is
+// IF NOT EXISTS, so it is safe and cheap to re-run on every startup — no
+// external migration tool.
+func (s *store) migrate(ctx context.Context) error {
+	entries, err := schemaFS.ReadDir("schema")
+	if err != nil {
+		return fmt.Errorf("mysql: read schema: %w", err)
+	}
+	for _, entry := range entries {
+		statements, err := schemaFS.ReadFile("schema/" + entry.Name())
+		if err != nil {
+			return fmt.Errorf("mysql: read %s: %w", entry.Name(), err)
+		}
+		if _, err := s.db.ExecContext(ctx, string(statements)); err != nil {
+			return fmt.Errorf("mysql: apply %s: %w", entry.Name(), err)
+		}
+	}
+	return nil
+}
+
+// mysqlDuplicateEntry is ER_DUP_ENTRY.
+const mysqlDuplicateEntry = 1062
+
+// conflictError wraps a uniqueness violation as a stores.ConflictError.
+func conflictError(err error) error {
+	var me *mysqldriver.MySQLError
+	if errors.As(err, &me) && me.Number == mysqlDuplicateEntry {
+		return stores.NewConflictError(err)
+	}
+	return err
+}
+
+const userColumns = `id, email, display_name, role, created_at, disabled_at`
+
+// GetUser returns the user with the given id, or stores.ErrNotFound.
+func (s *store) GetUser(ctx context.Context, id string) (stores.User, error) {
+	return scanUser(s.db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users WHERE id = ?`, id).Scan)
+}
+
+// GetUserByEmail returns the user with the given email, or stores.ErrNotFound.
+// An empty email never matches.
+func (s *store) GetUserByEmail(ctx context.Context, email string) (stores.User, error) {
+	if email == "" {
+		return stores.User{}, stores.ErrNotFound
+	}
+	return scanUser(s.db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users WHERE email = ?`, email).Scan)
+}
+
+// ListUsers returns every user, ordered by display name. Empty is OK.
+func (s *store) ListUsers(ctx context.Context) ([]stores.User, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT `+userColumns+` FROM users ORDER BY display_name, id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []stores.User
+	for rows.Next() {
+		u, err := scanUser(rows.Scan)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
+}
+
+// InsertUser adds a user. A duplicate email is a stores.ConflictError.
+func (s *store) InsertUser(ctx context.Context, u stores.User) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO users (id, email, display_name, role, created_at, disabled_at) VALUES (?, ?, ?, ?, ?, ?)`,
+		u.ID, nullable.Null[string]{V: u.Email, Valid: u.Email != ""}, u.DisplayName,
+		string(u.Role), u.CreatedAt.Unix(),
+		nullable.Null[int64]{V: u.DisabledAt.Unix(), Valid: !u.DisabledAt.IsZero()})
+	return conflictError(err)
+}
+
+// UpdateUser updates the mutable fields (email, display name, role, disabled).
+// A duplicate email is a stores.ConflictError; an unknown id is not an error.
+func (s *store) UpdateUser(ctx context.Context, u stores.User) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE users SET email = ?, display_name = ?, role = ?, disabled_at = ? WHERE id = ?`,
+		nullable.Null[string]{V: u.Email, Valid: u.Email != ""}, u.DisplayName,
+		string(u.Role), nullable.Null[int64]{V: u.DisabledAt.Unix(), Valid: !u.DisabledAt.IsZero()}, u.ID)
+	return conflictError(err)
+}
+
+// scanUser scans a user row. scan is a *sql.Row's or *sql.Rows' Scan method.
+func scanUser(scan func(dest ...any) error) (stores.User, error) {
+	var (
+		u          stores.User
+		email      nullable.Null[string]
+		createdAt  int64
+		disabledAt nullable.Null[int64]
+	)
+	if err := scan(&u.ID, &email, &u.DisplayName, &u.Role, &createdAt, &disabledAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return stores.User{}, stores.ErrNotFound
+		}
+		return stores.User{}, err
+	}
+	u.Email = email.V
+	u.CreatedAt = time.Unix(createdAt, 0).UTC()
+	if disabledAt.Valid {
+		u.DisabledAt = time.Unix(disabledAt.V, 0).UTC()
+	}
+	return u, nil
+}
+
+const credentialColumns = `id, user_id, credential_id, public_key, sign_count, transports, aaguid, label, created_at, last_used_at`
+
+// GetCredential returns the credential with the authenticator's credential id,
+// or stores.ErrNotFound.
+func (s *store) GetCredential(ctx context.Context, credentialID []byte) (stores.Credential, error) {
+	return scanCredential(s.db.QueryRowContext(ctx,
+		`SELECT `+credentialColumns+` FROM credentials WHERE credential_id = ?`, credentialID).Scan)
+}
+
+// ListCredentials returns a user's credentials, oldest first. Empty is OK.
+func (s *store) ListCredentials(ctx context.Context, userID string) ([]stores.Credential, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT `+credentialColumns+` FROM credentials WHERE user_id = ? ORDER BY created_at, id`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var creds []stores.Credential
+	for rows.Next() {
+		c, err := scanCredential(rows.Scan)
+		if err != nil {
+			return nil, err
+		}
+		creds = append(creds, c)
+	}
+	return creds, rows.Err()
+}
+
+// InsertCredential adds a credential. A duplicate credential id is a
+// stores.ConflictError.
+func (s *store) InsertCredential(ctx context.Context, c stores.Credential) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO credentials (id, user_id, credential_id, public_key, sign_count, transports, aaguid, label, created_at, last_used_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		c.ID, c.UserID, c.CredentialID, c.PublicKey, int64(c.SignCount), c.Transports,
+		c.AAGUID, c.Label, c.CreatedAt.Unix(),
+		nullable.Null[int64]{V: c.LastUsedAt.Unix(), Valid: !c.LastUsedAt.IsZero()})
+	return conflictError(err)
+}
+
+// UpdateCredential updates sign count, transports, label and last-used time. An
+// unknown id is not an error.
+func (s *store) UpdateCredential(ctx context.Context, c stores.Credential) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE credentials SET sign_count = ?, transports = ?, label = ?, last_used_at = ? WHERE id = ?`,
+		int64(c.SignCount), c.Transports, c.Label,
+		nullable.Null[int64]{V: c.LastUsedAt.Unix(), Valid: !c.LastUsedAt.IsZero()}, c.ID)
+	return err
+}
+
+// DeleteCredential removes a credential by its internal id. An unknown id is
+// not an error.
+func (s *store) DeleteCredential(ctx context.Context, id string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM credentials WHERE id = ?`, id)
+	return err
+}
+
+// scanCredential scans a credential row. scan is a *sql.Row's or *sql.Rows'
+// Scan method.
+func scanCredential(scan func(dest ...any) error) (stores.Credential, error) {
+	var (
+		c          stores.Credential
+		signCount  int64
+		createdAt  int64
+		lastUsedAt nullable.Null[int64]
+	)
+	if err := scan(&c.ID, &c.UserID, &c.CredentialID, &c.PublicKey, &signCount,
+		&c.Transports, &c.AAGUID, &c.Label, &createdAt, &lastUsedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return stores.Credential{}, stores.ErrNotFound
+		}
+		return stores.Credential{}, err
+	}
+	c.SignCount = uint32(signCount)
+	c.CreatedAt = time.Unix(createdAt, 0).UTC()
+	if lastUsedAt.Valid {
+		c.LastUsedAt = time.Unix(lastUsedAt.V, 0).UTC()
+	}
+	return c, nil
+}

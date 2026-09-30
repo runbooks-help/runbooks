@@ -1,4 +1,4 @@
-package identity
+package sqlite
 
 import (
 	"context"
@@ -9,19 +9,21 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"runbooks/stores"
 )
 
-// TestSQLiteLocalDB is the local proof that the SQLite provider works against a
-// real on-disk database, not a throwaway temp file. It is skipped unless
-// IDENTITY_TEST_DSN is set; `mise run test:identity` provides it.
+// TestLocalDB is the local proof that the SQLite store works against a real
+// on-disk database, not a throwaway temp file. It is skipped unless
+// STORES_SQLITE_DSN is set; `mise run test:sqlite` provides it.
 //
 // It opens a fresh DB, applies the schema, round-trips a user and a credential,
 // closes and reopens to prove persistence and idempotent migration, then runs a
 // small concurrency smoke.
-func TestSQLiteLocalDB(t *testing.T) {
-	dsn := os.Getenv("IDENTITY_TEST_DSN")
+func TestLocalDB(t *testing.T) {
+	dsn := os.Getenv("STORES_SQLITE_DSN")
 	if dsn == "" {
-		t.Skip("set IDENTITY_TEST_DSN (or run `mise run test:identity`)")
+		t.Skip("set STORES_SQLITE_DSN (or run `mise run test:sqlite`)")
 	}
 	ctx := context.Background()
 	base := time.Now().UTC().Truncate(time.Second)
@@ -32,22 +34,22 @@ func TestSQLiteLocalDB(t *testing.T) {
 	}
 	t.Logf("database: %s", path)
 
-	s, err := OpenSQLite(ctx, dsn)
+	s, err := Open(ctx, dsn)
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
-	logTables(t, ctx, s)
+	logTables(t, ctx, s.(*store))
 
-	user := User{ID: "local-user", Email: "local@example.com", DisplayName: "Local User", Role: RoleAdmin, CreatedAt: base}
+	user := stores.User{ID: "local-user", Email: "local@example.com", DisplayName: "Local User", Role: stores.RoleAdmin, CreatedAt: base}
 	if err := s.InsertUser(ctx, user); err != nil {
 		t.Fatalf("insert user: %v", err)
 	}
-	cred := Credential{
+	cred := stores.Credential{
 		ID:           "local-cred",
 		UserID:       user.ID,
 		CredentialID: []byte("credential-id"),
 		PublicKey:    []byte("public-key"),
-		Transports:   Transports{"usb"},
+		Transports:   stores.Transports{"usb"},
 		Label:        "Local Key",
 		CreatedAt:    base,
 	}
@@ -59,7 +61,7 @@ func TestSQLiteLocalDB(t *testing.T) {
 	}
 
 	// Reopen: the row survived and the schema re-applies without error.
-	s, err = OpenSQLite(ctx, dsn)
+	s, err = Open(ctx, dsn)
 	if err != nil {
 		t.Fatalf("reopen: %v", err)
 	}
@@ -80,7 +82,7 @@ func TestSQLiteLocalDB(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			u := User{ID: fmt.Sprintf("concurrent-%d", i), DisplayName: fmt.Sprintf("Concurrent %d", i), Role: RoleMember, CreatedAt: base}
+			u := stores.User{ID: fmt.Sprintf("concurrent-%d", i), DisplayName: fmt.Sprintf("Concurrent %d", i), Role: stores.RoleMember, CreatedAt: base}
 			if err := s.InsertUser(ctx, u); err != nil {
 				errs <- fmt.Errorf("insert %s: %w", u.ID, err)
 				return
@@ -103,7 +105,7 @@ func TestSQLiteLocalDB(t *testing.T) {
 	t.Logf("users in %s: %d", path, len(users))
 }
 
-func logTables(t *testing.T, ctx context.Context, s *SQLiteStore) {
+func logTables(t *testing.T, ctx context.Context, s *store) {
 	t.Helper()
 	rows, err := s.db.QueryContext(ctx, `SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`)
 	if err != nil {
