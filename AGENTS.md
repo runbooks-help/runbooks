@@ -23,9 +23,9 @@ All tasks are mise tasks (`mise install` once to pull Go, templ, gofumpt, Node).
 | `mise run css` / `mise run js` | One-shot esbuild bundle. |
 | `mise run lintcss` / `mise run fmtcss` | stylelint / Prettier over `public/css/src/**`. |
 | `mise run test` | Go tests + JS unit tests (`node --test`). |
-| `mise run test:e2e` | Browser E2E: the real WebAuthn ceremony via a CDP virtual authenticator, against a throwaway instance. Needs a system Chromium (`CHROMIUM=/path` to override); `playwright-core` installs into `e2e/` on demand. |
-| `mise run test:e2e:headed` | The same test in a visible window. `E2E_SLOWMO=ms` paces the actions, `E2E_HOLD_MS=ms` auto-closes after a hold (default: close the window yourself). |
-| `mise run test:e2e:inspect` | Headed run with the **Playwright Inspector** (`page.pause()` breakpoints before setup, before each submit, and after login). Step over / resume from the inspector window. |
+| `mise run test:e2e` | Browser E2E: the real WebAuthn ceremony via a CDP virtual authenticator, against a throwaway instance. Covers setup→logout→login, invite→member enrol→revoke, break-glass recovery, and an abandoned `/setup` (admin user with no credential). Needs a system Chromium (`CHROMIUM=/path` to override); `playwright-core` installs into `e2e/` on demand. |
+| `mise run test:e2e:headed` | The same tests in visible windows. `E2E_SLOWMO=ms` paces the actions, `E2E_HOLD_MS=ms` holds at the end of each test (default: run straight through). |
+| `mise run test:e2e:inspect` | Headed with the **Playwright Inspector** (`page.pause()` breakpoints before the setup, invite-enrol and recovery submits). Step over / resume from the inspector window. |
 
 The verification gate before handing work back is `gofumpt -l .`, `go vet ./...`,
 `mise run test`, and `mise run build`. The store contract also runs live against
