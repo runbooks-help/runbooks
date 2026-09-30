@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://gremlins.dev/0.6/schema/configuration.json
+#
+# Mutation testing for the store contract — `mise run test:mutation`.
+#
+# Each store must kill every supported mutant; the thresholds make a survivor
+# fail the run.
+unleash:
+  workers: 4
+  # The suite runs in ~10ms, so gremlins' derived per-mutant timeout is far too
+  # short to rebuild a mutated package — this leaves mutants "timed out" instead
+  # of killed.
+  timeout-coefficient: 30
+  # The contract itself is test infrastructure, not production code.
+  exclude-files:
+    - "stores/storetest/.*\\.go"
+  threshold:
+    # The gate is `value <= threshold`, i.e. exclusive, so 100 can never pass.
+    # 99.9 means any survivor in a package this size fails the run.
+    efficacy: 99.9
+    # A package-level duration const (connMaxLifetime = 5 * time.Minute) is
+    # classified "not covered" — it is a compile-time expression, not an
+    # executed statement — so mutant coverage sits just under 100 by design.
+    mutant-coverage: 97

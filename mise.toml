@@ -3,6 +3,7 @@ go = "latest"
 "aqua:a-h/templ" = "latest"
 gofumpt = "latest"
 node = "latest"
+"go:github.com/go-gremlins/gremlins/cmd/gremlins" = "latest"
 
 [env]
 PORT = "8091"
@@ -73,6 +74,21 @@ description = "Run the store contract against the local PostgreSQL from compose.
 run = """
   podman compose up -d --wait postgres
   STORES_POSTGRES_DSN="postgres://postgres:postgres@127.0.0.1:5433/runbooks_identity?sslmode=disable" go test -v ./stores/postgres/
+"""
+
+[tasks."test:mutation"]
+description = "Mutation-test the SQLite store contract (fast, no database)"
+run = "gremlins unleash ./stores/sqlite"
+
+[tasks."test:mutation:all"]
+description = "Mutation-test all three store contracts (starts the compose databases)"
+run = """
+  podman compose up -d --wait mysql postgres
+  gremlins unleash ./stores/sqlite
+  # The database-backed stores share one database, so the mutants must run
+  # serially — parallel runs would race on the tables they reset.
+  STORES_MYSQL_DSN="root:root@tcp(127.0.0.1:3307)/runbooks_identity" gremlins unleash --workers 1 ./stores/mysql
+  STORES_POSTGRES_DSN="postgres://postgres:postgres@127.0.0.1:5433/runbooks_identity?sslmode=disable" gremlins unleash --workers 1 ./stores/postgres
 """
 
 [tasks."db:down"]
