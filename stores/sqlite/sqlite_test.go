@@ -52,6 +52,41 @@ func TestFileDir(t *testing.T) {
 	}
 }
 
+// TestMigrationAddsCredentialFlags covers upgrading a database created before
+// the credentials.flags column existed.
+func TestMigrationAddsCredentialFlags(t *testing.T) {
+	ctx := context.Background()
+	s, err := Open(ctx, "file:"+filepath.Join(t.TempDir(), "stores.db"))
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer s.Close()
+	raw := s.(*store)
+
+	if _, err := raw.db.ExecContext(ctx, `ALTER TABLE credentials DROP COLUMN flags`); err != nil {
+		t.Fatalf("drop flags: %v", err)
+	}
+	if hasCredentialFlags(t, raw) {
+		t.Fatal("flags column still present after drop")
+	}
+	if err := raw.migrate(ctx); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	if !hasCredentialFlags(t, raw) {
+		t.Error("migrate did not re-add the flags column")
+	}
+}
+
+func hasCredentialFlags(t *testing.T, s *store) bool {
+	t.Helper()
+	var n int
+	if err := s.db.QueryRowContext(context.Background(),
+		`SELECT COUNT(*) FROM pragma_table_info('credentials') WHERE name = 'flags'`).Scan(&n); err != nil {
+		t.Fatalf("pragma_table_info: %v", err)
+	}
+	return n > 0
+}
+
 func TestMigrationIdempotent(t *testing.T) {
 	ctx := context.Background()
 	dsn := "file:" + filepath.Join(t.TempDir(), "stores.db")

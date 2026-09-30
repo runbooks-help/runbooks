@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=https://gremlins.dev/0.6/schema/configuration.json
 #
-# Mutation testing for the store contract — `mise run test:mutation`.
+# Mutation testing — `mise run test:mutation`.
 #
-# Each store must kill every supported mutant; the thresholds make a survivor
+# Each target must kill every supported mutant; the thresholds make a survivor
 # fail the run.
 unleash:
   workers: 4
@@ -17,7 +17,7 @@ unleash:
     # The gate is `value <= threshold`, i.e. exclusive, so 100 can never pass.
     # 99.9 means any survivor in a package this size fails the run.
     efficacy: 99.9
-    # A package-level duration const (connMaxLifetime = 5 * time.Minute) is
-    # classified "not covered" — it is a compile-time expression, not an
-    # executed statement — so mutant coverage sits just under 100 by design.
+    # Package-level const expressions (e.g. defaultInviteTTL) and unreachable
+    # panic branches are classified "not covered" — they are compile-time
+    # statements, not executed ones — so mutant coverage sits just under 100.
     mutant-coverage: 97

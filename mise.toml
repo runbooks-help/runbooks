@@ -126,10 +126,13 @@ run = """
 """
 
 [tasks."test:mutation"]
-description = "Mutation-test the SQLite store and the identity service (fast, no database)"
+description = "Mutation-test the SQLite store, the identity service and the auth HTTP layer (fast, no database)"
 run = """
   gremlins unleash ./stores/sqlite
   gremlins unleash ./identity
+  # The auth/admin/recovery HTTP layer is in package main; scope the run to
+  # auth.go so it does not mutate generated views, wiring or git-sync.
+  gremlins unleash --exclude-files 'views/|cmd/|parser/|internal/|stores/|identity/|gitsync.go|main.go|_test.go' .
 """
 
 [tasks."test:mutation:all"]

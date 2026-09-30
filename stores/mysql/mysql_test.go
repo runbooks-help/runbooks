@@ -46,6 +46,46 @@ func TestStore(t *testing.T) {
 	storetest.StoreContract(t, newStore)
 }
 
+// TestMigrationAddsCredentialFlags covers upgrading a database created before
+// the credentials.flags column existed.
+func TestMigrationAddsCredentialFlags(t *testing.T) {
+	dsn := os.Getenv("STORES_MYSQL_DSN")
+	if dsn == "" {
+		t.Skip("set STORES_MYSQL_DSN (or run `mise run test:mysql`)")
+	}
+	ctx := context.Background()
+	s, err := Open(ctx, dsn)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer s.Close()
+	reset(t, s)
+	raw := s.(*store)
+
+	if _, err := raw.db.ExecContext(ctx, `ALTER TABLE credentials DROP COLUMN flags`); err != nil {
+		t.Fatalf("drop flags: %v", err)
+	}
+	if hasCredentialFlags(t, raw) {
+		t.Fatal("flags column still present after drop")
+	}
+	if err := raw.migrate(ctx); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	if !hasCredentialFlags(t, raw) {
+		t.Error("migrate did not re-add the flags column")
+	}
+}
+
+func hasCredentialFlags(t *testing.T, s *store) bool {
+	t.Helper()
+	var n int
+	if err := s.db.QueryRowContext(context.Background(),
+		`SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'credentials' AND column_name = 'flags'`).Scan(&n); err != nil {
+		t.Fatalf("information_schema: %v", err)
+	}
+	return n > 0
+}
+
 func TestMigrationIdempotent(t *testing.T) {
 	dsn := os.Getenv("STORES_MYSQL_DSN")
 	if dsn == "" {
