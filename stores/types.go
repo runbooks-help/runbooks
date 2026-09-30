@@ -77,6 +77,7 @@ type Credential struct {
 	SignCount    uint32
 	Transports   Transports
 	AAGUID       []byte
+	Flags        uint8  // WebAuthn authenticator flags (UP/UV/BE/BS); login compares these
 	Label        string // user-facing name, e.g. "YubiKey 5"
 	CreatedAt    time.Time
 	LastUsedAt   time.Time // zero until first use

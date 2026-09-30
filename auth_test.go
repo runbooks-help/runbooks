@@ -125,7 +125,12 @@ type beginResponse struct {
 func TestSetupLoginGatingFlow(t *testing.T) {
 	srv, _, _ := newTestServer(t)
 	rp := testRP()
-	authn := virtualwebauthn.NewAuthenticator()
+	// Model a real synced passkey (BackupEligible), not the library default: the
+	// ceremony asserts BE=1 and login validation compares it to the stored flag.
+	authn := virtualwebauthn.NewAuthenticatorWithOptions(virtualwebauthn.AuthenticatorOptions{
+		BackupEligible: true,
+		BackupState:    true,
+	})
 	cred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
 
 	// A fresh client is unauthenticated: the index redirects to /login.

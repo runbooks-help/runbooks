@@ -68,6 +68,25 @@ func (s *store) migrate(ctx context.Context) error {
 			return fmt.Errorf("postgres: apply %s: %w", entry.Name(), err)
 		}
 	}
+	return s.ensureCredentialFlags(ctx)
+}
+
+// ensureCredentialFlags adds the credentials.flags column to a database created
+// before it existed. Postgres has no ADD COLUMN IF NOT EXISTS (before 9.6), so
+// the information schema is checked first.
+func (s *store) ensureCredentialFlags(ctx context.Context) error {
+	var exists int
+	if err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM information_schema.columns
+		 WHERE table_schema = current_schema() AND table_name = 'credentials' AND column_name = 'flags'`).Scan(&exists); err != nil {
+		return fmt.Errorf("postgres: check credentials.flags: %w", err)
+	}
+	if exists > 0 {
+		return nil
+	}
+	if _, err := s.db.ExecContext(ctx, `ALTER TABLE credentials ADD COLUMN flags SMALLINT NOT NULL DEFAULT 0`); err != nil {
+		return fmt.Errorf("postgres: add credentials.flags: %w", err)
+	}
 	return nil
 }
 
@@ -160,7 +179,7 @@ func scanUser(scan func(dest ...any) error) (stores.User, error) {
 	return u, nil
 }
 
-const credentialColumns = `id, user_id, credential_id, public_key, sign_count, transports, aaguid, label, created_at, last_used_at`
+const credentialColumns = `id, user_id, credential_id, public_key, sign_count, transports, aaguid, flags, label, created_at, last_used_at`
 
 // GetCredential returns the credential with the authenticator's credential id,
 // or stores.ErrNotFound.
@@ -193,20 +212,20 @@ func (s *store) ListCredentials(ctx context.Context, userID string) ([]stores.Cr
 // stores.ConflictError.
 func (s *store) InsertCredential(ctx context.Context, c stores.Credential) error {
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO credentials (id, user_id, credential_id, public_key, sign_count, transports, aaguid, label, created_at, last_used_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+		`INSERT INTO credentials (id, user_id, credential_id, public_key, sign_count, transports, aaguid, flags, label, created_at, last_used_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
 		c.ID, c.UserID, c.CredentialID, c.PublicKey, int64(c.SignCount), c.Transports,
-		c.AAGUID, c.Label, c.CreatedAt.Unix(),
+		c.AAGUID, int64(c.Flags), c.Label, c.CreatedAt.Unix(),
 		nullable.Null[int64]{V: c.LastUsedAt.Unix(), Valid: !c.LastUsedAt.IsZero()})
 	return conflictError(err)
 }
 
-// UpdateCredential updates sign count, transports, label and last-used time. An
-// unknown id is not an error.
+// UpdateCredential updates sign count, flags, transports, label and last-used
+// time. An unknown id is not an error.
 func (s *store) UpdateCredential(ctx context.Context, c stores.Credential) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE credentials SET sign_count = $1, transports = $2, label = $3, last_used_at = $4 WHERE id = $5`,
-		int64(c.SignCount), c.Transports, c.Label,
+		`UPDATE credentials SET sign_count = $1, flags = $2, transports = $3, label = $4, last_used_at = $5 WHERE id = $6`,
+		int64(c.SignCount), int64(c.Flags), c.Transports, c.Label,
 		nullable.Null[int64]{V: c.LastUsedAt.Unix(), Valid: !c.LastUsedAt.IsZero()}, c.ID)
 	return err
 }
@@ -224,17 +243,19 @@ func scanCredential(scan func(dest ...any) error) (stores.Credential, error) {
 	var (
 		c          stores.Credential
 		signCount  int64
+		flags      int64
 		createdAt  int64
 		lastUsedAt nullable.Null[int64]
 	)
 	if err := scan(&c.ID, &c.UserID, &c.CredentialID, &c.PublicKey, &signCount,
-		&c.Transports, &c.AAGUID, &c.Label, &createdAt, &lastUsedAt); err != nil {
+		&c.Transports, &c.AAGUID, &flags, &c.Label, &createdAt, &lastUsedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return stores.Credential{}, stores.ErrNotFound
 		}
 		return stores.Credential{}, err
 	}
 	c.SignCount = uint32(signCount)
+	c.Flags = uint8(flags)
 	c.CreatedAt = time.Unix(createdAt, 0).UTC()
 	if lastUsedAt.Valid {
 		c.LastUsedAt = time.Unix(lastUsedAt.V, 0).UTC()

@@ -145,6 +145,62 @@ func TestRegisterAndLogin(t *testing.T) {
 	}
 }
 
+// Login rejects an assertion whose backup-eligibility flag disagrees with the
+// stored credential, so a synced passkey (BE=1) fails unless registration
+// persists the flag.
+func TestLoginWithBackupEligibleCredential(t *testing.T) {
+	svc, st := newTestService(t)
+	seedUser(t, st, "u1")
+	ctx := context.Background()
+
+	auth := virtualwebauthn.NewAuthenticatorWithOptions(virtualwebauthn.AuthenticatorOptions{
+		BackupEligible: true,
+		BackupState:    true,
+	})
+	cred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+
+	token, options, err := svc.BeginRegistration(ctx, "u1")
+	if err != nil {
+		t.Fatalf("BeginRegistration: %v", err)
+	}
+	optionsJSON, err := json.Marshal(options)
+	if err != nil {
+		t.Fatalf("marshal options: %v", err)
+	}
+	parsedAttestation, err := virtualwebauthn.ParseAttestationOptions(string(optionsJSON))
+	if err != nil {
+		t.Fatalf("ParseAttestationOptions: %v", err)
+	}
+	attestation := virtualwebauthn.CreateAttestationResponse(testRP(), auth, cred, *parsedAttestation)
+
+	stored, err := svc.FinishRegistration(ctx, "u1", token, []byte(attestation))
+	if err != nil {
+		t.Fatalf("FinishRegistration: %v", err)
+	}
+	if !credentialFlags(stored.Flags).BackupEligible {
+		t.Fatalf("stored flags lost backup eligibility: %#x", stored.Flags)
+	}
+	auth.AddCredential(cred)
+
+	loginToken, loginOptions, err := svc.BeginLogin(ctx, "u1")
+	if err != nil {
+		t.Fatalf("BeginLogin: %v", err)
+	}
+	loginJSON, err := json.Marshal(loginOptions)
+	if err != nil {
+		t.Fatalf("marshal options: %v", err)
+	}
+	parsedAssertion, err := virtualwebauthn.ParseAssertionOptions(string(loginJSON))
+	if err != nil {
+		t.Fatalf("ParseAssertionOptions: %v", err)
+	}
+	assertion := virtualwebauthn.CreateAssertionResponse(testRP(), auth, cred, *parsedAssertion)
+
+	if _, _, err := svc.FinishLogin(ctx, loginToken, []byte(assertion), "test", "127.0.0.1"); err != nil {
+		t.Fatalf("FinishLogin with backup-eligible credential: %v", err)
+	}
+}
+
 func TestDiscoverableLogin(t *testing.T) {
 	svc, st := newTestService(t)
 	seedUser(t, st, "u1")

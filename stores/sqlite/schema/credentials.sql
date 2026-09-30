@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS credentials (
     sign_count    INTEGER NOT NULL DEFAULT 0,
     transports    TEXT,                 -- comma-separated
     aaguid        BLOB,
+    flags         INTEGER NOT NULL DEFAULT 0, -- WebAuthn authenticator flags (UP/UV/BE/BS)
     label         TEXT NOT NULL DEFAULT '',
     created_at    INTEGER NOT NULL,
     last_used_at  INTEGER               -- NULL until first use

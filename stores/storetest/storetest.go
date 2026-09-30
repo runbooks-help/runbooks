@@ -105,6 +105,7 @@ func StoreContract(t *testing.T, newStore func(t *testing.T) stores.Store) {
 			PublicKey:    []byte{9, 9, 9},
 			Transports:   []string{"usb", "nfc"},
 			AAGUID:       []byte{7, 7},
+			Flags:        0x1d, // UP|UV|BE|BS
 			Label:        "YubiKey 5",
 			CreatedAt:    base,
 		}
@@ -132,6 +133,7 @@ func StoreContract(t *testing.T, newStore func(t *testing.T) stores.Store) {
 		}
 
 		c.SignCount = 5
+		c.Flags = 0x1c // UP|BE|BS: user verification flag dropped and persisted
 		c.LastUsedAt = base.Add(2 * time.Hour)
 		if err := s.UpdateCredential(ctx, c); err != nil {
 			t.Fatalf("UpdateCredential: %v", err)

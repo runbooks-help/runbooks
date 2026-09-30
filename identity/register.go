@@ -69,6 +69,7 @@ func (s *Service) FinishRegistration(ctx context.Context, userID, token string, 
 		SignCount:    cred.Authenticator.SignCount,
 		Transports:   storeTransports(cred.Transport),
 		AAGUID:       cred.Authenticator.AAGUID,
+		Flags:        storeCredentialFlags(cred.Flags),
 		CreatedAt:    s.now(),
 	}
 	if err := s.creds.InsertCredential(ctx, stored); err != nil {

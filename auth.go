@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"log"
 	"net"
 	"net/http"
 	"strings"
@@ -76,6 +77,7 @@ func (a *auth) setupPage(w http.ResponseWriter, r *http.Request) {
 func (a *auth) loginBegin(w http.ResponseWriter, r *http.Request) {
 	token, options, err := a.svc.BeginDiscoverableLogin(r.Context())
 	if err != nil {
+		logAuthFailure("login/begin", err)
 		writeJSONError(w, http.StatusInternalServerError, "could not begin login")
 		return
 	}
@@ -93,6 +95,7 @@ func (a *auth) loginFinish(w http.ResponseWriter, r *http.Request) {
 	}
 	raw, user, err := a.svc.FinishLogin(r.Context(), req.Challenge, req.Credential, r.UserAgent(), clientIP(r))
 	if err != nil {
+		logAuthFailure("login/finish", err)
 		writeJSONError(w, http.StatusUnauthorized, "sign in failed")
 		return
 	}
@@ -159,6 +162,7 @@ func (a *auth) setupFinish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := a.svc.FinishRegistration(r.Context(), req.UserID, req.Challenge, req.Credential); err != nil {
+		logAuthFailure("setup/finish", err)
 		writeJSONError(w, http.StatusBadRequest, "registration failed")
 		return
 	}
@@ -250,6 +254,7 @@ func (a *auth) inviteFinish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := a.svc.FinishRegistration(r.Context(), inv.UserID, req.Challenge, req.Credential); err != nil {
+		logAuthFailure("invite/finish", err)
 		writeJSONError(w, http.StatusBadRequest, "registration failed")
 		return
 	}
@@ -496,6 +501,12 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 func writeJSONError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
+}
+
+// logAuthFailure records a ceremony failure server-side. The client only ever
+// gets a generic message, so this is where the real reason is visible.
+func logAuthFailure(step string, err error) {
+	log.Printf("identity: %s: %v", step, err)
 }
 
 // newUserID returns a random id for a new user.

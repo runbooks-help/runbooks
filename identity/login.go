@@ -113,6 +113,7 @@ func (s *Service) touchCredential(ctx context.Context, cred *webauthn.Credential
 		return err
 	}
 	stored.SignCount = cred.Authenticator.SignCount
+	stored.Flags = storeCredentialFlags(cred.Flags)
 	stored.LastUsedAt = s.now()
 	return s.creds.UpdateCredential(ctx, stored)
 }

@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS credentials (
     sign_count    BIGINT NOT NULL DEFAULT 0,
     transports    VARCHAR(255) NULL,      -- comma-separated
     aaguid        VARBINARY(255) NULL,
+    flags         TINYINT NOT NULL DEFAULT 0, -- WebAuthn authenticator flags (UP/UV/BE/BS)
     label         VARCHAR(255) NOT NULL DEFAULT '',
     created_at    BIGINT NOT NULL,
     last_used_at  BIGINT NULL,            -- NULL until first use

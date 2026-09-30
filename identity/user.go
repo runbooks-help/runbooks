@@ -35,6 +35,7 @@ func (u waUser) WebAuthnCredentials() []webauthn.Credential {
 			ID:        c.CredentialID,
 			PublicKey: c.PublicKey,
 			Transport: webauthnTransports(c.Transports),
+			Flags:     credentialFlags(c.Flags),
 			Authenticator: webauthn.Authenticator{
 				AAGUID:    c.AAGUID,
 				SignCount: c.SignCount,
