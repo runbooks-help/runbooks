@@ -63,6 +63,10 @@ run = "npx stylelint 'public/css/src/**/*.css'"
 description = "Format CSS source files with Prettier"
 run = "npx prettier --write 'public/css/src/**/*.css'"
 
+[tasks.slop]
+description = "Run slop (code generation)"
+run = "npx aislop scan --exclude \"public/js/vendor,public/js/bundle.js\""
+
 [tasks.test]
 description = "Run Go and JS tests"
 depends = ["generate"]
