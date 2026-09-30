@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -21,6 +22,34 @@ func newStore(t *testing.T) stores.Store {
 
 func TestStore(t *testing.T) {
 	storetest.StoreContract(t, newStore)
+}
+
+func TestOpenCreatesDirectory(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "nested", "deeper")
+	s, err := Open(context.Background(), "file:"+filepath.Join(dir, "runbooks.db"))
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer s.Close()
+	if _, err := os.Stat(dir); err != nil {
+		t.Errorf("directory not created: %v", err)
+	}
+}
+
+func TestFileDir(t *testing.T) {
+	cases := map[string]string{
+		"file:./data/runbooks.db":              "data",
+		"file:./data/runbooks.db?cache=shared": "data",
+		"file:/tmp/runbooks.db":                "/tmp",
+		"file:runbooks.db":                     "",
+		"file::memory:":                        "",
+		"runbooks.db":                          "",
+	}
+	for dsn, want := range cases {
+		if got := fileDir(dsn); got != want {
+			t.Errorf("fileDir(%q) = %q, want %q", dsn, got, want)
+		}
+	}
 }
 
 func TestMigrationIdempotent(t *testing.T) {

@@ -1,5 +1,7 @@
 // Variable substitution + copy-to-clipboard for runbook pages
 
+import { decodeBase64URL, encodeBase64URL } from './base64url.mjs';
+
 const vars = {};
 const secretVars = new Set();
 
@@ -557,6 +559,103 @@ if (notesSync && notesArea) {
 		} finally {
 			notesSync.classList.remove('loading');
 			updateSyncDisabled();
+		}
+	});
+}
+
+async function authPost(url, body) {
+	const res = await fetch(url, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(body || {}),
+	});
+	const data = await res.json().catch(() => ({}));
+	if (!res.ok) throw new Error(data.error || `request failed (${res.status})`);
+	return data;
+}
+
+function authStatus(message, isError) {
+	const el = document.querySelector('[data-auth-status]');
+	if (!el) return;
+	el.textContent = message;
+	el.classList.toggle('auth-status--error', Boolean(isError));
+	el.hidden = !message;
+}
+
+const loginButton = document.querySelector('[data-auth="login"]');
+if (loginButton) {
+	loginButton.addEventListener('click', async () => {
+		loginButton.disabled = true;
+		authStatus('Waiting for your passkey…');
+		try {
+			const begin = await authPost('/api/auth/v1/login/begin');
+			const pk = begin.options.publicKey;
+			pk.challenge = decodeBase64URL(pk.challenge);
+			(pk.allowCredentials || []).forEach(c => {
+				c.id = decodeBase64URL(c.id);
+			});
+			const cred = await navigator.credentials.get({ publicKey: pk });
+			const credential = {
+				id: cred.id,
+				rawId: encodeBase64URL(cred.rawId),
+				type: cred.type,
+				response: {
+					clientDataJSON: encodeBase64URL(cred.response.clientDataJSON),
+					authenticatorData: encodeBase64URL(cred.response.authenticatorData),
+					signature: encodeBase64URL(cred.response.signature),
+					userHandle: cred.response.userHandle ? encodeBase64URL(cred.response.userHandle) : undefined,
+				},
+			};
+			await authPost('/api/auth/v1/login/finish', { challenge: begin.challenge, credential });
+			window.location.assign('/');
+		} catch (err) {
+			authStatus(`Sign in failed: ${err.message}`, true);
+			loginButton.disabled = false;
+		}
+	});
+}
+
+const setupForm = document.querySelector('[data-auth="setup"]');
+if (setupForm) {
+	setupForm.addEventListener('submit', async event => {
+		event.preventDefault();
+		const fields = Object.fromEntries(new FormData(setupForm).entries());
+		const submit = setupForm.querySelector('button[type="submit"]');
+		if (submit) submit.disabled = true;
+		authStatus('Creating your passkey…');
+		try {
+			const begin = await authPost('/api/auth/v1/setup/begin', {
+				token: fields.token,
+				display_name: fields.display_name,
+				email: fields.email,
+			});
+			const pk = begin.options.publicKey;
+			pk.challenge = decodeBase64URL(pk.challenge);
+			pk.user.id = decodeBase64URL(pk.user.id);
+			(pk.excludeCredentials || []).forEach(c => {
+				c.id = decodeBase64URL(c.id);
+			});
+			const cred = await navigator.credentials.create({ publicKey: pk });
+			const credential = {
+				id: cred.id,
+				rawId: encodeBase64URL(cred.rawId),
+				type: cred.type,
+				response: {
+					clientDataJSON: encodeBase64URL(cred.response.clientDataJSON),
+					attestationObject: encodeBase64URL(cred.response.attestationObject),
+					transports: cred.response.getTransports ? cred.response.getTransports() : undefined,
+				},
+			};
+			await authPost('/api/auth/v1/setup/finish', {
+				token: fields.token,
+				user_id: begin.user_id,
+				challenge: begin.challenge,
+				credential,
+			});
+			window.location.assign('/');
+		} catch (err) {
+			authStatus(`Setup failed: ${err.message}`, true);
+			if (submit) submit.disabled = false;
 		}
 	});
 }

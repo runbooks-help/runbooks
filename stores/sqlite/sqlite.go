@@ -8,6 +8,9 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	sqlitedriver "modernc.org/sqlite"
@@ -29,6 +32,14 @@ var _ stores.Store = (*store)(nil)
 // applies the schema. dsn is a modernc.org/sqlite DSN, e.g.
 // "file:./data/runbooks.db".
 func Open(ctx context.Context, dsn string) (stores.Store, error) {
+	// A file-backed database needs its directory to exist; create it so a
+	// default DSN like "file:./data/runbooks.db" works on a fresh checkout.
+	if dir := fileDir(dsn); dir != "" {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return nil, fmt.Errorf("sqlite: create %s: %w", dir, err)
+		}
+	}
+
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("sqlite: open: %w", err)
@@ -47,6 +58,24 @@ func Open(ctx context.Context, dsn string) (stores.Store, error) {
 		return nil, err
 	}
 	return s, nil
+}
+
+// fileDir returns the directory a file-backed DSN lives in, or "" for an
+// in-memory or non-file DSN.
+func fileDir(dsn string) string {
+	path, ok := strings.CutPrefix(dsn, "file:")
+	if !ok {
+		return ""
+	}
+	path, _, _ = strings.Cut(path, "?")
+	if path == "" || strings.HasPrefix(path, ":memory:") {
+		return ""
+	}
+	dir := filepath.Dir(path)
+	if dir == "." {
+		return ""
+	}
+	return dir
 }
 
 // Close releases the database.

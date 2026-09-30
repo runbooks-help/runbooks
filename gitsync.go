@@ -59,9 +59,10 @@ func handleGitSync(cfg config) http.HandlerFunc {
 			return
 		}
 
-		// Optional shared instance token. When it is empty the operator has
-		// declared the route sits behind upstream (proxy/SSO) auth.
-		if cfg.GitSyncAPIToken != "" {
+		// A user session satisfies the endpoint; otherwise the shared instance
+		// token does. When the token is empty the operator has declared the route
+		// sits behind upstream (proxy/SSO) auth.
+		if !sessionAuthorized(r.Context()) && cfg.GitSyncAPIToken != "" {
 			auth := r.Header.Get("Authorization")
 			token := strings.TrimPrefix(auth, bearerPrefix)
 			if !strings.HasPrefix(auth, bearerPrefix) ||

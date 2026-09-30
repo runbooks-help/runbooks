@@ -1,6 +1,7 @@
 package identity
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/descope/virtualwebauthn"
+	"github.com/go-webauthn/webauthn/protocol"
 
 	"runbooks/stores"
 	"runbooks/stores/sqlite"
@@ -342,6 +344,47 @@ func TestWebAuthnName(t *testing.T) {
 	withoutEmail := waUser{user: stores.User{DisplayName: "Ada"}}
 	if got := withoutEmail.WebAuthnName(); got != "Ada" {
 		t.Errorf("WebAuthnName without email = %q, want Ada", got)
+	}
+}
+
+func TestRegistrationOptionsArePasskeyFriendly(t *testing.T) {
+	svc, st := newTestService(t)
+	seedUser(t, st, "u1")
+	stored, _, _ := register(t, svc, "u1")
+
+	_, options, err := svc.BeginRegistration(context.Background(), "u1")
+	if err != nil {
+		t.Fatalf("BeginRegistration: %v", err)
+	}
+
+	// Password managers only offer to save a discoverable credential.
+	sel := options.Response.AuthenticatorSelection
+	if sel.ResidentKey != protocol.ResidentKeyRequirementRequired {
+		t.Errorf("residentKey = %q, want required", sel.ResidentKey)
+	}
+	if sel.RequireResidentKey == nil || !*sel.RequireResidentKey {
+		t.Error("requireResidentKey must be true for WebAuthn L1 clients")
+	}
+	if sel.UserVerification != protocol.VerificationPreferred {
+		t.Errorf("userVerification = %q, want preferred", sel.UserVerification)
+	}
+	// Requesting attestation is what makes synced-passkey clients misbehave.
+	if options.Response.Attestation != protocol.PreferNoAttestation {
+		t.Errorf("attestation = %q, want none", options.Response.Attestation)
+	}
+	// The client shows these; both must be present and human-readable.
+	if options.Response.User.Name == "" || options.Response.User.DisplayName == "" {
+		t.Errorf("user name/displayName must be set, got %+v", options.Response.User)
+	}
+	// An existing passkey is excluded, so the same authenticator is not re-added.
+	found := false
+	for _, ex := range options.Response.CredentialExcludeList {
+		if bytes.Equal(ex.CredentialID, stored.CredentialID) {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("existing credential not excluded: %+v", options.Response.CredentialExcludeList)
 	}
 }
 

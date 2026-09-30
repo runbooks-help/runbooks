@@ -7,6 +7,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 
 	"runbooks/stores"
@@ -71,6 +72,16 @@ func New(cfg Config, st stores.Store) (*Service, error) {
 		RPID:          cfg.RPID,
 		RPDisplayName: cfg.RPDisplayName,
 		RPOrigins:     cfg.RPOrigins,
+		// A passkey is a discoverable credential: require a resident key so
+		// password managers offer to save one and our discoverable login can
+		// find it. Ask for attestation "none" — requesting attestation is what
+		// makes the synced-passkey clients misbehave.
+		AuthenticatorSelection: protocol.AuthenticatorSelection{
+			ResidentKey:        protocol.ResidentKeyRequirementRequired,
+			RequireResidentKey: protocol.ResidentKeyRequired(),
+			UserVerification:   protocol.VerificationPreferred,
+		},
+		AttestationPreference: protocol.PreferNoAttestation,
 		Timeouts: webauthn.TimeoutsConfig{
 			Registration: webauthn.TimeoutConfig{Enforce: true, Timeout: cfg.ChallengeTTL, TimeoutUVD: cfg.ChallengeTTL},
 			Login:        webauthn.TimeoutConfig{Enforce: true, Timeout: cfg.ChallengeTTL, TimeoutUVD: cfg.ChallengeTTL},

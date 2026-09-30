@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/webauthn"
 
 	"runbooks/stores"
 )
@@ -17,7 +18,10 @@ func (s *Service) BeginRegistration(ctx context.Context, userID string) (token s
 		return "", nil, err
 	}
 
-	options, session, err := s.wa.BeginRegistration(user)
+	// Exclude the user's existing passkeys so a client does not create a second
+	// credential for an authenticator that already has one.
+	exclusions := webauthn.Credentials(user.WebAuthnCredentials()).CredentialDescriptors()
+	options, session, err := s.wa.BeginRegistration(user, webauthn.WithExclusions(exclusions))
 	if err != nil {
 		return "", nil, err
 	}

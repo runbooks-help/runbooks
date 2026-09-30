@@ -1,0 +1,271 @@
+package main
+
+import (
+	"context"
+	"crypto/rand"
+	"crypto/subtle"
+	"encoding/hex"
+	"encoding/json"
+	"net"
+	"net/http"
+	"strings"
+	"time"
+
+	"runbooks/identity"
+	"runbooks/stores"
+	"runbooks/views"
+)
+
+const sessionCookieName = "runbooks_session"
+
+// sessionAuthKey marks a git-sync request as authorised by a user session, so
+// the handler skips its shared-token check.
+type sessionAuthKey struct{}
+
+func sessionAuthorized(ctx context.Context) bool {
+	v, _ := ctx.Value(sessionAuthKey{}).(bool)
+	return v
+}
+
+// auth wires the passkey service to HTTP: the setup/login pages, the JSON
+// ceremony endpoints and the session cookie.
+type auth struct {
+	svc *identity.Service
+	st  stores.Store
+	cfg config
+}
+
+func newAuth(svc *identity.Service, st stores.Store, cfg config) *auth {
+	return &auth{svc: svc, st: st, cfg: cfg}
+}
+
+func (a *auth) loginPage(w http.ResponseWriter, r *http.Request) {
+	if _, ok := a.sessionUser(r); ok {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+	views.LoginPage().Render(r.Context(), w)
+}
+
+func (a *auth) setupPage(w http.ResponseWriter, r *http.Request) {
+	if a.adminExists(r) {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+	views.SetupPage().Render(r.Context(), w)
+}
+
+func (a *auth) loginBegin(w http.ResponseWriter, r *http.Request) {
+	token, options, err := a.svc.BeginDiscoverableLogin(r.Context())
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "could not begin login")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"challenge": token, "options": options})
+}
+
+func (a *auth) loginFinish(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Challenge  string          `json:"challenge"`
+		Credential json.RawMessage `json:"credential"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	raw, user, err := a.svc.FinishLogin(r.Context(), req.Challenge, req.Credential, r.UserAgent(), clientIP(r))
+	if err != nil {
+		writeJSONError(w, http.StatusUnauthorized, "sign in failed")
+		return
+	}
+	a.setSession(w, raw)
+	writeJSON(w, http.StatusOK, map[string]string{"id": user.ID, "displayName": user.DisplayName})
+}
+
+func (a *auth) setupBegin(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Token       string `json:"token"`
+		DisplayName string `json:"display_name"`
+		Email       string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	if !a.validBootstrap(req.Token) {
+		writeJSONError(w, http.StatusUnauthorized, "invalid bootstrap token")
+		return
+	}
+	if a.adminExists(r) {
+		writeJSONError(w, http.StatusConflict, "already set up")
+		return
+	}
+	if strings.TrimSpace(req.DisplayName) == "" {
+		writeJSONError(w, http.StatusBadRequest, "display name is required")
+		return
+	}
+
+	user := stores.User{
+		ID:          newUserID(),
+		Email:       strings.TrimSpace(req.Email),
+		DisplayName: strings.TrimSpace(req.DisplayName),
+		Role:        stores.RoleAdmin,
+		CreatedAt:   time.Now(),
+	}
+	if err := a.st.InsertUser(r.Context(), user); err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "could not create user")
+		return
+	}
+
+	token, options, err := a.svc.BeginRegistration(r.Context(), user.ID)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "could not begin registration")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"user_id": user.ID, "challenge": token, "options": options})
+}
+
+func (a *auth) setupFinish(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Token      string          `json:"token"`
+		UserID     string          `json:"user_id"`
+		Challenge  string          `json:"challenge"`
+		Credential json.RawMessage `json:"credential"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	if !a.validBootstrap(req.Token) {
+		writeJSONError(w, http.StatusUnauthorized, "invalid bootstrap token")
+		return
+	}
+	if _, err := a.svc.FinishRegistration(r.Context(), req.UserID, req.Challenge, req.Credential); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "registration failed")
+		return
+	}
+	raw, err := a.svc.Create(r.Context(), req.UserID, r.UserAgent(), clientIP(r))
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "could not start session")
+		return
+	}
+	a.setSession(w, raw)
+	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
+}
+
+func (a *auth) logout(w http.ResponseWriter, r *http.Request) {
+	if c, err := r.Cookie(sessionCookieName); err == nil {
+		_ = a.svc.Revoke(r.Context(), c.Value)
+	}
+	a.clearSession(w)
+	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
+}
+
+// sessionUser resolves the session cookie to a user.
+func (a *auth) sessionUser(r *http.Request) (stores.User, bool) {
+	c, err := r.Cookie(sessionCookieName)
+	if err != nil {
+		return stores.User{}, false
+	}
+	u, err := a.svc.Authenticate(r.Context(), c.Value)
+	if err != nil {
+		return stores.User{}, false
+	}
+	return u, true
+}
+
+func (a *auth) setSession(w http.ResponseWriter, raw string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    raw,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   a.cfg.IdentitySecureCookies,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   int(a.cfg.IdentitySessionTTL.Seconds()),
+	})
+}
+
+func (a *auth) clearSession(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   a.cfg.IdentitySecureCookies,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1,
+	})
+}
+
+// adminExists reports whether the instance already has an enabled admin, so
+// bootstrap is closed.
+func (a *auth) adminExists(r *http.Request) bool {
+	users, err := a.st.ListUsers(r.Context())
+	if err != nil {
+		return false
+	}
+	for _, u := range users {
+		if u.Role == stores.RoleAdmin && u.Enabled() {
+			return true
+		}
+	}
+	return false
+}
+
+func (a *auth) validBootstrap(token string) bool {
+	if a.cfg.IdentityBootstrapToken == "" {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(token), []byte(a.cfg.IdentityBootstrapToken)) == 1
+}
+
+// requirePage redirects an unauthenticated request to the login page.
+func (a *auth) requirePage(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := a.sessionUser(r); !ok {
+			http.Redirect(w, r, "/login", http.StatusFound)
+			return
+		}
+		next(w, r)
+	}
+}
+
+// gateGitSync marks a session-authenticated git-sync request so the handler
+// skips its shared-token check; anything else falls through to the handler's
+// own token / proxy-assertion rules (the CI path).
+func (a *auth) gateGitSync(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := a.sessionUser(r); ok {
+			r = r.WithContext(context.WithValue(r.Context(), sessionAuthKey{}, true))
+		}
+		next(w, r)
+	}
+}
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(v)
+}
+
+func writeJSONError(w http.ResponseWriter, status int, msg string) {
+	writeJSON(w, status, map[string]string{"error": msg})
+}
+
+// newUserID returns a random id for a new user.
+func newUserID() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		panic("crypto/rand unavailable: " + err.Error())
+	}
+	return hex.EncodeToString(b)
+}
+
+// clientIP is the request's remote host, for the session record.
+func clientIP(r *http.Request) string {
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		return host
+	}
+	return r.RemoteAddr
+}
