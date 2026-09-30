@@ -704,3 +704,70 @@ if (inviteForm) {
 		}
 	});
 }
+
+const adminStatus = document.querySelector('[data-admin-status]');
+if (adminStatus) {
+	const adminResult = document.querySelector('[data-admin-result]');
+	const adminUrl = adminResult.querySelector('[data-admin-url]');
+
+	const showAdminStatus = (message, isError) => {
+		adminStatus.textContent = message;
+		adminStatus.classList.toggle('auth-status--error', Boolean(isError));
+		adminStatus.hidden = !message;
+	};
+	const showAdminUrl = url => {
+		adminUrl.value = url;
+		adminResult.hidden = false;
+		adminUrl.focus();
+		adminUrl.select();
+	};
+	const createAdminInvite = async body => {
+		try {
+			const data = await authPost('/api/auth/v1/invites', body);
+			showAdminStatus('Invite link created — it can only be used once.');
+			showAdminUrl(data.url);
+		} catch (err) {
+			showAdminStatus(err.message, true);
+		}
+	};
+
+	const adminInviteForm = document.querySelector('[data-admin="invite"]');
+	if (adminInviteForm) {
+		adminInviteForm.addEventListener('submit', async event => {
+			event.preventDefault();
+			const fields = Object.fromEntries(new FormData(adminInviteForm).entries());
+			await createAdminInvite({ role: fields.role, ttl: fields.ttl });
+		});
+	}
+
+	document.querySelectorAll('[data-admin="reenrol"]').forEach(button => {
+		button.addEventListener('click', () => createAdminInvite({ user_id: button.dataset.userId }));
+	});
+
+	document.querySelectorAll('[data-admin="revoke"]').forEach(button => {
+		button.addEventListener('click', async () => {
+			button.disabled = true;
+			try {
+				await authPost('/api/auth/v1/sessions/revoke', { user_id: button.dataset.userId });
+				showAdminStatus('Sessions revoked.');
+			} catch (err) {
+				showAdminStatus(err.message, true);
+			} finally {
+				button.disabled = false;
+			}
+		});
+	});
+
+	const adminCopy = document.querySelector('[data-admin-copy]');
+	if (adminCopy) {
+		adminCopy.addEventListener('click', async () => {
+			try {
+				await navigator.clipboard.writeText(adminUrl.value);
+				showAdminStatus('Copied.');
+			} catch (_) {
+				adminUrl.select();
+				showAdminStatus('Press Ctrl/Cmd+C to copy.');
+			}
+		});
+	}
+}

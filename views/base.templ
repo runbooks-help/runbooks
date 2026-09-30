@@ -54,6 +54,13 @@ templ ThemeToggle() {
 	</div>
 }
 
+// SidebarAdmin is the sidebar link to the admin page, shown to admins only.
+templ SidebarAdmin() {
+	<nav class="nav-admin">
+		<a href="/admin">Admin</a>
+	</nav>
+}
+
 // VarsPanel renders the sidebar variables section for a runbook page.
 templ VarsPanel(fields []parser.VarField) {
 	<div class="vars-panel">

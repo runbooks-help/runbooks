@@ -10,6 +10,9 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 			@SidebarHeader()
 			@SidebarNav(groups, rb.Slug)
 			@ThemeToggle()
+			if cfg.IsAdmin {
+				@SidebarAdmin()
+			}
 		</aside>
 		<aside class="notes-panel">
 			<div class="notes-resize" aria-hidden="true"></div>

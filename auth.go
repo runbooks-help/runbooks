@@ -6,6 +6,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net"
 	"net/http"
 	"strings"
@@ -18,6 +19,10 @@ import (
 
 const sessionCookieName = "runbooks_session"
 
+// defaultInviteTTL is how long a new invite link lives when the caller does not
+// set one.
+const defaultInviteTTL = 72 * time.Hour
+
 // sessionAuthKey marks a git-sync request as authorised by a user session, so
 // the handler skips its shared-token check.
 type sessionAuthKey struct{}
@@ -25,6 +30,19 @@ type sessionAuthKey struct{}
 func sessionAuthorized(ctx context.Context) bool {
 	v, _ := ctx.Value(sessionAuthKey{}).(bool)
 	return v
+}
+
+// userKey carries the authenticated user through a gated request, so a handler
+// does not resolve the session a second time.
+type userKey struct{}
+
+// userFrom returns the user stored by requirePage or requireAdmin, or the zero
+// user when the request was not gated.
+func userFrom(ctx context.Context) stores.User {
+	if u, ok := ctx.Value(userKey{}).(stores.User); ok {
+		return u
+	}
+	return stores.User{}
 }
 
 // auth wires the passkey service to HTTP: the setup/login pages, the JSON
@@ -248,6 +266,104 @@ func (a *auth) inviteFinish(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
 }
 
+func (a *auth) adminPage(w http.ResponseWriter, r *http.Request) {
+	users, err := a.st.ListUsers(r.Context())
+	if err != nil {
+		http.Error(w, "could not load users", http.StatusInternalServerError)
+		return
+	}
+	views.AdminPage(users).Render(r.Context(), w)
+}
+
+// createInvite mints an invite for a new user, or a re-enrolment link when
+// user_id is set. It returns the absolute URL to share.
+func (a *auth) createInvite(w http.ResponseWriter, r *http.Request) {
+	admin := userFrom(r.Context())
+	var req struct {
+		Role   string `json:"role"`
+		UserID string `json:"user_id"`
+		TTL    string `json:"ttl"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+
+	role := stores.Role(req.Role)
+	if role == "" {
+		role = stores.RoleMember
+	}
+	if role != stores.RoleMember && role != stores.RoleAdmin {
+		writeJSONError(w, http.StatusBadRequest, "unknown role")
+		return
+	}
+
+	ttl := defaultInviteTTL
+	if req.TTL != "" {
+		d, err := time.ParseDuration(req.TTL)
+		if err != nil || d <= 0 {
+			writeJSONError(w, http.StatusBadRequest, "invalid expiry")
+			return
+		}
+		ttl = d
+	}
+
+	userID := strings.TrimSpace(req.UserID)
+	if userID != "" {
+		u, err := a.st.GetUser(r.Context(), userID)
+		if err != nil {
+			if errors.Is(err, stores.ErrNotFound) {
+				writeJSONError(w, http.StatusNotFound, "unknown user")
+				return
+			}
+			writeJSONError(w, http.StatusInternalServerError, "could not look up user")
+			return
+		}
+		// A bound invite re-enrols an existing user; the invite's role is unused.
+		role = u.Role
+	}
+
+	raw, err := a.svc.CreateInvite(r.Context(), admin.ID, role, userID, ttl)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "could not create invite")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"url":        a.cfg.IdentityPublicURL + "/invite/" + raw,
+		"token":      raw,
+		"expires_at": time.Now().Add(ttl),
+	})
+}
+
+// revokeSessions ends every session a user holds (lost device, offboarding).
+func (a *auth) revokeSessions(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		UserID string `json:"user_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	userID := strings.TrimSpace(req.UserID)
+	if userID == "" {
+		writeJSONError(w, http.StatusBadRequest, "user_id is required")
+		return
+	}
+	if _, err := a.st.GetUser(r.Context(), userID); err != nil {
+		if errors.Is(err, stores.ErrNotFound) {
+			writeJSONError(w, http.StatusNotFound, "unknown user")
+			return
+		}
+		writeJSONError(w, http.StatusInternalServerError, "could not look up user")
+		return
+	}
+	if err := a.svc.RevokeForUser(r.Context(), userID); err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "could not revoke sessions")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
+}
+
 func (a *auth) logout(w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie(sessionCookieName); err == nil {
 		_ = a.svc.Revoke(r.Context(), c.Value)
@@ -318,11 +434,45 @@ func (a *auth) validBootstrap(token string) bool {
 // requirePage redirects an unauthenticated request to the login page.
 func (a *auth) requirePage(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := a.sessionUser(r); !ok {
+		u, ok := a.sessionUser(r)
+		if !ok {
 			http.Redirect(w, r, "/login", http.StatusFound)
 			return
 		}
-		next(w, r)
+		next(w, r.WithContext(context.WithValue(r.Context(), userKey{}, u)))
+	}
+}
+
+// requireAdmin gates an authenticated page to admins.
+func (a *auth) requireAdmin(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		u, ok := a.sessionUser(r)
+		if !ok {
+			http.Redirect(w, r, "/login", http.StatusFound)
+			return
+		}
+		if !u.IsAdmin() {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		next(w, r.WithContext(context.WithValue(r.Context(), userKey{}, u)))
+	}
+}
+
+// requireAdminAPI gates an authenticated JSON endpoint to admins, answering 401
+// and 403 rather than redirecting.
+func (a *auth) requireAdminAPI(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		u, ok := a.sessionUser(r)
+		if !ok {
+			writeJSONError(w, http.StatusUnauthorized, "sign in required")
+			return
+		}
+		if !u.IsAdmin() {
+			writeJSONError(w, http.StatusForbidden, "admin only")
+			return
+		}
+		next(w, r.WithContext(context.WithValue(r.Context(), userKey{}, u)))
 	}
 }
 

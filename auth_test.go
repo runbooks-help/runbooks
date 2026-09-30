@@ -70,6 +70,9 @@ func newTestServer(t *testing.T) (*httptest.Server, *identity.Service, stores.St
 	mux.HandleFunc("/api/auth/v1/invite/begin", a.inviteBegin)
 	mux.HandleFunc("/api/auth/v1/invite/finish", a.inviteFinish)
 	mux.HandleFunc("/api/auth/v1/logout", a.logout)
+	mux.HandleFunc("/admin", a.requireAdmin(a.adminPage))
+	mux.HandleFunc("/api/auth/v1/invites", a.requireAdminAPI(a.createInvite))
+	mux.HandleFunc("/api/auth/v1/sessions/revoke", a.requireAdminAPI(a.revokeSessions))
 	mux.HandleFunc("/{$}", a.requirePage(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, "index")
 	}))
@@ -306,6 +309,98 @@ func TestInviteFlow(t *testing.T) {
 	if len(users) != 2 {
 		t.Fatalf("users after re-enrol = %d, want 2", len(users))
 	}
+}
+
+func TestAdminFlow(t *testing.T) {
+	srv, _, st := newTestServer(t)
+	rp := testRP()
+	adminAuthn := virtualwebauthn.NewAuthenticator()
+	adminCred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	admin, _ := bootstrapAdmin(t, srv, rp, adminAuthn, adminCred)
+
+	// The admin page renders for an admin; the APIs reject the unauthenticated.
+	if code, _ := get(t, admin, srv.URL+"/admin"); code != http.StatusOK {
+		t.Fatalf("admin GET /admin = %d, want 200", code)
+	}
+	if code, _ := postJSON(t, newClient(t), srv.URL+"/api/auth/v1/invites", map[string]string{"role": "member"}); code != http.StatusUnauthorized {
+		t.Fatalf("anonymous create invite = %d, want 401", code)
+	}
+
+	// The admin mints an invite through the API, then the invitee enrols.
+	code, body := postJSON(t, admin, srv.URL+"/api/auth/v1/invites", map[string]string{"role": "member", "ttl": "1h"})
+	if code != http.StatusOK {
+		t.Fatalf("create invite = %d: %s", code, body)
+	}
+	var invite struct {
+		URL   string `json:"url"`
+		Token string `json:"token"`
+	}
+	if err := json.Unmarshal(body, &invite); err != nil {
+		t.Fatalf("decode invite: %v", err)
+	}
+	if invite.Token == "" || invite.URL != testOrigin+"/invite/"+invite.Token {
+		t.Fatalf("invite = %+v", invite)
+	}
+
+	member, memberUser := enrolInvite(t, srv, st, rp, invite.Token, "Sam")
+
+	// A member can neither open the admin page nor call the admin APIs.
+	if code, _ := get(t, member, srv.URL+"/admin"); code != http.StatusForbidden {
+		t.Fatalf("member GET /admin = %d, want 403", code)
+	}
+	if code, _ := postJSON(t, member, srv.URL+"/api/auth/v1/invites", map[string]string{"role": "member"}); code != http.StatusForbidden {
+		t.Fatalf("member create invite = %d, want 403", code)
+	}
+
+	// A bound re-enrolment invite is accepted (creates no new user).
+	if code, body := postJSON(t, admin, srv.URL+"/api/auth/v1/invites", map[string]string{"user_id": memberUser.ID}); code != http.StatusOK {
+		t.Fatalf("re-enrol invite = %d: %s", code, body)
+	}
+
+	// Revoking the member's sessions logs them out immediately.
+	if code, _ := get(t, member, srv.URL+"/"); code != http.StatusOK {
+		t.Fatalf("member GET / = %d, want 200", code)
+	}
+	if code, body := postJSON(t, admin, srv.URL+"/api/auth/v1/sessions/revoke", map[string]string{"user_id": memberUser.ID}); code != http.StatusOK {
+		t.Fatalf("revoke = %d: %s", code, body)
+	}
+	if code, _ := get(t, member, srv.URL+"/"); code != http.StatusFound {
+		t.Fatalf("member GET / after revoke = %d, want 302", code)
+	}
+	if code, _ := postJSON(t, admin, srv.URL+"/api/auth/v1/sessions/revoke", map[string]string{"user_id": "nope"}); code != http.StatusNotFound {
+		t.Fatalf("revoke unknown = %d, want 404", code)
+	}
+}
+
+// enrolInvite accepts an invite token, registers a passkey and returns the now
+// signed-in client and the created user.
+func enrolInvite(t *testing.T, srv *httptest.Server, st stores.Store, rp virtualwebauthn.RelyingParty, token, name string) (*http.Client, stores.User) {
+	t.Helper()
+	client := newClient(t)
+	begin := decodeBegin(t, client, srv.URL+"/api/auth/v1/invite/begin", map[string]string{"token": token, "display_name": name})
+	authn := virtualwebauthn.NewAuthenticator()
+	cred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	attestation, err := virtualwebauthn.ParseAttestationOptions(string(begin.Options))
+	if err != nil {
+		t.Fatalf("parse attestation options: %v", err)
+	}
+	resp := virtualwebauthn.CreateAttestationResponse(rp, authn, cred, *attestation)
+	if code, body := postJSON(t, client, srv.URL+"/api/auth/v1/invite/finish", map[string]any{
+		"token": token, "challenge": begin.Challenge, "credential": json.RawMessage(resp),
+	}); code != http.StatusOK {
+		t.Fatalf("invite/finish = %d: %s", code, body)
+	}
+	users, err := st.ListUsers(context.Background())
+	if err != nil {
+		t.Fatalf("ListUsers: %v", err)
+	}
+	for _, u := range users {
+		if u.DisplayName == name {
+			return client, u
+		}
+	}
+	t.Fatalf("no user named %q after enrolment", name)
+	return nil, stores.User{}
 }
 
 func get(t *testing.T, client *http.Client, url string) (int, []byte) {

@@ -146,6 +146,7 @@ type PageConfig struct {
 	GitSyncEnabled       bool
 	GitSyncRequiresToken bool
 	RecordsBasePath      string
+	IsAdmin              bool
 }
 
 // pageConfigJSON renders PageConfig as the JSON embedded in the page.

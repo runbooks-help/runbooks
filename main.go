@@ -123,7 +123,8 @@ func main() {
 	mux.Handle("/public/", http.FileServer(http.FS(static)))
 
 	index := func(w http.ResponseWriter, r *http.Request) {
-		views.IndexPage(groups).Render(r.Context(), w)
+		u := userFrom(r.Context())
+		views.IndexPage(groups, u.IsAdmin()).Render(r.Context(), w)
 	}
 
 	var authn *auth
@@ -154,6 +155,9 @@ func main() {
 		mux.HandleFunc("/api/auth/v1/invite/begin", authn.inviteBegin)
 		mux.HandleFunc("/api/auth/v1/invite/finish", authn.inviteFinish)
 		mux.HandleFunc("/api/auth/v1/logout", authn.logout)
+		mux.HandleFunc("/admin", authn.requireAdmin(authn.adminPage))
+		mux.HandleFunc("/api/auth/v1/invites", authn.requireAdminAPI(authn.createInvite))
+		mux.HandleFunc("/api/auth/v1/sessions/revoke", authn.requireAdminAPI(authn.revokeSessions))
 
 		index = authn.requirePage(index)
 		log.Printf("identity enabled (%s)", cfg.IdentityDriver)
@@ -164,10 +168,12 @@ func main() {
 	for _, rb := range runbooks {
 		rb := rb
 		page := func(w http.ResponseWriter, r *http.Request) {
+			u := userFrom(r.Context())
 			views.RunbookPage(rb, groups, views.PageConfig{
 				GitSyncEnabled:       cfg.GitSyncEnabled,
 				GitSyncRequiresToken: cfg.GitSyncAPIToken != "",
 				RecordsBasePath:      cfg.GitSyncBasePath,
+				IsAdmin:              u.IsAdmin(),
 			}).Render(r.Context(), w)
 		}
 		if authn != nil {

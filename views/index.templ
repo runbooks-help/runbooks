@@ -4,12 +4,15 @@ import "runbooks/parser"
 
 // IndexPage is the welcome / navigation page: a filter box, the symptom-first
 // shortcuts declared in runbook frontmatter, then the full catalogue as cards.
-templ IndexPage(systems []parser.SystemGroup) {
+templ IndexPage(systems []parser.SystemGroup, isAdmin bool) {
 	@Shell("") {
 		<aside class="sidebar">
 			@SidebarHeader()
 			@SidebarNav(systems, "")
 			@ThemeToggle()
+			if isAdmin {
+				@SidebarAdmin()
+			}
 		</aside>
 		<div class="main index-main">
 			<div class="main-header">
