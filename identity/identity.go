@@ -1,0 +1,89 @@
+// Package identity is the app's identity primitive: named users, passkey
+// credentials and the storage contract behind them. It is the app's only
+// relational state.
+//
+// Identity is off until a database is configured; this package is the storage
+// layer only — WebAuthn ceremonies, sessions and the HTTP surface build on it.
+package identity
+
+import (
+	"database/sql/driver"
+	"fmt"
+	"strings"
+	"time"
+)
+
+// Role is a user's permission level. Deliberately two: the rich RBAC layer is
+// hosted-only and must not be pre-built here.
+type Role string
+
+const (
+	// RoleAdmin may invite users, manage them and run recovery.
+	RoleAdmin Role = "admin"
+	// RoleMember may use the app and sync.
+	RoleMember Role = "member"
+)
+
+// User is a named person on the instance.
+type User struct {
+	ID          string
+	Email       string // optional: only needed to attribute commits
+	DisplayName string
+	Role        Role
+	CreatedAt   time.Time
+	DisabledAt  time.Time // zero when the user is enabled
+}
+
+// Enabled reports whether the user may authenticate.
+func (u User) Enabled() bool { return u.DisabledAt.IsZero() }
+
+// IsAdmin reports whether the user may invite, manage users and run recovery.
+func (u User) IsAdmin() bool { return u.Role == RoleAdmin }
+
+// Transports are the WebAuthn transports an authenticator reported (usb, nfc,
+// ble, internal, hybrid). Stored comma-separated, NULL when empty.
+type Transports []string
+
+// Value stores the transports as a comma-separated string.
+func (t Transports) Value() (driver.Value, error) {
+	if len(t) == 0 {
+		return nil, nil
+	}
+	return strings.Join(t, ","), nil
+}
+
+// Scan reads the comma-separated column.
+func (t *Transports) Scan(src any) error {
+	var joined string
+	switch v := src.(type) {
+	case nil:
+		*t = nil
+		return nil
+	case string:
+		joined = v
+	case []byte:
+		joined = string(v)
+	default:
+		return fmt.Errorf("identity: cannot scan %T into Transports", src)
+	}
+	if joined == "" {
+		*t = nil
+		return nil
+	}
+	*t = strings.Split(joined, ",")
+	return nil
+}
+
+// Credential is a stored WebAuthn passkey.
+type Credential struct {
+	ID           string // internal row id
+	UserID       string
+	CredentialID []byte // WebAuthn credential id, as sent by the authenticator
+	PublicKey    []byte
+	SignCount    uint32
+	Transports   Transports
+	AAGUID       []byte
+	Label        string // user-facing name, e.g. "YubiKey 5"
+	CreatedAt    time.Time
+	LastUsedAt   time.Time // zero until first use
+}
