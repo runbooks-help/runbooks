@@ -162,6 +162,104 @@ func StoreContract(t *testing.T, newStore func(t *testing.T) stores.Store) {
 			t.Errorf("UpdateCredential missing err = %v, want nil (idempotent)", err)
 		}
 	})
+
+	t.Run("sessions", func(t *testing.T) {
+		s := newStore(t)
+
+		sess := stores.Session{
+			ID:         "s1",
+			UserID:     "u1",
+			CreatedAt:  base,
+			ExpiresAt:  base.Add(time.Hour),
+			LastSeenAt: base,
+			UserAgent:  "curl/8",
+			IP:         "127.0.0.1",
+		}
+		if err := s.InsertSession(ctx, sess); err != nil {
+			t.Fatalf("InsertSession: %v", err)
+		}
+		got, err := s.GetSession(ctx, "s1")
+		if err != nil {
+			t.Fatalf("GetSession: %v", err)
+		}
+		if diff := cmp.Diff(sess, got); diff != "" {
+			t.Errorf("GetSession mismatch (-want +got):\n%s", diff)
+		}
+
+		if _, err := s.GetSession(ctx, "missing"); !errors.Is(err, stores.ErrNotFound) {
+			t.Errorf("GetSession missing err = %v, want ErrNotFound", err)
+		}
+
+		sess.LastSeenAt = base.Add(10 * time.Minute)
+		sess.ExpiresAt = base.Add(2 * time.Hour)
+		if err := s.UpdateSession(ctx, sess); err != nil {
+			t.Fatalf("UpdateSession: %v", err)
+		}
+		got, err = s.GetSession(ctx, "s1")
+		if err != nil {
+			t.Fatalf("GetSession after update: %v", err)
+		}
+		if diff := cmp.Diff(sess, got); diff != "" {
+			t.Errorf("GetSession after update mismatch (-want +got):\n%s", diff)
+		}
+
+		// Sign out everywhere: only the target user's sessions go (s1 already exists).
+		if err := s.InsertSession(ctx, stores.Session{ID: "s2", UserID: "u1", CreatedAt: base, ExpiresAt: base.Add(time.Hour), LastSeenAt: base}); err != nil {
+			t.Fatalf("InsertSession s2: %v", err)
+		}
+		if err := s.InsertSession(ctx, stores.Session{ID: "s3", UserID: "u2", CreatedAt: base, ExpiresAt: base.Add(time.Hour), LastSeenAt: base}); err != nil {
+			t.Fatalf("InsertSession s3: %v", err)
+		}
+		if err := s.DeleteSessionsForUser(ctx, "u1"); err != nil {
+			t.Fatalf("DeleteSessionsForUser: %v", err)
+		}
+		if _, err := s.GetSession(ctx, "s1"); !errors.Is(err, stores.ErrNotFound) {
+			t.Errorf("s1 after sign-out err = %v, want ErrNotFound", err)
+		}
+		if _, err := s.GetSession(ctx, "s3"); err != nil {
+			t.Errorf("s3 should survive sign-out, got %v", err)
+		}
+
+		if err := s.DeleteSession(ctx, "s3"); err != nil {
+			t.Fatalf("DeleteSession: %v", err)
+		}
+		if _, err := s.GetSession(ctx, "s3"); !errors.Is(err, stores.ErrNotFound) {
+			t.Errorf("GetSession after delete err = %v, want ErrNotFound", err)
+		}
+		if err := s.DeleteSession(ctx, "s3"); err != nil {
+			t.Errorf("DeleteSession twice err = %v, want nil (idempotent)", err)
+		}
+	})
+
+	t.Run("challenges", func(t *testing.T) {
+		s := newStore(t)
+
+		ch := stores.Challenge{ID: "ch1", Kind: "registration", Data: []byte{1, 2, 3, 4}, ExpiresAt: base.Add(5 * time.Minute)}
+		if err := s.InsertChallenge(ctx, ch); err != nil {
+			t.Fatalf("InsertChallenge: %v", err)
+		}
+		got, err := s.GetChallenge(ctx, "ch1")
+		if err != nil {
+			t.Fatalf("GetChallenge: %v", err)
+		}
+		if diff := cmp.Diff(ch, got); diff != "" {
+			t.Errorf("GetChallenge mismatch (-want +got):\n%s", diff)
+		}
+
+		if _, err := s.GetChallenge(ctx, "missing"); !errors.Is(err, stores.ErrNotFound) {
+			t.Errorf("GetChallenge missing err = %v, want ErrNotFound", err)
+		}
+
+		if err := s.DeleteChallenge(ctx, "ch1"); err != nil {
+			t.Fatalf("DeleteChallenge: %v", err)
+		}
+		if _, err := s.GetChallenge(ctx, "ch1"); !errors.Is(err, stores.ErrNotFound) {
+			t.Errorf("GetChallenge after delete err = %v, want ErrNotFound", err)
+		}
+		if err := s.DeleteChallenge(ctx, "ch1"); err != nil {
+			t.Errorf("DeleteChallenge twice err = %v, want nil (idempotent)", err)
+		}
+	})
 }
 
 func isConflict(err error) bool {

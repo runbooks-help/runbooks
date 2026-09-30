@@ -81,3 +81,23 @@ type Credential struct {
 	CreatedAt    time.Time
 	LastUsedAt   time.Time // zero until first use
 }
+
+// Session is an authenticated browser session. ID is the hash of the opaque
+// cookie value, never the value itself.
+type Session struct {
+	ID         string
+	UserID     string
+	CreatedAt  time.Time
+	ExpiresAt  time.Time
+	LastSeenAt time.Time
+	UserAgent  string
+	IP         string
+}
+
+// Challenge is short-lived WebAuthn ceremony state, keyed by an opaque cookie.
+type Challenge struct {
+	ID        string
+	Kind      string // "registration" | "login"
+	Data      []byte
+	ExpiresAt time.Time
+}

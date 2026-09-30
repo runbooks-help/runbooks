@@ -1,49 +1,62 @@
 // Package stores holds the identity persistence contract and an implementation
 // per database under subpackages.
 //
-// The contract is the Store interface below; the types it exchanges live in
-// types.go and the errors in errors.go.
+// The contract is the Store interface — composed of UserStore, CredentialStore,
+// SessionStore and ChallengeStore — with the types it exchanges in types.go and
+// the errors in errors.go.
 package stores
 
 import "context"
 
-// Store is the identity persistence contract: identity tables only, not a
-// general ORM. One implementation lives in each subpackage (sqlite, mysql,
-// postgres).
-//
-// Get returns one row and treats a miss as ErrNotFound; List returns many and
-// treats empty as OK; Update and Delete are idempotent. Implementations are safe
-// for concurrent use.
+// Store is the whole identity persistence contract, composed of the four
+// narrower interfaces below so a consumer can depend on just the part it needs.
+// One implementation lives in each subpackage (sqlite, mysql, postgres).
 type Store interface {
-	// GetUser returns the user with the given id, or ErrNotFound.
-	GetUser(ctx context.Context, id string) (User, error)
-	// GetUserByEmail returns the user with the given email, or ErrNotFound. An
-	// empty email never matches.
-	GetUserByEmail(ctx context.Context, email string) (User, error)
-	// ListUsers returns every user, ordered by display name. Empty is OK.
-	ListUsers(ctx context.Context) ([]User, error)
-	// InsertUser adds a user. A duplicate email is a ConflictError.
-	InsertUser(ctx context.Context, u User) error
-	// UpdateUser updates the mutable fields (email, display name, role,
-	// disabled). A duplicate email is a ConflictError; an unknown id is not an
-	// error.
-	UpdateUser(ctx context.Context, u User) error
-
-	// GetCredential returns the credential with the authenticator's credential
-	// id, or ErrNotFound.
-	GetCredential(ctx context.Context, credentialID []byte) (Credential, error)
-	// ListCredentials returns a user's credentials, oldest first. Empty is OK.
-	ListCredentials(ctx context.Context, userID string) ([]Credential, error)
-	// InsertCredential adds a credential. A duplicate credential id is a
-	// ConflictError.
-	InsertCredential(ctx context.Context, c Credential) error
-	// UpdateCredential updates sign count, transports, label and last-used time.
-	// An unknown id is not an error.
-	UpdateCredential(ctx context.Context, c Credential) error
-	// DeleteCredential removes a credential by its internal id. An unknown id is
-	// not an error.
-	DeleteCredential(ctx context.Context, id string) error
+	UserStore
+	CredentialStore
+	SessionStore
+	ChallengeStore
 
 	// Close releases the database.
 	Close() error
+}
+
+// UserStore is the user half of the contract. A Get miss is ErrNotFound, List
+// treats empty as OK, a duplicate email is a ConflictError, an empty email never
+// matches, and Update is idempotent.
+type UserStore interface {
+	GetUser(ctx context.Context, id string) (User, error)
+	GetUserByEmail(ctx context.Context, email string) (User, error)
+	ListUsers(ctx context.Context) ([]User, error)
+	InsertUser(ctx context.Context, u User) error
+	UpdateUser(ctx context.Context, u User) error
+}
+
+// CredentialStore is the passkey half of the contract. A Get miss is
+// ErrNotFound, List treats empty as OK, and a duplicate credential id is a
+// ConflictError.
+type CredentialStore interface {
+	GetCredential(ctx context.Context, credentialID []byte) (Credential, error)
+	ListCredentials(ctx context.Context, userID string) ([]Credential, error)
+	InsertCredential(ctx context.Context, c Credential) error
+	UpdateCredential(ctx context.Context, c Credential) error
+	DeleteCredential(ctx context.Context, id string) error
+}
+
+// SessionStore is the session half of the contract. A Get miss is ErrNotFound;
+// Update and Delete are idempotent.
+type SessionStore interface {
+	GetSession(ctx context.Context, id string) (Session, error)
+	InsertSession(ctx context.Context, s Session) error
+	UpdateSession(ctx context.Context, s Session) error
+	DeleteSession(ctx context.Context, id string) error
+	DeleteSessionsForUser(ctx context.Context, userID string) error
+}
+
+// ChallengeStore is the WebAuthn ceremony-state half of the contract:
+// short-lived state keyed by an opaque cookie id. A Get miss is ErrNotFound.
+type ChallengeStore interface {
+	GetChallenge(ctx context.Context, id string) (Challenge, error)
+	InsertChallenge(ctx context.Context, c Challenge) error
+	DeleteChallenge(ctx context.Context, id string) error
 }

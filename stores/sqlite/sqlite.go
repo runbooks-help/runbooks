@@ -243,3 +243,101 @@ func scanCredential(scan func(dest ...any) error) (stores.Credential, error) {
 	}
 	return c, nil
 }
+
+const sessionColumns = `id, user_id, created_at, expires_at, last_seen_at, user_agent, ip`
+
+// GetSession returns the session with the given hashed id, or stores.ErrNotFound.
+func (s *store) GetSession(ctx context.Context, id string) (stores.Session, error) {
+	return scanSession(s.db.QueryRowContext(ctx, `SELECT `+sessionColumns+` FROM sessions WHERE id = ?`, id).Scan)
+}
+
+// InsertSession adds a session.
+func (s *store) InsertSession(ctx context.Context, sess stores.Session) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO sessions (id, user_id, created_at, expires_at, last_seen_at, user_agent, ip) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		sess.ID, sess.UserID, sess.CreatedAt.Unix(), sess.ExpiresAt.Unix(), sess.LastSeenAt.Unix(),
+		nullable.Null[string]{V: sess.UserAgent, Valid: sess.UserAgent != ""},
+		nullable.Null[string]{V: sess.IP, Valid: sess.IP != ""})
+	return err
+}
+
+// UpdateSession updates expiry and last-seen. An unknown id is not an error.
+func (s *store) UpdateSession(ctx context.Context, sess stores.Session) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE sessions SET expires_at = ?, last_seen_at = ? WHERE id = ?`,
+		sess.ExpiresAt.Unix(), sess.LastSeenAt.Unix(), sess.ID)
+	return err
+}
+
+// DeleteSession removes a session by its hashed id. An unknown id is not an error.
+func (s *store) DeleteSession(ctx context.Context, id string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM sessions WHERE id = ?`, id)
+	return err
+}
+
+// DeleteSessionsForUser removes every session for a user. Zero rows is OK.
+func (s *store) DeleteSessionsForUser(ctx context.Context, userID string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = ?`, userID)
+	return err
+}
+
+// scanSession scans a session row. scan is a *sql.Row's or *sql.Rows' Scan method.
+func scanSession(scan func(dest ...any) error) (stores.Session, error) {
+	var (
+		sess       stores.Session
+		createdAt  int64
+		expiresAt  int64
+		lastSeenAt int64
+		userAgent  nullable.Null[string]
+		ip         nullable.Null[string]
+	)
+	if err := scan(&sess.ID, &sess.UserID, &createdAt, &expiresAt, &lastSeenAt, &userAgent, &ip); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return stores.Session{}, stores.ErrNotFound
+		}
+		return stores.Session{}, err
+	}
+	sess.CreatedAt = time.Unix(createdAt, 0).UTC()
+	sess.ExpiresAt = time.Unix(expiresAt, 0).UTC()
+	sess.LastSeenAt = time.Unix(lastSeenAt, 0).UTC()
+	sess.UserAgent = userAgent.V
+	sess.IP = ip.V
+	return sess, nil
+}
+
+const challengeColumns = `id, kind, data, expires_at`
+
+// GetChallenge returns ceremony state by its cookie id, or stores.ErrNotFound.
+func (s *store) GetChallenge(ctx context.Context, id string) (stores.Challenge, error) {
+	return scanChallenge(s.db.QueryRowContext(ctx, `SELECT `+challengeColumns+` FROM webauthn_challenges WHERE id = ?`, id).Scan)
+}
+
+// InsertChallenge stores ceremony state.
+func (s *store) InsertChallenge(ctx context.Context, c stores.Challenge) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO webauthn_challenges (id, kind, data, expires_at) VALUES (?, ?, ?, ?)`,
+		c.ID, c.Kind, c.Data, c.ExpiresAt.Unix())
+	return err
+}
+
+// DeleteChallenge clears ceremony state. An unknown id is not an error.
+func (s *store) DeleteChallenge(ctx context.Context, id string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM webauthn_challenges WHERE id = ?`, id)
+	return err
+}
+
+// scanChallenge scans a challenge row. scan is a *sql.Row's or *sql.Rows' Scan method.
+func scanChallenge(scan func(dest ...any) error) (stores.Challenge, error) {
+	var (
+		c         stores.Challenge
+		expiresAt int64
+	)
+	if err := scan(&c.ID, &c.Kind, &c.Data, &expiresAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return stores.Challenge{}, stores.ErrNotFound
+		}
+		return stores.Challenge{}, err
+	}
+	c.ExpiresAt = time.Unix(expiresAt, 0).UTC()
+	return c, nil
+}
