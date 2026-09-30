@@ -16,6 +16,7 @@ type Store interface {
 	CredentialStore
 	SessionStore
 	ChallengeStore
+	InviteStore
 
 	// Close releases the database.
 	Close() error
@@ -59,4 +60,12 @@ type ChallengeStore interface {
 	GetChallenge(ctx context.Context, id string) (Challenge, error)
 	InsertChallenge(ctx context.Context, c Challenge) error
 	DeleteChallenge(ctx context.Context, id string) error
+}
+
+// InviteStore is the enrolment-invite half of the contract. A Get miss is
+// ErrNotFound; Update marks an invite consumed or binds it to a user.
+type InviteStore interface {
+	GetInvite(ctx context.Context, id string) (Invite, error)
+	InsertInvite(ctx context.Context, i Invite) error
+	UpdateInvite(ctx context.Context, i Invite) error
 }

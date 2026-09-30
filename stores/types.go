@@ -101,3 +101,21 @@ type Challenge struct {
 	Data      []byte
 	ExpiresAt time.Time
 }
+
+// Invite is a single-use enrolment link. ID is the hash of the token; the raw
+// token only ever lives in the link.
+type Invite struct {
+	ID        string
+	UserID    string // empty for a new-user invite; set for re-enrolment
+	Role      Role
+	CreatedBy string
+	CreatedAt time.Time
+	ExpiresAt time.Time
+	UsedAt    time.Time // zero until consumed
+}
+
+// Used reports whether the invite has been consumed.
+func (i Invite) Used() bool { return !i.UsedAt.IsZero() }
+
+// Expired reports whether the invite is past its expiry at now.
+func (i Invite) Expired(now time.Time) bool { return !now.Before(i.ExpiresAt) }

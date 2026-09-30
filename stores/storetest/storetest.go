@@ -260,6 +260,57 @@ func StoreContract(t *testing.T, newStore func(t *testing.T) stores.Store) {
 			t.Errorf("DeleteChallenge twice err = %v, want nil (idempotent)", err)
 		}
 	})
+
+	t.Run("invites", func(t *testing.T) {
+		s := newStore(t)
+
+		inv := stores.Invite{ID: "i1", Role: stores.RoleMember, CreatedBy: "u1", CreatedAt: base, ExpiresAt: base.Add(time.Hour)}
+		if err := s.InsertInvite(ctx, inv); err != nil {
+			t.Fatalf("InsertInvite: %v", err)
+		}
+		got, err := s.GetInvite(ctx, "i1")
+		if err != nil {
+			t.Fatalf("GetInvite: %v", err)
+		}
+		if diff := cmp.Diff(inv, got); diff != "" {
+			t.Errorf("GetInvite mismatch (-want +got):\n%s", diff)
+		}
+		if got.Used() || got.Expired(base) {
+			t.Errorf("fresh invite used/expired: %+v", got)
+		}
+
+		// A bound (re-enrolment) invite keeps its user through insert.
+		re := stores.Invite{ID: "i2", UserID: "u1", Role: stores.RoleMember, CreatedBy: "u1", CreatedAt: base, ExpiresAt: base.Add(time.Hour)}
+		if err := s.InsertInvite(ctx, re); err != nil {
+			t.Fatalf("InsertInvite bound: %v", err)
+		}
+		if got, err := s.GetInvite(ctx, "i2"); err != nil {
+			t.Fatalf("GetInvite bound: %v", err)
+		} else if diff := cmp.Diff(re, got); diff != "" {
+			t.Errorf("GetInvite bound mismatch (-want +got):\n%s", diff)
+		}
+
+		if _, err := s.GetInvite(ctx, "missing"); !errors.Is(err, stores.ErrNotFound) {
+			t.Errorf("GetInvite missing err = %v, want ErrNotFound", err)
+		}
+
+		// Update binds a user (re-enrolment) and marks the invite used.
+		inv.UserID = "u1"
+		inv.UsedAt = base.Add(5 * time.Minute)
+		if err := s.UpdateInvite(ctx, inv); err != nil {
+			t.Fatalf("UpdateInvite: %v", err)
+		}
+		got, err = s.GetInvite(ctx, "i1")
+		if err != nil {
+			t.Fatalf("GetInvite after update: %v", err)
+		}
+		if diff := cmp.Diff(inv, got); diff != "" {
+			t.Errorf("GetInvite after update mismatch (-want +got):\n%s", diff)
+		}
+		if err := s.UpdateInvite(ctx, stores.Invite{ID: "missing"}); err != nil {
+			t.Errorf("UpdateInvite missing err = %v, want nil (idempotent)", err)
+		}
+	})
 }
 
 func isConflict(err error) bool {

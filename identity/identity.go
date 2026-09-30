@@ -23,6 +23,8 @@ var (
 	ErrSession = errors.New("identity: session missing, expired or disabled")
 	// ErrUser means the user does not exist.
 	ErrUser = errors.New("identity: unknown user")
+	// ErrInvite means an invite is missing, already used or expired.
+	ErrInvite = errors.New("identity: invite missing, used or expired")
 )
 
 // Config configures a Service. RPID, RPDisplayName and RPOrigins come from the
@@ -48,6 +50,7 @@ type Service struct {
 	creds      stores.CredentialStore
 	sessions   stores.SessionStore
 	challenges stores.ChallengeStore
+	invites    stores.InviteStore
 
 	challengeTTL   time.Duration
 	sessionTTL     time.Duration
@@ -97,6 +100,7 @@ func New(cfg Config, st stores.Store) (*Service, error) {
 		creds:          st,
 		sessions:       st,
 		challenges:     st,
+		invites:        st,
 		challengeTTL:   cfg.ChallengeTTL,
 		sessionTTL:     cfg.SessionTTL,
 		sessionIdleTTL: cfg.SessionIdleTTL,

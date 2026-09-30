@@ -370,3 +370,52 @@ func scanChallenge(scan func(dest ...any) error) (stores.Challenge, error) {
 	c.ExpiresAt = time.Unix(expiresAt, 0).UTC()
 	return c, nil
 }
+
+const inviteColumns = `id, user_id, role, created_by, created_at, expires_at, used_at`
+
+// GetInvite returns the invite with the given hashed token id, or stores.ErrNotFound.
+func (s *store) GetInvite(ctx context.Context, id string) (stores.Invite, error) {
+	return scanInvite(s.db.QueryRowContext(ctx, `SELECT `+inviteColumns+` FROM invites WHERE id = ?`, id).Scan)
+}
+
+// InsertInvite adds an invite.
+func (s *store) InsertInvite(ctx context.Context, i stores.Invite) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO invites (id, user_id, role, created_by, created_at, expires_at, used_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		i.ID, nullable.Null[string]{V: i.UserID, Valid: i.UserID != ""}, string(i.Role), i.CreatedBy,
+		i.CreatedAt.Unix(), i.ExpiresAt.Unix(),
+		nullable.Null[int64]{V: i.UsedAt.Unix(), Valid: !i.UsedAt.IsZero()})
+	return err
+}
+
+// UpdateInvite updates the bound user and used time. An unknown id is not an error.
+func (s *store) UpdateInvite(ctx context.Context, i stores.Invite) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE invites SET user_id = ?, used_at = ? WHERE id = ?`,
+		nullable.Null[string]{V: i.UserID, Valid: i.UserID != ""},
+		nullable.Null[int64]{V: i.UsedAt.Unix(), Valid: !i.UsedAt.IsZero()}, i.ID)
+	return err
+}
+
+func scanInvite(scan func(dest ...any) error) (stores.Invite, error) {
+	var (
+		inv       stores.Invite
+		userID    nullable.Null[string]
+		createdAt int64
+		expiresAt int64
+		usedAt    nullable.Null[int64]
+	)
+	if err := scan(&inv.ID, &userID, &inv.Role, &inv.CreatedBy, &createdAt, &expiresAt, &usedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return stores.Invite{}, stores.ErrNotFound
+		}
+		return stores.Invite{}, err
+	}
+	inv.UserID = userID.V
+	inv.CreatedAt = time.Unix(createdAt, 0).UTC()
+	inv.ExpiresAt = time.Unix(expiresAt, 0).UTC()
+	if usedAt.Valid {
+		inv.UsedAt = time.Unix(usedAt.V, 0).UTC()
+	}
+	return inv, nil
+}
