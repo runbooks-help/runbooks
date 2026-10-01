@@ -567,6 +567,67 @@ document.querySelectorAll('.size-btn').forEach(btn => {
 	btn.classList.toggle('active', btn.dataset.size === savedSize);
 });
 
+// Collapsible steps. The collapsed state is a class set here, before first
+// paint (this script is synchronous at the end of the body), so there is no
+// flash of expanded steps.
+function setCardState(card, open) {
+	card.classList.toggle('collapsed', !open);
+	card.querySelector('.step-toggle')?.setAttribute('aria-expanded', String(open));
+}
+function applySteps(pref) {
+	[...document.querySelectorAll('[data-runbook] .step-card')].forEach((card, i) =>
+		setCardState(card, pref === 'all' ? true : i === 0));
+}
+applySteps(localStorage.getItem('runbooks-steps') || 'first');
+
+// Steps preference (first open, or all open) — global, from the Appearance control.
+const stepsBtns = document.querySelectorAll('.steps-btn');
+stepsBtns.forEach(btn => btn.addEventListener('click', () => {
+	const pref = btn.dataset.steps;
+	localStorage.setItem('runbooks-steps', pref);
+	stepsBtns.forEach(b => b.classList.toggle('active', b.dataset.steps === pref));
+	applySteps(pref);
+}));
+stepsBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.steps === (localStorage.getItem('runbooks-steps') || 'first')));
+
+// A runbook page also gets the optional Contents list and the bulk controls.
+const runbookRoot = document.querySelector('[data-runbook]');
+if (runbookRoot) {
+	const toc = runbookRoot.querySelector('.toc');
+	const contentsBtn = runbookRoot.querySelector('.contents-btn');
+
+	const setContents = (on) => {
+		if (toc) toc.hidden = !on;
+		if (contentsBtn) {
+			contentsBtn.classList.toggle('active', on);
+			contentsBtn.setAttribute('aria-pressed', String(on));
+		}
+	};
+	setContents(localStorage.getItem('runbooks-contents') === 'on');
+
+	// Toggle one step: the chevron button, or a click on the header (except the
+	// done checkbox).
+	runbookRoot.querySelectorAll('.step-card').forEach(card => {
+		const toggle = () => setCardState(card, card.classList.contains('collapsed'));
+		card.querySelector('.step-toggle')?.addEventListener('click', toggle);
+		card.querySelector('.step-header')?.addEventListener('click', e => {
+			if (e.target.closest('.step-check') || e.target.closest('.step-toggle')) return;
+			toggle();
+		});
+	});
+
+	runbookRoot.querySelector('[data-steps-action="expand"]')?.addEventListener('click', () => applySteps('all'));
+	runbookRoot.querySelector('[data-steps-action="collapse"]')?.addEventListener('click', () => {
+		runbookRoot.querySelectorAll('.step-card').forEach(card => setCardState(card, false));
+	});
+
+	contentsBtn?.addEventListener('click', () => {
+		const on = contentsBtn.getAttribute('aria-pressed') !== 'true';
+		setContents(on);
+		localStorage.setItem('runbooks-contents', on ? 'on' : 'off');
+	});
+}
+
 // Index page — live filter over the runbook catalogue
 const indexSearch = document.querySelector('.index-search');
 if (indexSearch) {

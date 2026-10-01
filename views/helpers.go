@@ -161,3 +161,21 @@ func pageConfigJSON(c PageConfig) string {
 
 // themeScript is inlined before first paint to prevent flash of wrong theme.
 const themeScript = `(function(){var r=document.documentElement;var p=localStorage.getItem('runbooks-theme')||'dark';var d=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);r.dataset.theme=d?'dark':'light';r.dataset.codeWeight=localStorage.getItem('runbooks-code-weight')||'regular';r.dataset.textSize=localStorage.getItem('runbooks-text-size')||'medium';})()`
+
+// stepPreview is the one-line summary shown in place of a step's body while the
+// step is collapsed: the first prose or heading, else the first code label.
+func stepPreview(step parser.Step) string {
+	for _, b := range step.Blocks {
+		switch b.Kind {
+		case parser.KindProse, parser.KindHeading:
+			if s := strings.TrimSpace(b.Text); s != "" {
+				return s
+			}
+		case parser.KindCode:
+			if b.Label != "" {
+				return b.Label
+			}
+		}
+	}
+	return ""
+}

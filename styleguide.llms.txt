@@ -100,8 +100,9 @@ styleguide) without carrying a border that only makes sense in one host.
             JS confirmations/prompts: showDialog({ title, message, danger, input }).
   notice    Notice(variant, msg) → .notice-info | .notice-warn | .notice-danger
   code      CodeBlock(label, template, lang) → per-block done checkbox
-  step      Step(n, title) numbered card; RollbackStep(title) danger card
-  toc       Contents — the step list at the top of a runbook (three or more steps)
+  step      Step(n, title, preview) numbered card; the header toggles it and a
+            collapsed card shows the preview line; RollbackStep(title) danger card
+  contents  .contents-btn in the step toolbar — reveals the optional .toc list
   table     TableBlock(headers, rows)        list   ListBlock(items)
 
 ## Patterns
@@ -114,8 +115,11 @@ styleguide) without carrying a border that only makes sense in one host.
 
 ## Appearance preferences
 
-Applied as data attributes on <html> before first paint; localStorage keys are
-`runbooks-theme` (light|dark|system, default dark), `runbooks-code-weight`
-(regular|bold, default regular) and `runbooks-text-size` (small|medium|large,
-default medium). Text size sets `--text-scale`, which moves the type scale and
-nothing else.
+Theme, code weight and text size are set as data attributes on <html> by the
+inline head script (no flash); steps and contents are applied by app.js, which is
+synchronous at the end of the body and so also runs before first paint.
+localStorage keys: `runbooks-theme` (light|dark|system, default dark),
+`runbooks-code-weight` (regular|bold, default regular), `runbooks-text-size`
+(small|medium|large, default medium), `runbooks-steps` (first|all, default
+first) and `runbooks-contents` (on|off, default off). Text size sets
+`--text-scale`, which moves the type scale and nothing else.

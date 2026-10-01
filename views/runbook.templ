@@ -56,9 +56,9 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 			if len(rb.Vars) > 0 {
 				@VarsPanel(rb.Vars)
 			}
-			<div class="content">
+			<div class="content" data-runbook>
 				if len(rb.Steps) >= 3 {
-					<nav class="toc" aria-label="Contents">
+					<nav class="toc" aria-label="Contents" hidden>
 						<p class="toc-label">Contents</p>
 						<ol class="toc-list">
 							for i, step := range rb.Steps {
@@ -74,6 +74,16 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 							}
 						</ol>
 					</nav>
+				}
+				if len(rb.Steps) >= 2 {
+					<div class="step-controls">
+						if len(rb.Steps) >= 3 {
+							<button class="contents-btn" type="button" aria-pressed="false" title="Show a contents list">Contents</button>
+						}
+						<span class="spacer"></span>
+						<button type="button" data-steps-action="expand">Expand all</button>
+						<button type="button" data-steps-action="collapse">Collapse all</button>
+					</div>
 				}
 				<div class="steps">
 					for i, step := range rb.Steps {
@@ -101,7 +111,7 @@ templ stepCard(n int, step parser.Step, rollback bool) {
 			}
 		}
 	} else {
-		@Step(n, step.Title) {
+		@Step(n, step.Title, stepPreview(step)) {
 			for _, block := range step.Blocks {
 				@renderBlock(block)
 			}

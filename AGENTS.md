@@ -148,7 +148,13 @@ vars:
 
 ### Body syntax
 
-- `## Heading` → a numbered step. `### Heading` → subheading inside a step.
+- `## Heading` → a numbered step. `### Heading` → subheading inside a step. Steps
+  are **collapsible** — the header toggles one, the toolbar has Expand all /
+  Collapse all, and a collapsed step shows a one-line preview. The runbook's
+  **Contents** list is **optional and off by default** (the collapsed steps are the
+  contents); `runbooks-steps` (`first`|`all`) and `runbooks-contents` (`on`|`off`)
+  are reading preferences in the Appearance control, applied before paint in
+  `app.js`.
 - ` ```lang [Label] ` → code block; the bracket label renders a header with a
   per-block "done" checkbox. `lang` must match the parser's fence regex
   (`[a-z]*` — lowercase only).

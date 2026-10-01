@@ -298,14 +298,27 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 
 					<section class="sg-section" id="step">
 						<h3>Step <span class="sg-atom">molecule</span></h3>
+						<p>A numbered card. The header toggles it open or closed; collapsed, it shows the preview line in place of the body.</p>
 						<div class="steps">
-							@Step(1, "Confirm the lag") {
-								<p>Prose inside a step body. Notice the numbered header and the done checkbox.</p>
+							@Step(1, "Confirm the lag", "Check the replica's lag and last error.") {
+								<p>Prose inside a step body. Notice the numbered header, the done checkbox and the collapse chevron.</p>
 							}
-							@Step(2, "Stop the SQL thread") {
+							@Step(2, "Stop the SQL thread", "Stop the thread before you clear the deadlock.") {
 								<p>The replica no longer applies transactions while you resolve the deadlock.</p>
 								@Notice("warn", "Writes on the primary keep coming until the next step finishes.")
 							}
+							<div class="step-card collapsed">
+								<div class="step-header">
+									<span class="step-num">3</span>
+									<h2 class="step-title">A collapsed step</h2>
+									<button class="step-check" type="button" aria-label="Mark step done">✓</button>
+									<button class="step-toggle" type="button" aria-expanded="false" aria-label="Toggle step">▾</button>
+								</div>
+								<div class="step-body">
+									<p>Hidden while the step is collapsed.</p>
+								</div>
+								<p class="step-preview">The preview line shown in place of the body while collapsed.</p>
+							</div>
 							@RollbackStep("Roll back the promotion") {
 								<p>Rollback steps render in the danger styling, without a number.</p>
 							}

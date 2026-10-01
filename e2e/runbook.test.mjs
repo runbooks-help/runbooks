@@ -16,6 +16,12 @@ test("the runbook page: step roll-up, the clear dialog, and light mode", async (
 		await b.page.fill('.var-input[data-var="HOST"]', "db-2.prod.internal");
 		await snap(b.page, "runbook");
 
+		// The roll-up below needs every step open; the default is first-open with
+		// the rest collapsed.
+		await b.page.evaluate(() => localStorage.setItem("runbooks-steps", "all"));
+		await b.page.reload();
+		await b.page.fill('.var-input[data-var="HOST"]', "db-2.prod.internal");
+
 		// Ticking every block in a step ticks the step itself.
 		const stepWithBlocks = b.page
 			.locator(".step-card:not(.rollback-card)")

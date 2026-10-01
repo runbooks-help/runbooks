@@ -50,6 +50,84 @@
 	font-variant-numeric: tabular-nums;
 }
 
+/* Toolbar: the optional Contents toggle and the bulk expand/collapse controls. */
+.step-controls {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	max-width: 1440px;
+	margin-bottom: var(--space-3);
+}
+
+.step-controls .spacer {
+	flex: 1;
+}
+
+.step-controls button {
+	padding: var(--space-1) var(--space-3);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+	background: var(--surface);
+	color: var(--muted);
+	font-size: var(--text-2xs);
+	cursor: pointer;
+}
+
+.step-controls button:hover {
+	border-color: var(--border-strong);
+	color: var(--text);
+}
+
+.step-controls .contents-btn.active {
+	border-color: var(--accent-strong);
+	color: var(--text);
+	background: var(--accent-lt);
+}
+
+/* Collapsible steps: the header toggles; a collapsed card shows its preview. */
+.step-card .step-header {
+	cursor: pointer;
+}
+
+.step-toggle {
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: var(--muted);
+	font-size: var(--text-xs);
+	line-height: 1;
+	cursor: pointer;
+	transition: transform var(--duration-fast) var(--ease);
+}
+
+.step-card.collapsed .step-toggle {
+	transform: rotate(-90deg);
+}
+
+.step-card.collapsed {
+	box-shadow: none;
+}
+
+.step-card.collapsed .step-header {
+	border-bottom: none;
+}
+
+.step-card.collapsed .step-body {
+	display: none;
+}
+
+.step-preview {
+	display: none;
+	margin: 0;
+	padding: 0 var(--space-5) var(--space-4) calc(var(--space-5) + 26px + var(--space-3));
+	color: var(--muted);
+	font-size: var(--text-sm);
+}
+
+.step-card.collapsed .step-preview {
+	display: block;
+}
+
 .steps {
 	display: flex;
 	flex-direction: column;
