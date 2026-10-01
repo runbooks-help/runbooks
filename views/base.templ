@@ -121,7 +121,7 @@ templ VarsPanel(fields []parser.VarField) {
 }
 
 // CodeBlock renders a terminal-style code block with variable substitution and copy button.
-// Labeled blocks are wrapped in a .code-group so the label + block can be ticked off together.
+// Labelled blocks are wrapped in a .code-group so the label + block can be ticked off together.
 templ CodeBlock(label, tpl, lang string) {
 	if label != "" {
 		<div class="code-group">

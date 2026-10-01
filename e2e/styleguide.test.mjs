@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import { startApp, startBrowser, bootAdmin, snap, reportFailure, holdIfAsked } from "./harness.mjs";
 
-const sections = ["", "#step", "#badge", "#field", "#layouts", "#code", "#appearance"];
+const sections = ["", "#step", "#badge", "#field", "#layouts", "#language", "#code", "#appearance"];
 
 test("the styleguide renders its sections", async (t) => {
 	const app = await startApp();

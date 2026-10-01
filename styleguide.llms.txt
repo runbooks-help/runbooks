@@ -42,6 +42,15 @@ Rules:
 
 Self-hosted variable woff2, latin subset. Compact scale --text-2xs..--text-2xl.
 
+## Tone and language
+
+British English throughout — prose, identifiers and user-facing copy: colour,
+behaviour, licence, enrol/enrolment, labelled. American spelling only where the
+language itself demands it (CSS `color`, `center`).
+
+Copy is read under duress: titles lead with the symptom, not the mechanism, and
+instructions are short and imperative. Keep real code and identifier names.
+
 ## Spacing, size, radius, shadow, motion
 
   --space-0..7 (0,4,8,12,16,24,32,48)   never raw px for gap/padding
