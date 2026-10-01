@@ -142,3 +142,10 @@ Add `---rollback` on its own line to start a separate rollback steps section. Ev
 SET GLOBAL read_only = 0;
 ` ``
 ```
+
+## Licence
+
+Runbooks is source-available under [FSL-1.1-MIT](LICENSE): free to self-host,
+no competing use, converts to MIT two years after each release. Dependency
+licences and attribution live in [DEPENDENCIES.md](DEPENDENCIES.md) and
+[NOTICE](NOTICE).

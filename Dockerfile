@@ -19,5 +19,6 @@ RUN apk add --no-cache git openssh-client ca-certificates
 WORKDIR /app
 COPY --from=builder /app/runbooks .
 COPY --from=builder /app/content ./content
+COPY --from=builder /app/LICENSE /app/NOTICE /app/DEPENDENCIES.md ./
 EXPOSE 8091
 CMD ["./runbooks"]
