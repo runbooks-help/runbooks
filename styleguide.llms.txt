@@ -97,7 +97,7 @@ styleguide) without carrying a border that only makes sense in one host.
             JS: showLiveAlert(title, err) fills the page's [data-live-alert]
             panel; progress text stays .auth-status, not an alert.
   fields    .form-field + .form-label + .text-input | .select-input, plus
-            .form-hint / .form-error                                      forms.css
+            .form-hint / .form-error / .form-optional                         forms.css
             .form-row grows the fields to fill the row; an inline action aligns
             to the control baseline (align-self) and controls take height from
             --ctrl-pad-y, so a button lines up with a field. Fields align by

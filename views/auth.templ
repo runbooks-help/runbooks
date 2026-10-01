@@ -7,7 +7,7 @@ templ LoginPage() {
 			<div class="auth-card">
 				<h1 class="auth-title">Sign in</h1>
 				<p class="auth-lede">Use a passkey to open the runbooks.</p>
-				<button class="auth-button" type="button" data-auth="login">Sign in with a passkey</button>
+				<button class="btn btn-primary" type="button" data-auth="login">Sign in with a passkey</button>
 				@liveAlert()
 				<p class="auth-status" data-auth-status hidden></p>
 			</div>
@@ -25,20 +25,20 @@ templ SetupPage() {
 					Create the first admin. The bootstrap token is the value of
 					<code>IDENTITY_BOOTSTRAP_TOKEN</code> (or the one printed once at first boot).
 				</p>
-				<form class="auth-form" data-auth="setup">
-					<label class="auth-field">
-						Bootstrap token
-						<input type="password" name="token" autocomplete="off" required/>
-					</label>
-					<label class="auth-field">
-						Display name
-						<input type="text" name="display_name" autocomplete="name" required/>
-					</label>
-					<label class="auth-field">
-						Email <span class="auth-optional">optional</span>
-						<input type="email" name="email" autocomplete="email"/>
-					</label>
-					<button class="auth-button" type="submit">Create passkey</button>
+				<form class="stack" data-auth="setup">
+					<div class="form-field">
+						<label class="form-label" for="setup-token">Bootstrap token</label>
+						<input class="text-input" id="setup-token" type="password" name="token" autocomplete="off" required/>
+					</div>
+					<div class="form-field">
+						<label class="form-label" for="setup-name">Display name</label>
+						<input class="text-input" id="setup-name" type="text" name="display_name" autocomplete="name" required/>
+					</div>
+					<div class="form-field">
+						<label class="form-label" for="setup-email">Email <span class="form-optional">optional</span></label>
+						<input class="text-input" id="setup-email" type="email" name="email" autocomplete="email"/>
+					</div>
+					<button class="btn btn-primary" type="submit">Create passkey</button>
 				</form>
 				@liveAlert()
 				<p class="auth-status" data-auth-status hidden></p>
@@ -55,18 +55,18 @@ templ InvitePage(token string, reenrol bool) {
 			<div class="auth-card">
 				<h1 class="auth-title">You've been invited</h1>
 				<p class="auth-lede">Create a passkey to join this instance.</p>
-				<form class="auth-form" data-auth="invite" data-invite-token={ token }>
+				<form class="stack" data-auth="invite" data-invite-token={ token }>
 					if !reenrol {
-						<label class="auth-field">
-							Display name
-							<input type="text" name="display_name" autocomplete="name" required/>
-						</label>
-						<label class="auth-field">
-							Email <span class="auth-optional">optional</span>
-							<input type="email" name="email" autocomplete="email"/>
-						</label>
+						<div class="form-field">
+							<label class="form-label" for="invite-name">Display name</label>
+							<input class="text-input" id="invite-name" type="text" name="display_name" autocomplete="name" required/>
+						</div>
+						<div class="form-field">
+							<label class="form-label" for="invite-email">Email <span class="form-optional">optional</span></label>
+							<input class="text-input" id="invite-email" type="email" name="email" autocomplete="email"/>
+						</div>
 					}
-					<button class="auth-button" type="submit">Create passkey</button>
+					<button class="btn btn-primary" type="submit">Create passkey</button>
 				</form>
 				@liveAlert()
 				<p class="auth-status" data-auth-status hidden></p>

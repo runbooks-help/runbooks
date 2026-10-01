@@ -40,6 +40,11 @@
 	font-weight: 600;
 }
 
+.form-optional {
+	color: var(--nav-muted);
+	font-weight: 400;
+}
+
 .form-hint {
 	position: absolute;
 	top: 100%;
