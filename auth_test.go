@@ -944,3 +944,56 @@ func TestSetupFinishIgnoresClientUserID(t *testing.T) {
 		t.Errorf("credentials on the ceremony's user = %d, want 1", len(creds))
 	}
 }
+
+// TestAbandonedSetupReopens pins the abandoned-/setup fix: an admin row with no
+// credential does not close bootstrap, and the next setup re-uses that orphan
+// rather than leaving a second credential-less admin behind.
+func TestAbandonedSetupReopens(t *testing.T) {
+	srv, _, st := newTestServer(t)
+	rp := testRP()
+
+	// Begin a setup and abandon it: the admin exists but holds no passkey.
+	first := decodeBegin(t, newClient(t), srv.URL+"/api/auth/v1/setup/begin", map[string]string{
+		"token": testToken, "display_name": "Ben", "email": "ben@example.com",
+	})
+	if code, _ := get(t, newClient(t), srv.URL+"/setup"); code != http.StatusOK {
+		t.Fatalf("GET /setup after an abandoned begin = %d, want 200", code)
+	}
+
+	// A second begin+finish completes setup.
+	authn := virtualwebauthn.NewAuthenticator()
+	cred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	second := decodeBegin(t, newClient(t), srv.URL+"/api/auth/v1/setup/begin", map[string]string{
+		"token": testToken, "display_name": "Ben II", "email": "ben2@example.com",
+	})
+	attestation, err := virtualwebauthn.ParseAttestationOptions(string(second.Options))
+	if err != nil {
+		t.Fatalf("parse attestation options: %v", err)
+	}
+	resp := virtualwebauthn.CreateAttestationResponse(rp, authn, cred, *attestation)
+	if code, body := postJSON(t, newClient(t), srv.URL+"/api/auth/v1/setup/finish", map[string]any{
+		"token": testToken, "challenge": second.Challenge, "credential": json.RawMessage(resp),
+	}); code != http.StatusOK {
+		t.Fatalf("second setup/finish = %d: %s", code, body)
+	}
+
+	if second.UserID != first.UserID {
+		t.Errorf("reused admin id = %q, want the orphan %q", second.UserID, first.UserID)
+	}
+	users, err := st.ListUsers(context.Background())
+	if err != nil {
+		t.Fatalf("ListUsers: %v", err)
+	}
+	admins := 0
+	for _, u := range users {
+		if u.Role == stores.RoleAdmin {
+			admins++
+		}
+	}
+	if admins != 1 {
+		t.Errorf("admins = %d, want 1 (the orphan is reused)", admins)
+	}
+	if code, _ := get(t, newClient(t), srv.URL+"/setup"); code != http.StatusFound {
+		t.Errorf("GET /setup after a completed setup = %d, want 302", code)
+	}
+}

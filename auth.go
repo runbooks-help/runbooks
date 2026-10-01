@@ -67,7 +67,7 @@ func (a *auth) loginPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *auth) setupPage(w http.ResponseWriter, r *http.Request) {
-	if a.adminExists(r) {
+	if a.adminExists(r.Context()) {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
@@ -118,7 +118,7 @@ func (a *auth) setupBegin(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusUnauthorized, "invalid bootstrap token")
 		return
 	}
-	if a.adminExists(r) {
+	if a.adminExists(r.Context()) {
 		writeJSONError(w, http.StatusConflict, "already set up")
 		return
 	}
@@ -127,16 +127,30 @@ func (a *auth) setupBegin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := stores.User{
-		ID:          newUserID(),
-		Email:       strings.TrimSpace(req.Email),
-		DisplayName: strings.TrimSpace(req.DisplayName),
-		Role:        stores.RoleAdmin,
-		CreatedAt:   time.Now(),
-	}
-	if err := a.st.InsertUser(r.Context(), user); err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "could not create user")
-		return
+	displayName := strings.TrimSpace(req.DisplayName)
+	email := strings.TrimSpace(req.Email)
+	user, pending := a.pendingAdmin(r.Context())
+	if pending {
+		// Re-use the orphan of an abandoned /setup, refreshing the details the
+		// operator just typed, so credential-less admin rows do not accumulate.
+		user.DisplayName = displayName
+		user.Email = email
+		if err := a.st.UpdateUser(r.Context(), user); err != nil {
+			writeJSONError(w, http.StatusInternalServerError, "could not update user")
+			return
+		}
+	} else {
+		user = stores.User{
+			ID:          newUserID(),
+			Email:       email,
+			DisplayName: displayName,
+			Role:        stores.RoleAdmin,
+			CreatedAt:   time.Now(),
+		}
+		if err := a.st.InsertUser(r.Context(), user); err != nil {
+			writeJSONError(w, http.StatusInternalServerError, "could not create user")
+			return
+		}
 	}
 
 	token, options, err := a.svc.BeginRegistration(r.Context(), user.ID)
@@ -571,19 +585,46 @@ func (a *auth) clearSession(w http.ResponseWriter) {
 	})
 }
 
-// adminExists reports whether the instance already has an enabled admin, so
-// bootstrap is closed.
-func (a *auth) adminExists(r *http.Request) bool {
-	users, err := a.st.ListUsers(r.Context())
+// adminExists reports whether the instance already has an enabled admin who can
+// log in — an admin holding at least one passkey. An admin row with no credential
+// is the orphan of an abandoned /setup and must not close bootstrap.
+func (a *auth) adminExists(ctx context.Context) bool {
+	users, err := a.st.ListUsers(ctx)
 	if err != nil {
 		return false
 	}
 	for _, u := range users {
-		if u.Role == stores.RoleAdmin && u.Enabled() {
+		if u.Role != stores.RoleAdmin || !u.Enabled() {
+			continue
+		}
+		creds, err := a.st.ListCredentials(ctx, u.ID)
+		if err == nil && len(creds) > 0 {
 			return true
 		}
 	}
 	return false
+}
+
+// pendingAdmin returns an enabled admin that holds no credential — the orphan of
+// an abandoned /setup, which the next setup/begin re-uses rather than duplicating.
+func (a *auth) pendingAdmin(ctx context.Context) (stores.User, bool) {
+	users, err := a.st.ListUsers(ctx)
+	if err != nil {
+		return stores.User{}, false
+	}
+	for _, u := range users {
+		if u.Role != stores.RoleAdmin || !u.Enabled() {
+			continue
+		}
+		creds, err := a.st.ListCredentials(ctx, u.ID)
+		if err != nil {
+			continue
+		}
+		if len(creds) == 0 {
+			return u, true
+		}
+	}
+	return stores.User{}, false
 }
 
 func (a *auth) validBootstrap(token string) bool {

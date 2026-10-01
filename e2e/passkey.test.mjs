@@ -121,26 +121,25 @@ test("break-glass recovery re-enrols the admin's passkey", async (t) => {
 	}
 });
 
-test("break-glass recovers an abandoned /setup (admin user with no credential)", async (t) => {
+test("break-glass recovers an orphaned admin (abandoned /setup)", async (t) => {
 	const app = await startApp();
 	t.after(() => app.stop());
 	const b = await startBrowser();
 	t.after(() => b.stop());
 	try {
 		// Abandon the first-admin ceremony: setup/begin creates the admin user and
-		// we never finish, so the instance is locked with no credential at all.
+		// we never finish, leaving an admin row with no credential.
 		const begin = await b.page.request.post(app.base + "/api/auth/v1/setup/begin", {
 			data: { token: bootstrapToken, display_name: "Locked Admin", email: "locked@example.com" },
 		});
 		assert.equal(begin.status(), 200, "setup/begin creates the admin user");
 
-		// /setup is now closed, and there is no passkey to sign in with.
+		// An admin with no credential does not close bootstrap: /setup reopens so the
+		// operator can retry the ceremony.
 		await b.page.goto(app.base + "/setup");
-		await b.page.waitForURL(atPath(app.base, "/login"), { timeout: navTimeout });
-		await b.page.click('[data-auth="login"]');
-		await b.page.locator("[data-live-alert] .alert-title").filter({ hasText: "Sign in failed" }).waitFor({ timeout: navTimeout });
+		await b.page.locator('form[data-auth="setup"]').waitFor({ timeout: uiTimeout });
 
-		// Break-glass re-enrols a passkey for the orphaned admin and gets back in.
+		// Break-glass still re-enrols a passkey for the orphaned admin and gets back in.
 		await b.page.goto(app.base + "/recovery");
 		await pauseAt(b.page);
 		await b.page.fill('input[name="token"]', recoveryToken);
