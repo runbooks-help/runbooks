@@ -23,6 +23,8 @@ All tasks are mise tasks (`mise install` once to pull Go, templ, gofumpt, Node).
 | `mise run css` / `mise run js` | One-shot esbuild bundle. |
 | `mise run lintcss` / `mise run fmtcss` | stylelint / Prettier over `public/css/src/**`. |
 | `mise run test` | Go tests + JS unit tests (`node --test`). |
+| `mise run notices` | Regenerate `THIRD_PARTY_NOTICES.md` from the linked modules and vendored assets (`cmd/notices`). |
+| `mise run sbom` / `mise run sbom:image` | SPDX 2.3 + CycloneDX SBOM for the built binary / the container image (syft). See `docs/sbom.md`. |
 | `mise run test:e2e` | Browser E2E behind `e2e/harness.mjs` (shared boot + Chromium + virtual authenticator): `passkey.test.mjs` (identity), `runbook.test.mjs` (page interactions), `styleguide.test.mjs` (design-system screenshots). `E2E_SCREENSHOT_DIR=…` writes the screenshots. Needs a system Chromium (`CHROMIUM=/path` to override); `playwright-core` installs into `e2e/` on demand. |
 | `mise run test:e2e:headed` | The same tests in visible windows. `E2E_SLOWMO=ms` paces the actions, `E2E_HOLD_MS=ms` holds at the end of each test (default: run straight through). |
 | `mise run test:e2e:inspect` | Headed with the **Playwright Inspector** (`page.pause()` breakpoints before the setup, invite-enrol and recovery submits). Step over / resume from the inspector window. |
@@ -80,6 +82,11 @@ public/js/src/       source JS (bundled → public/js/bundle.js)
 public/js/vendor/    marked, highlight.js, jszip (checked in, not bundled)
 e2e/                 browser E2E: harness.mjs + passkey/runbook/styleguide suites
 cmd/css, cmd/js      esbuild wrappers (see build pipeline below)
+cmd/notices          generates THIRD_PARTY_NOTICES.md (mise run notices)
+LICENSE / NOTICE     outbound FSL-1.1-MIT + the third-party notices that must be embedded (OFL, MPL driver)
+DEPENDENCIES.md      dependency inventory + FSL classification
+THIRD_PARTY_NOTICES.md  generated full licence texts (do not hand-edit)
+docs/sbom.md         SBOM formats, regeneration and verification
 tmp/                 air build output
 ```
 
@@ -186,6 +193,10 @@ Authoring conventions that have bitten us:
   procedures and must not be published. Until the app is separated from this
   content, keep the repo private — the app itself is source-available, the *content*
   is not for release.
+- **CI verifies generated files are committed and current**: `check.yml` fails if
+  `public/css/bundle.css`, `public/js/bundle.js` or `THIRD_PARTY_NOTICES.md` differ
+  from a fresh regeneration. Run the matching task (`mise run build` / `mise run notices`)
+  and commit the result.
 - **Build outputs are gitignored** (`/runbooks`, `/tmp/`). `mise run build`
   produces the binary, `air` writes `tmp/`. Never commit them.
 - **`content/` is empty in a fresh checkout.** That is fine — the index renders a
@@ -205,11 +216,25 @@ Authoring conventions that have bitten us:
   (`GITSYNC_REPO` + a credential + endpoint auth). See the git-sync spec for the
   config; the dev config lives in `mise.toml` `[env]`.
 
+## Licence & SBOM
+
+- `LICENSE` is the FSL-1.1-MIT text; `DEPENDENCIES.md` inventories every distributed
+  dependency and its licence; `NOTICE` embeds the OFL text for the fonts and the
+  MPL-2.0 notice for `go-sql-driver/mysql` (compatible via MPL §3.3 Larger Work —
+  see `specs/runbooks-commercial-model.md`).
+- `THIRD_PARTY_NOTICES.md` is **generated** (`mise run notices`, `cmd/notices`) —
+  never hand-edit it; CI fails on drift. The JS and font licence texts are committed
+  beside the assets.
+- `mise run sbom` / `sbom:image` emit SPDX 2.3 + CycloneDX (`docs/sbom.md`); CI
+  uploads them as the `sbom` artifact and, on `v*` tags, keyless-attests the SPDX
+  document with cosign.
+
 ## Deploy
 
 - CI `.github/workflows/container.yml` builds on PRs and pushes on `main` to
   `ghcr.io/ladydascalie/runbooks:<branch>-<utc-datetime>-<sha>`, plus `…:latest` on
-  `main` only.
+  `main` only. It generates SPDX + CycloneDX SBOMs for the image, uploads them as
+  the `sbom` artifact, and on `v*` tags keyless-attests the SPDX document with cosign.
 - Deployment is not yet defined for this personal repo (the previous ArgoCD/gitops
   wiring belonged to the old owner and was dropped with the move).
 
