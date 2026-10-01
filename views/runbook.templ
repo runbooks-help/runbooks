@@ -41,7 +41,15 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 		</aside>
 		<div class="main">
 			if rb.Acknowledge != "" {
-				<dialog class="dialog" id="ack-dialog" data-ack-dialog>
+				<dialog
+					class="dialog"
+					id="ack-dialog"
+					data-ack-dialog
+					data-ack-slug={ rb.Slug }
+					if cfg.IdentityEnabled {
+						data-ack-endpoint="/api/runbooks/v1/ack"
+					}
+				>
 					<div class="dialog-header">Acknowledge this runbook</div>
 					<div class="dialog-body">
 						<p>{ rb.Acknowledge }</p>

@@ -173,6 +173,7 @@ func main() {
 			u := userFrom(r.Context())
 			views.AdminPage(groups, users, u.IsAdmin(), cfg.IdentityEnabled).Render(r.Context(), w)
 		}))
+		mux.HandleFunc("/api/runbooks/v1/ack", authn.requireAPI(authn.ackRunbook))
 		mux.HandleFunc("/api/auth/v1/invites", authn.requireAdminAPI(authn.createInvite))
 		mux.HandleFunc("/api/auth/v1/sessions/revoke", authn.requireAdminAPI(authn.revokeSessions))
 		// Break-glass recovery is only reachable when a token is configured.

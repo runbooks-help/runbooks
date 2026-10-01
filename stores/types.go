@@ -136,6 +136,9 @@ const (
 	ActionInvite AuthAction = "invite"
 	// ActionRevoke is a user's sessions ended by an admin.
 	ActionRevoke AuthAction = "revoke"
+	// ActionAck is a destructive runbook acknowledged by a reader. The runbook
+	// slug is carried in AuthEvent.Detail.
+	ActionAck AuthAction = "ack"
 	// ActionDisable is a user disabled by an admin. Reserved: no core endpoint
 	// emits it yet.
 	ActionDisable AuthAction = "disable"
@@ -149,6 +152,7 @@ type AuthEvent struct {
 	ActorUserID  string
 	Action       AuthAction
 	TargetUserID string
+	Detail       string // free-text subject for events not about another user (e.g. a runbook slug)
 	IP           string
 	UserAgent    string
 }

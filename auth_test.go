@@ -96,6 +96,7 @@ func newTestServerWith(t *testing.T, mutate func(*config)) (*httptest.Server, *i
 	}))
 	mux.HandleFunc("/api/auth/v1/invites", a.requireAdminAPI(a.createInvite))
 	mux.HandleFunc("/api/auth/v1/sessions/revoke", a.requireAdminAPI(a.revokeSessions))
+	mux.HandleFunc("/api/runbooks/v1/ack", a.requireAPI(a.ackRunbook))
 	if cfg.IdentityRecoveryToken != "" {
 		mux.HandleFunc("/recovery", a.recoveryPage)
 		mux.HandleFunc("/api/auth/v1/recovery/begin", a.recoveryBegin)
@@ -804,5 +805,42 @@ func TestAuthEvents(t *testing.T) {
 	}
 	if events[0].IP == "" || events[0].UserAgent == "" {
 		t.Errorf("first event missing request metadata: ip=%q ua=%q", events[0].IP, events[0].UserAgent)
+	}
+}
+
+func TestAckRunbookRecordsEvent(t *testing.T) {
+	srv, _, st := newTestServer(t)
+	rp := testRP()
+	authn := virtualwebauthn.NewAuthenticator()
+	cred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	client, adminID := bootstrapAdmin(t, srv, rp, authn, cred)
+
+	// Anonymous is refused, and an empty slug is rejected.
+	if code, _ := postJSON(t, newClient(t), srv.URL+"/api/runbooks/v1/ack", map[string]string{"slug": "x"}); code != http.StatusUnauthorized {
+		t.Fatalf("anonymous ack = %d, want 401", code)
+	}
+	if code, _ := postJSON(t, client, srv.URL+"/api/runbooks/v1/ack", map[string]string{"slug": "  "}); code != http.StatusBadRequest {
+		t.Fatalf("empty slug = %d, want 400", code)
+	}
+
+	if code, body := postJSON(t, client, srv.URL+"/api/runbooks/v1/ack", map[string]string{"slug": "mts-deadlock-recovery"}); code != http.StatusOK {
+		t.Fatalf("ack = %d: %s", code, body)
+	}
+
+	events, err := st.ListAuthEvents(context.Background())
+	if err != nil {
+		t.Fatalf("ListAuthEvents: %v", err)
+	}
+	var ack *stores.AuthEvent
+	for i := range events {
+		if events[i].Action == stores.ActionAck {
+			ack = &events[i]
+		}
+	}
+	if ack == nil {
+		t.Fatalf("no ack event recorded: %+v", events)
+	}
+	if ack.ActorUserID != adminID || ack.Detail != "mts-deadlock-recovery" {
+		t.Errorf("ack event = %+v, want actor %s detail mts-deadlock-recovery", *ack, adminID)
 	}
 }

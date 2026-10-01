@@ -326,8 +326,9 @@ func StoreContract(t *testing.T, newStore func(t *testing.T) stores.Store) {
 		full := stores.AuthEvent{
 			At:           base,
 			ActorUserID:  "u1",
-			Action:       stores.ActionLogin,
+			Action:       stores.ActionAck,
 			TargetUserID: "u1",
+			Detail:       "mts-deadlock-recovery",
 			IP:           "203.0.113.7",
 			UserAgent:    "Mozilla/5.0",
 		}

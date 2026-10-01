@@ -636,6 +636,55 @@ func (a *auth) requireAdminAPI(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// requireAPI requires any authenticated user for a JSON endpoint, answering 401
+// rather than redirecting. Used for the runbook acknowledgement audit.
+func (a *auth) requireAPI(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		u, ok := a.resolveUser(r)
+		if !ok {
+			writeJSONError(w, http.StatusUnauthorized, "sign in required")
+			return
+		}
+		next(w, r.WithContext(context.WithValue(r.Context(), userKey{}, u)))
+	}
+}
+
+// ackRunbook records that a reader acknowledged a destructive runbook, as an
+// audit event attributed to the signed-in user. The slug is the event's detail.
+func (a *auth) ackRunbook(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var req struct {
+		Slug string `json:"slug"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	slug := strings.TrimSpace(req.Slug)
+	if slug == "" {
+		writeJSONError(w, http.StatusBadRequest, "slug is required")
+		return
+	}
+	u := userFrom(r.Context())
+	e := stores.AuthEvent{
+		At:          time.Now().UTC(),
+		ActorUserID: u.ID,
+		Action:      stores.ActionAck,
+		Detail:      slug,
+		IP:          clientIP(r),
+		UserAgent:   r.UserAgent(),
+	}
+	if err := a.st.InsertAuthEvent(r.Context(), e); err != nil {
+		logAuthFailure("ack/record", err)
+		writeJSONError(w, http.StatusInternalServerError, "could not record")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
+}
+
 // gateGitSync marks an authenticated git-sync request so the handler skips its
 // shared-token check, and carries the resolved user so a commit can be
 // attributed per user. Anything else falls through to the handler's own token

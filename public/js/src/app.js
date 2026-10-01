@@ -690,6 +690,15 @@ if (ackDialog) {
 			clearGate();
 			showBadge(at);
 			ackDialog.close();
+			// Best-effort audit record (only when identity is on).
+			const endpoint = ackDialog.dataset.ackEndpoint;
+			if (endpoint) {
+				fetch(endpoint, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ slug: ackDialog.dataset.ackSlug }),
+				}).catch(() => {});
+			}
 		});
 		ackDialog.showModal();
 	}

@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS auth_events (
     actor_user_id  TEXT,
     action         TEXT NOT NULL,
     target_user_id TEXT,
+    detail         TEXT,
     ip             TEXT,
     user_agent     TEXT
 );
