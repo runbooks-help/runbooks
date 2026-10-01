@@ -1,199 +1,25 @@
-// Browser end-to-end tests for the identity flow. Each test boots a throwaway
-// instance (empty SQLite DB, random port) and drives the app's own WebAuthn JS
-// in real Chromium through a CDP virtual authenticator configured like a synced
-// passkey (backup eligible) — the shape the Go virtualwebauthn tests do not cover.
-//
-// Covered: setup -> logout -> login, invite -> member enrolment -> revoke, and
-// break-glass recovery. Headed/inspect modes are for watching or stepping.
+// Identity E2E: setup -> logout -> login, invite -> member enrol -> revoke, and
+// break-glass recovery — driven through the app's real WebAuthn JS in Chromium
+// via a virtual authenticator. Runbook-page behaviour lives in runbook.test.mjs
+// and the design system in styleguide.test.mjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import net from "node:net";
-import { chromium } from "playwright-core";
-
-const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)));
-const binary = join(repoRoot, "runbooks");
-const bootstrapToken = "e2e-bootstrap-token";
-const recoveryToken = "e2e-recovery-token";
-
-const isTruthy = (v) => v === "1" || v === "true" || v === "yes";
-const inspect = isTruthy(process.env.E2E_INSPECT);
-const headed = isTruthy(process.env.E2E_HEADED) || inspect;
-const slowMo = Number(process.env.E2E_SLOWMO || (headed ? 600 : 0));
-const holdMs = Number(process.env.E2E_HOLD_MS || 0);
-const navTimeout = inspect ? 0 : 10000;
-const uiTimeout = inspect ? 0 : 5000;
-
-// snap saves a screenshot when E2E_SCREENSHOT_DIR is set — for eyeballing UI
-// changes the assertions cannot judge.
-const shotDir = process.env.E2E_SCREENSHOT_DIR;
-async function snap(page, name) {
-	if (!shotDir) return;
-	mkdirSync(shotDir, { recursive: true });
-	await page.screenshot({ path: join(shotDir, name + ".png") });
-}
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const atPath = (base, pathname) => (url) => url.origin === new URL(base).origin && url.pathname === pathname;
-
-function freePort() {
-	return new Promise((resolve, reject) => {
-		const srv = net.createServer();
-		srv.on("error", reject);
-		srv.listen(0, "127.0.0.1", () => {
-			const { port } = srv.address();
-			srv.close(() => resolve(port));
-		});
-	});
-}
-
-function findChromium() {
-	const candidates = [process.env.CHROMIUM, "/usr/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/google-chrome"];
-	for (const path of candidates) {
-		if (path && existsSync(path)) return path;
-	}
-	throw new Error("no Chromium found; install chromium or set CHROMIUM=/path/to/chromium");
-}
-
-async function waitForReady(base, child, logs) {
-	const deadline = Date.now() + 15000;
-	while (Date.now() < deadline) {
-		if (child.exitCode !== null) throw new Error(`app exited early:\n${logs()}`);
-		try {
-			const res = await fetch(base + "/setup");
-			if (res.ok) return;
-		} catch {
-			// not up yet
-		}
-		await sleep(150);
-	}
-	throw new Error(`app not ready after 15s:\n${logs()}`);
-}
-
-// startApp boots the built binary with a throwaway database on a free port.
-async function startApp() {
-	const port = await freePort();
-	const base = `http://localhost:${port}`;
-	const dir = mkdtempSync(join(tmpdir(), "runbooks-e2e-"));
-	let logs = "";
-	const child = spawn(binary, [], {
-		cwd: repoRoot,
-		env: {
-			...process.env,
-			PORT: String(port),
-			IDENTITY_DB_DRIVER: "sqlite",
-			IDENTITY_DB_DSN: `file:${join(dir, "identity.db")}`,
-			IDENTITY_PUBLIC_URL: base,
-			IDENTITY_BOOTSTRAP_TOKEN: bootstrapToken,
-			IDENTITY_RECOVERY_TOKEN: recoveryToken,
-			IDENTITY_SECURE_COOKIES: "false",
-		},
-		stdio: ["ignore", "pipe", "pipe"],
-	});
-	child.stdout.on("data", (chunk) => (logs += chunk));
-	child.stderr.on("data", (chunk) => (logs += chunk));
-	try {
-		await waitForReady(base, child, () => logs);
-	} catch (err) {
-		child.kill("SIGKILL");
-		rmSync(dir, { recursive: true, force: true });
-		throw err;
-	}
-	return {
-		base,
-		logs: () => logs,
-		async stop() {
-			child.kill("SIGTERM");
-			await sleep(500);
-			if (child.exitCode === null) child.kill("SIGKILL");
-			rmSync(dir, { recursive: true, force: true });
-		},
-	};
-}
-
-// startBrowser opens a fresh browser (no extensions, so no password manager)
-// with a virtual authenticator shaped like a synced passkey.
-async function startBrowser() {
-	const browser = await chromium.launch({
-		executablePath: findChromium(),
-		headless: !headed,
-		slowMo,
-		args: ["--no-sandbox"],
-	});
-	const context = await browser.newContext();
-	const page = await context.newPage();
-	const cdp = await context.newCDPSession(page);
-	await cdp.send("WebAuthn.enable");
-	const { authenticatorId } = await cdp.send("WebAuthn.addVirtualAuthenticator", {
-		options: {
-			protocol: "ctap2",
-			transport: "internal",
-			hasResidentKey: true,
-			hasUserVerification: true,
-			// Chromium names these defaultBackup*, not hasBackup* (which it silently ignores).
-			defaultBackupEligibility: true,
-			defaultBackupState: true,
-			isUserVerified: true,
-			automaticPresenceSimulation: true,
-		},
-	});
-	return {
-		page,
-		cdp,
-		authenticatorId,
-		async stop() {
-			if (browser.isConnected()) await browser.close();
-		},
-	};
-}
-
-// pauseAt opens the Playwright Inspector at a step, in E2E_INSPECT mode.
-const pauseAt = (page) => (inspect ? page.pause() : Promise.resolve());
-
-async function bootAdmin(page, base) {
-	await page.goto(base + "/setup");
-	await pauseAt(page);
-	await page.fill('input[name="token"]', bootstrapToken);
-	await page.fill('input[name="display_name"]', "E2E Admin");
-	await page.fill('input[name="email"]', "e2e@example.com");
-	await page.click('form[data-auth="setup"] button[type="submit"]');
-	await page.waitForURL(atPath(base, "/"), { timeout: navTimeout });
-	await page.locator('a[href="/admin"]').waitFor({ timeout: uiTimeout });
-}
-
-async function logout(page, base) {
-	// Prefer the sidebar's Sign out button; fall back to the endpoint if the
-	// session actions are not rendered.
-	const button = page.locator('[data-auth="logout"]');
-	if (await button.count()) {
-		await button.click();
-	} else {
-		const status = await page.evaluate(() => fetch("/api/auth/v1/logout", { method: "POST" }).then((r) => r.status));
-		assert.equal(status, 200, "logout");
-		await page.goto(base + "/");
-	}
-	await page.waitForURL(atPath(base, "/login"), { timeout: navTimeout });
-}
-
-async function signIn(page, base) {
-	await page.goto(base + "/login");
-	await page.click('[data-auth="login"]');
-	await page.waitForURL(atPath(base, "/"), { timeout: navTimeout });
-}
-
-async function reportFailure(page, logs) {
-	const status = await page?.locator("[data-auth-status]").textContent().catch(() => null);
-	if (status) console.error("auth status:", status);
-	console.error("--- app log ---\n" + logs);
-}
-
-async function holdIfAsked() {
-	if (headed && holdMs > 0) await sleep(holdMs);
-}
+import {
+	bootstrapToken,
+	recoveryToken,
+	atPath,
+	navTimeout,
+	uiTimeout,
+	startApp,
+	startBrowser,
+	bootAdmin,
+	logout,
+	signIn,
+	pauseAt,
+	snap,
+	reportFailure,
+	holdIfAsked,
+} from "./harness.mjs";
 
 test("setup, logout and login run the real passkey ceremony", async (t) => {
 	const app = await startApp();
@@ -211,77 +37,6 @@ test("setup, logout and login run the real passkey ceremony", async (t) => {
 		await logout(b.page, app.base);
 		await signIn(b.page, app.base);
 		await b.page.locator('a[href="/admin"]').waitFor({ timeout: uiTimeout });
-
-		// The design-system styleguide (inside the app shell), and an anchored
-		// section so the scroll offset is visible.
-		await b.page.goto(app.base + "/styleguide");
-		await snap(b.page, "styleguide");
-		await b.page.goto(app.base + "/styleguide#step");
-		await snap(b.page, "styleguide-anchor");
-		await b.page.goto(app.base + "/styleguide#badge");
-		await snap(b.page, "styleguide-badges");
-		await b.page.goto(app.base + "/styleguide#field");
-		await snap(b.page, "styleguide-field");
-		await b.page.goto(app.base + "/styleguide#layouts");
-		await snap(b.page, "styleguide-layouts");
-		await b.page.goto(app.base + "/styleguide#code");
-		await snap(b.page, "styleguide-code");
-		await b.page.goto(app.base + "/styleguide#appearance");
-		await snap(b.page, "styleguide-appearance");
-
-		// The kitchen-sink runbook, for eyeballing every block type.
-		await b.page.goto(app.base + "/gallery");
-		await b.page.fill('.var-input[data-var="HOST"]', "db-2.prod.internal");
-		await snap(b.page, "runbook");
-
-		// Ticking every block in a step ticks the step itself.
-		const stepWithBlocks = b.page
-			.locator(".step-card:not(.rollback-card)")
-			.filter({ has: b.page.locator(".code-group") })
-			.first();
-		const blockChecks = stepWithBlocks.locator(".block-check");
-		const blockCount = await blockChecks.count();
-		for (let i = 0; i < blockCount; i++) await blockChecks.nth(i).click();
-		assert.equal(
-			await stepWithBlocks.evaluate(el => el.classList.contains("done")),
-			true,
-			"step ticks when all its blocks are ticked",
-		);
-
-		// The destructive Clear confirmation is a real dialog, not window.confirm().
-		await b.page.locator(".notes-clear").click();
-		await b.page.locator("dialog.dialog").waitFor({ timeout: uiTimeout });
-		await snap(b.page, "dialog");
-		await b.page.locator('dialog.dialog .btn-ghost').click();
-		await b.page.evaluate(() => localStorage.setItem("runbooks-theme", "light"));
-		await b.page.reload();
-		await b.page.locator(".code-group").first().scrollIntoViewIfNeeded();
-		await snap(b.page, "runbook-light-code");
-		await b.page.locator(".rollback-card").scrollIntoViewIfNeeded();
-		await snap(b.page, "runbook-light-rollback");
-		if (process.env.E2E_DEBUG) {
-			const info = await b.page.evaluate(() => {
-				const cs = (sel) => {
-					const el = document.querySelector(sel);
-					if (!el) return "MISSING";
-					const s = getComputedStyle(el);
-					return `${s.fontFamily} | w${s.fontWeight} | ${s.fontSize}`;
-				};
-				const bg = (sel) => {
-					const el = document.querySelector(sel);
-					return el ? getComputedStyle(el).backgroundColor : "MISSING";
-				};
-				return {
-					body: cs("body"),
-					adminLink: cs(".nav-admin a"),
-					navLink: cs(".sidebar nav a"),
-					appearanceLabel: cs(".appearance-label"),
-					codeBlockBg: bg(".code-block"),
-					codeBg: bg(".code-group .code-block"),
-				};
-			});
-			console.log("E2E font/colour probe:", JSON.stringify(info, null, 2));
-		}
 		await holdIfAsked();
 	} catch (err) {
 		await reportFailure(b.page, app.logs());
