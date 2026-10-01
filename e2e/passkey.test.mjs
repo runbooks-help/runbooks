@@ -220,6 +220,8 @@ test("setup, logout and login run the real passkey ceremony", async (t) => {
 		await snap(b.page, "styleguide-anchor");
 		await b.page.goto(app.base + "/styleguide#field");
 		await snap(b.page, "styleguide-field");
+		await b.page.goto(app.base + "/styleguide#layouts");
+		await snap(b.page, "styleguide-layouts");
 
 		// The kitchen-sink runbook, for eyeballing every block type.
 		await b.page.goto(app.base + "/gallery");

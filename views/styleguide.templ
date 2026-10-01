@@ -109,19 +109,42 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 					<section class="sg-section" id="layouts">
 						<h3>Primitives <span class="sg-atom">layout</span></h3>
 						<p>
-							Layout uses the primitives in <code>layouts.css</code> only — never bespoke flex/grid in a component:
-							<code>.stack</code>, <code>.cluster</code>, <code>.row</code>, <code>.grid</code>, <code>.length</code>…
+							Layout uses the primitives in <code>layouts.css</code> only — never bespoke flex/grid in a component.
+							Each is shown below with real content.
 						</p>
-						<div class="sg-specimen">
-							<div class="grid" data-cols="3" style="--grid-min: 120px">
-								<div class="sg-box"></div>
-								<div class="sg-box"></div>
-								<div class="sg-box"></div>
+						<div class="sg-stack sg-primitives">
+							<div class="sg-primitive">
+								<div class="sg-primitive-head"><code>.stack</code><span>vertical column · gap defaults to space-4</span></div>
+								<div class="stack" style="max-width: 340px">
+									<div class="sg-tile">Confirm the lag</div>
+									<div class="sg-tile">Stop the SQL thread</div>
+									<div class="sg-tile">Restart replication</div>
+								</div>
 							</div>
-							<div class="cluster">
-								<div class="sg-box"></div>
-								<div class="sg-box"></div>
-								<div class="sg-box"></div>
+							<div class="sg-primitive">
+								<div class="sg-primitive-head"><code>.cluster</code><span>wrapping row · chips, badges, actions</span></div>
+								<div class="cluster">
+									<button class="btn btn-primary" type="button">Export</button>
+									<button class="btn btn-ghost" type="button">Filter</button>
+									<button class="btn btn-ghost" type="button">Refresh</button>
+									<span class="badge badge-ok">Synced</span>
+								</div>
+							</div>
+							<div class="sg-primitive">
+								<div class="sg-primitive-head"><code>.row</code><span>no wrap · min-width:0 baked in, with .truncate</span></div>
+								<div class="row" data-gap="md">
+									<span class="badge badge-info">mysql</span>
+									<span class="truncate">Replica lag on db-2.prod.internal — the SQL thread is blocked</span>
+									<button class="btn btn-ghost" type="button" style="flex-shrink:0">Open</button>
+								</div>
+							</div>
+							<div class="sg-primitive">
+								<div class="sg-primitive-head"><code>.grid</code><span>data-cols="auto" · responsive cards</span></div>
+								<div class="grid" data-cols="auto" style="--grid-min: 160px">
+									<div class="sg-tile">Replication Lag</div>
+									<div class="sg-tile">Disk Full</div>
+									<div class="sg-tile">Slot Migration</div>
+								</div>
 							</div>
 						</div>
 					</section>

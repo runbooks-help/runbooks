@@ -106,6 +106,49 @@
 .sg-box {
 	width: 96px;
 	height: 44px;
+	background: var(--accent-lt);
+	border: 1px solid color-mix(in srgb, var(--accent-strong) 35%, transparent);
+	border-radius: var(--radius-sm);
+}
+
+/* Layout primitives: each shown with real content, labelled. */
+.sg-primitives {
+	gap: var(--space-4);
+}
+
+.sg-primitive {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	padding: var(--space-4) var(--space-5);
 	background: var(--surface);
 	border: 1px solid var(--border);
+	border-radius: var(--radius);
+}
+
+.sg-primitive-head {
+	display: flex;
+	align-items: baseline;
+	gap: var(--space-3);
+}
+
+.sg-primitive-head code {
+	color: var(--accent-strong);
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	font-weight: var(--mono-weight);
+}
+
+.sg-primitive-head span {
+	color: var(--muted);
+	font-size: var(--text-2xs);
+}
+
+.sg-tile {
+	padding: var(--space-3) var(--space-4);
+	background: var(--accent-lt);
+	border: 1px solid color-mix(in srgb, var(--accent-strong) 35%, transparent);
+	border-radius: var(--radius-sm);
+	color: var(--text);
+	font-size: var(--text-xs);
 }
