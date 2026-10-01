@@ -205,8 +205,8 @@ document.addEventListener('keydown', e => {
 });
 
 // Notes panel — auto-saved to localStorage per runbook page
-const notesKey = 'll-notes' + location.pathname;
-const notesImgKey = 'll-notes-imgs' + location.pathname;
+const notesKey = 'runbooks-notes' + location.pathname;
+const notesImgKey = 'runbooks-notes-imgs' + location.pathname;
 const notesArea = document.querySelector('.notes-textarea');
 const notesPreview = document.querySelector('.notes-preview');
 const notesTabs = document.querySelectorAll('.notes-tab');
@@ -261,7 +261,7 @@ if (notesArea) {
 
 // Completion timeline — each tick appends a timestamped line to the notes body.
 // Entries are plain markdown, so Preview, Print and Export pick them up for free.
-const recordKey = 'll-record-timeline';
+const recordKey = 'runbooks-record-timeline';
 const recordCheck = document.querySelector('.notes-record-check');
 let recordEnabled = localStorage.getItem(recordKey) !== 'off';
 if (recordCheck) {
@@ -669,7 +669,7 @@ if (notesSync && notesArea) {
 				const msg = data.commit_sha ? `Synced (${data.commit_sha.slice(0, 7)})` : 'Already up to date';
 				showSyncToast('success', msg);
 			} else if (res.status === 401) {
-				sessionStorage.removeItem('ll-gitsync-token');
+				sessionStorage.removeItem('runbooks-gitsync-token');
 				showSyncToast('error', 'Unauthorized — token rejected');
 			} else {
 				showSyncToast('error', data.error || 'Sync failed');

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Runbooks">
+  <rect width="32" height="32" rx="6" fill="#3d6756"/>
+  <path d="M12.5 23.5 V13.5 C12.5 11.2 14.3 9.5 16.8 9.5 C18.6 9.5 19.8 10.2 20.4 11.4"
+        fill="none" stroke="#eef4f0" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

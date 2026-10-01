@@ -11,7 +11,6 @@ func main() {
 	opts := api.BuildOptions{
 		EntryPointsAdvanced: []api.EntryPoint{
 			{InputPath: "public/js/src/app.js", OutputPath: "bundle"},
-			{InputPath: "public/js/src/theme-init.js", OutputPath: "theme-init"},
 		},
 		Outdir:            "public/js",
 		Bundle:            true,

@@ -97,8 +97,7 @@
 	--leading-snug: 1.375;
 	--leading-normal: 1.5;
 
-	/* Radius scale — squarer than the LootLocker baseline: this is an operator
-	   tool, not a consumer app. */
+	/* Radius scale — squared off: this is an operator tool, not a consumer app. */
 	--radius-sm: 4px;
 	--radius-md: 6px; /* same as --radius */
 	--radius-lg: 8px;

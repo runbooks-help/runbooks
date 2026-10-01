@@ -171,9 +171,8 @@ Authoring conventions that have bitten us:
   (committed). Put component styles in the relevant src file; the `.nav-system`
   heading lives in `shell.css`.
 - **JS**: `public/js/src/app.js` → `public/js/bundle.js` (IIFE, committed).
-  `public/js/src/theme-init.js` is also built (`cmd/js`), but is currently
-  unreferenced — the no-flash theme script is inlined in `views/base.templ` from
-  the `themeScript` const in `views/helpers.go`. Vanilla JS, no framework.
+  The no-flash theme script is inlined in `views/base.templ` from the
+  `themeScript` const in `views/helpers.go`. Vanilla JS, no framework.
   Client behaviour: var substitution + copy, step/block completion persisted in the
   URL hash, the notes completion timeline, hint popovers, notes panel (localStorage,
   image paste, ZIP export, sync), notes resize, theme switcher.

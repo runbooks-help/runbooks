@@ -10,6 +10,7 @@ templ Shell(title string) {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>{ pageTitle(title) }</title>
+			<link rel="icon" href="/public/favicon.svg" type="image/svg+xml"/>
 			<link rel="stylesheet" href="/public/css/bundle.css"/>
 			@templ.Raw("<script>" + themeScript + "</script>")
 		</head>
@@ -25,8 +26,7 @@ templ Shell(title string) {
 
 templ SidebarHeader() {
 	<a class="sidebar-logo" href="/">
-		<span class="logo-badge">LL</span>
-		<span class="sidebar-title">Runbooks</span>
+		<span class="wordmark"><span class="wordmark-run">run</span>books</span>
 	</a>
 }
 
