@@ -127,6 +127,6 @@ synchronous at the end of the body and so also runs before first paint.
 localStorage keys: `runbooks-theme` (light|dark|system, default dark),
 `runbooks-code-weight` (regular|bold, default regular), `runbooks-text-size`
 (small|medium|large, default medium), `runbooks-steps` (first|all, default
-first), `runbooks-contents` (on|off, default off) and `runbooks-zen` (on|off,
-default off). Text size sets `--text-scale`, which moves the type scale and
-nothing else.
+first), `runbooks-contents` (on|off, default off), `runbooks-zen` (on|off, default
+off) and `runbooks-notes` (on|off, default on — the notes panel). Text size sets
+`--text-scale`, which moves the type scale and nothing else.

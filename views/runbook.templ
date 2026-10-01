@@ -68,6 +68,7 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 				<button type="button" data-zen-action="exit">Exit zen</button>
 			</div>
 			<div class="main-header">
+				<button class="btn btn-ghost notes-toggle" type="button" data-notes-toggle aria-pressed="true">Hide notes</button>
 				<div class="runbook-tags">
 					<span class="badge">{ parser.SystemName(rb.Group) }</span>
 					if rb.Category != "" {

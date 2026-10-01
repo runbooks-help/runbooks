@@ -704,6 +704,23 @@ if (ackDialog) {
 	}
 }
 
+// Notes panel: hide it or bring it back, remembered across runbooks. Runs before
+// first paint, so a hidden panel does not flash in.
+const notesToggle = document.querySelector('[data-notes-toggle]');
+if (notesToggle) {
+	const applyNotes = (shown) => {
+		document.body.classList.toggle('notes-hidden', !shown);
+		notesToggle.setAttribute('aria-pressed', String(shown));
+		notesToggle.textContent = shown ? 'Hide notes' : 'Show notes';
+	};
+	applyNotes(localStorage.getItem('runbooks-notes') !== 'off');
+	notesToggle.addEventListener('click', () => {
+		const show = document.body.classList.contains('notes-hidden');
+		localStorage.setItem('runbooks-notes', show ? 'on' : 'off');
+		applyNotes(show);
+	});
+}
+
 // Index page — live filter over the runbook catalogue
 const indexSearch = document.querySelector('.index-search');
 if (indexSearch) {

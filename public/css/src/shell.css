@@ -245,9 +245,26 @@ nav a.active {
 }
 
 .main-header {
+	position: relative;
 	padding: var(--space-5) var(--space-6) var(--space-4);
 	border-bottom: 1px solid var(--border);
 	flex-shrink: 0;
+}
+
+/* The notes panel is hideable; this sits in the header so it can always recall it. */
+.notes-toggle {
+	position: absolute;
+	top: var(--space-4);
+	right: var(--space-6);
+}
+
+body.notes-hidden {
+	grid-template-columns: var(--size-app-sidebar) 1fr;
+	grid-template-areas: "sidebar main";
+}
+
+body.notes-hidden .notes-panel {
+	display: none;
 }
 
 .main-header h1 {
@@ -398,6 +415,12 @@ body.resizing-notes {
 	opacity: 0.4;
 	cursor: default;
 	pointer-events: none;
+}
+
+/* The author display below would otherwise beat the UA rule for [hidden], so the
+   empty toast (and its close ✕) would sit at the bottom of the panel always. */
+.notes-sync-toast[hidden] {
+	display: none;
 }
 
 .notes-sync-toast {

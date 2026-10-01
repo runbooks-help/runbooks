@@ -42,6 +42,13 @@ test("the runbook page: step roll-up, the clear dialog, and light mode", async (
 		await snap(b.page, "dialog");
 		await b.page.locator("dialog.dialog .btn-ghost").click();
 
+		// The notes panel hides and is recalled from the runbook header.
+		const notesToggle = b.page.locator("[data-notes-toggle]");
+		await notesToggle.click();
+		assert.equal(await b.page.locator(".notes-panel").isHidden(), true, "notes panel hides");
+		await notesToggle.click();
+		assert.equal(await b.page.locator(".notes-panel").isVisible(), true, "notes panel is recalled");
+
 		// Light theme: code surfaces stay dark, the rest inverts.
 		await b.page.evaluate(() => localStorage.setItem("runbooks-theme", "light"));
 		await b.page.reload();
