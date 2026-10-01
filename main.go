@@ -185,7 +185,7 @@ func main() {
 	mux.HandleFunc("/{$}", index)
 
 	if cfg.StyleGuideEnabled {
-		registerStyleGuide(mux, authn, cfg, groups)
+		registerStyleGuide(mux, authn, cfg)
 		log.Printf("styleguide enabled at /styleguide")
 	}
 

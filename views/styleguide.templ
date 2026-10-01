@@ -1,16 +1,15 @@
 package views
 
-import "runbooks/parser"
-
 // StyleGuidePage renders the design system inside the app shell, organised by
 // atomicity — Foundations, Layout primitives, Atoms, Molecules, Patterns — from
-// the real tokens and templ components, so it cannot drift. Dev-gated; see
-// styleguide.go and STYLEGUIDE_ENABLED. Machine-readable mirror: /styleguide/llms.
-templ StyleGuidePage(groups []parser.SystemGroup, isAdmin, identityEnabled bool) {
+// the real tokens and templ components, so it cannot drift. The sidebar carries
+// the styleguide's own section navigation. Dev-gated; see styleguide.go and
+// STYLEGUIDE_ENABLED. Machine-readable mirror: /styleguide/llms.
+templ StyleGuidePage(isAdmin, identityEnabled bool) {
 	@Shell("Styleguide") {
 		<aside class="sidebar">
 			@SidebarHeader()
-			@SidebarNav(groups, "styleguide")
+			@styleGuideNav()
 			@AppearanceControl()
 			@SessionActions(isAdmin, identityEnabled)
 		</aside>
@@ -24,33 +23,6 @@ templ StyleGuidePage(groups []parser.SystemGroup, isAdmin, identityEnabled bool)
 			</div>
 			<div class="content">
 				<div class="sg-inner">
-					<nav class="sg-nav">
-						<span class="sg-group">Foundations</span>
-						<a href="#colours">Colours</a>
-						<a href="#typography">Typography</a>
-						<a href="#spacing">Spacing</a>
-						<a href="#radius">Radius</a>
-						<a href="#shadows">Shadows</a>
-						<a href="#motion">Motion</a>
-						<span class="sg-group">Layout</span>
-						<a href="#layouts">Primitives</a>
-						<span class="sg-group">Atoms</span>
-						<a href="#button">Button</a>
-						<a href="#badge">Badge</a>
-						<a href="#field">Field</a>
-						<a href="#dialog">Dialog</a>
-						<a href="#notice">Notice</a>
-						<span class="sg-group">Molecules</span>
-						<a href="#code">Code</a>
-						<a href="#step">Step</a>
-						<a href="#table">Table</a>
-						<a href="#card">Card</a>
-						<span class="sg-group">Patterns</span>
-						<a href="#appearance">Appearance</a>
-						<a href="#session">Session actions</a>
-						<a href="#admin">Admin form</a>
-					</nav>
-
 					<h2 class="sg-heading">Foundations</h2>
 
 					<section class="sg-section" id="colours">
@@ -333,6 +305,45 @@ templ StyleGuidePage(groups []parser.SystemGroup, isAdmin, identityEnabled bool)
 			</div>
 		</div>
 	}
+}
+
+// styleGuideNav is the styleguide's own sidebar navigation, grouped by atomicity.
+templ styleGuideNav() {
+	<p class="nav-system">Styleguide</p>
+	<p class="nav-section">Foundations</p>
+	<nav>
+		<a href="#colours">Colours</a>
+		<a href="#typography">Typography</a>
+		<a href="#spacing">Spacing</a>
+		<a href="#radius">Radius</a>
+		<a href="#shadows">Shadows</a>
+		<a href="#motion">Motion</a>
+	</nav>
+	<p class="nav-section">Layout</p>
+	<nav>
+		<a href="#layouts">Primitives</a>
+	</nav>
+	<p class="nav-section">Atoms</p>
+	<nav>
+		<a href="#button">Button</a>
+		<a href="#badge">Badge</a>
+		<a href="#field">Field</a>
+		<a href="#dialog">Dialog</a>
+		<a href="#notice">Notice</a>
+	</nav>
+	<p class="nav-section">Molecules</p>
+	<nav>
+		<a href="#code">Code</a>
+		<a href="#step">Step</a>
+		<a href="#table">Table</a>
+		<a href="#card">Card</a>
+	</nav>
+	<p class="nav-section">Patterns</p>
+	<nav>
+		<a href="#appearance">Appearance</a>
+		<a href="#session">Session actions</a>
+		<a href="#admin">Admin form</a>
+	</nav>
 }
 
 templ sgSwatch(token, label string) {

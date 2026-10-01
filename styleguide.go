@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"net/http"
 
-	"runbooks/parser"
 	"runbooks/views"
 )
 
@@ -17,10 +16,10 @@ var styleGuideLLM string
 // registerStyleGuide wires the dev-gated design-system pages. It lives inside
 // the app shell, so when identity is on it is gated like the rest of the app and
 // the sidebar reflects the real session.
-func registerStyleGuide(mux *http.ServeMux, authn *auth, cfg config, groups []parser.SystemGroup) {
+func registerStyleGuide(mux *http.ServeMux, authn *auth, cfg config) {
 	page := func(w http.ResponseWriter, r *http.Request) {
 		u := userFrom(r.Context())
-		views.StyleGuidePage(groups, u.IsAdmin(), cfg.IdentityEnabled).Render(r.Context(), w)
+		views.StyleGuidePage(u.IsAdmin(), cfg.IdentityEnabled).Render(r.Context(), w)
 	}
 	if authn != nil {
 		mux.HandleFunc("/styleguide", authn.requirePage(page))
