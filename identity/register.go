@@ -33,15 +33,21 @@ func (s *Service) BeginRegistration(ctx context.Context, userID string) (token s
 	return token, options, nil
 }
 
-// FinishRegistration verifies the attestation and stores the credential. Body is
-// the raw JSON the browser sent. A credential id already registered comes back
-// as stores.ConflictError.
-func (s *Service) FinishRegistration(ctx context.Context, userID, token string, body []byte) (stores.Credential, error) {
+// FinishRegistration verifies the attestation and stores the credential on the
+// user the ceremony was begun for — the user id is read from the challenge's
+// session, never taken from the caller, so a client cannot point a finish at a
+// different account. Body is the raw JSON the browser sent. A credential id
+// already registered comes back as stores.ConflictError.
+func (s *Service) FinishRegistration(ctx context.Context, token string, body []byte) (stores.Credential, error) {
 	session, err := s.consumeChallenge(ctx, challengeRegistration, token)
 	if err != nil {
 		return stores.Credential{}, err
 	}
 
+	userID := string(session.UserID)
+	if userID == "" {
+		return stores.Credential{}, ErrChallenge
+	}
 	user, err := s.webauthnUser(ctx, userID)
 	if err != nil {
 		return stores.Credential{}, err

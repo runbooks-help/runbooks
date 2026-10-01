@@ -11,6 +11,7 @@ import (
 
 	"github.com/descope/virtualwebauthn"
 	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/webauthn"
 
 	"runbooks/stores"
 	"runbooks/stores/sqlite"
@@ -72,7 +73,7 @@ func register(t *testing.T, svc *Service, userID string) (stores.Credential, vir
 	cred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
 	response := virtualwebauthn.CreateAttestationResponse(testRP(), auth, cred, *parsed)
 
-	stored, err := svc.FinishRegistration(ctx, userID, token, []byte(response))
+	stored, err := svc.FinishRegistration(ctx, token, []byte(response))
 	if err != nil {
 		t.Fatalf("FinishRegistration: %v", err)
 	}
@@ -173,7 +174,7 @@ func TestLoginWithBackupEligibleCredential(t *testing.T) {
 	}
 	attestation := virtualwebauthn.CreateAttestationResponse(testRP(), auth, cred, *parsedAttestation)
 
-	stored, err := svc.FinishRegistration(ctx, "u1", token, []byte(attestation))
+	stored, err := svc.FinishRegistration(ctx, token, []byte(attestation))
 	if err != nil {
 		t.Fatalf("FinishRegistration: %v", err)
 	}
@@ -251,10 +252,10 @@ func TestChallengeCannotBeReplayed(t *testing.T) {
 	cred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
 	response := virtualwebauthn.CreateAttestationResponse(testRP(), auth, cred, *parsed)
 
-	if _, err := svc.FinishRegistration(ctx, "u1", token, []byte(response)); err != nil {
+	if _, err := svc.FinishRegistration(ctx, token, []byte(response)); err != nil {
 		t.Fatalf("first FinishRegistration: %v", err)
 	}
-	if _, err := svc.FinishRegistration(ctx, "u1", token, []byte(response)); !errors.Is(err, ErrChallenge) {
+	if _, err := svc.FinishRegistration(ctx, token, []byte(response)); !errors.Is(err, ErrChallenge) {
 		t.Errorf("replayed FinishRegistration err = %v, want ErrChallenge", err)
 	}
 }
@@ -278,7 +279,7 @@ func TestExpiredChallenge(t *testing.T) {
 	response := virtualwebauthn.CreateAttestationResponse(testRP(), auth, cred, *parsed)
 
 	svc.now = func() time.Time { return base.Add(svc.challengeTTL + time.Minute) }
-	if _, err := svc.FinishRegistration(ctx, "u1", token, []byte(response)); !errors.Is(err, ErrChallenge) {
+	if _, err := svc.FinishRegistration(ctx, token, []byte(response)); !errors.Is(err, ErrChallenge) {
 		t.Errorf("expired FinishRegistration err = %v, want ErrChallenge", err)
 	}
 }
@@ -300,10 +301,36 @@ func TestDuplicateCredentialIsConflict(t *testing.T) {
 	parsed, _ := virtualwebauthn.ParseAttestationOptions(string(optionsJSON))
 	response := virtualwebauthn.CreateAttestationResponse(testRP(), auth, cred, *parsed)
 
-	_, err = svc.FinishRegistration(ctx, "u1", token, []byte(response))
+	_, err = svc.FinishRegistration(ctx, token, []byte(response))
 	var conflict *stores.ConflictError
 	if !errors.As(err, &conflict) {
 		t.Errorf("duplicate FinishRegistration err = %v, want ConflictError", err)
+	}
+}
+
+// TestRegistrationRejectsChallengeWithoutUser pins the trust boundary: the user
+// comes from the challenge's session, so a challenge that names no user cannot be
+// finished — there is no caller-supplied id to fall back on.
+func TestRegistrationRejectsChallengeWithoutUser(t *testing.T) {
+	svc, st := newTestService(t)
+	ctx := context.Background()
+
+	data, err := json.Marshal(webauthn.SessionData{})
+	if err != nil {
+		t.Fatalf("marshal session: %v", err)
+	}
+	token := "challenge-with-no-user"
+	if err := st.InsertChallenge(ctx, stores.Challenge{
+		ID:        hashToken(token),
+		Kind:      challengeRegistration,
+		Data:      data,
+		ExpiresAt: svc.now().Add(svc.challengeTTL),
+	}); err != nil {
+		t.Fatalf("InsertChallenge: %v", err)
+	}
+
+	if _, err := svc.FinishRegistration(ctx, token, []byte("{}")); !errors.Is(err, ErrChallenge) {
+		t.Errorf("err = %v, want ErrChallenge", err)
 	}
 }
 

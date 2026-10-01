@@ -59,7 +59,7 @@ func FuzzFinishRegistrationNeverPanics(f *testing.F) {
 		if err != nil {
 			t.Skipf("begin: %v", err)
 		}
-		_, _ = svc.FinishRegistration(context.Background(), "u1", token, body)
+		_, _ = svc.FinishRegistration(context.Background(), token, body)
 	})
 }
 

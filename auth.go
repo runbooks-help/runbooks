@@ -150,7 +150,6 @@ func (a *auth) setupBegin(w http.ResponseWriter, r *http.Request) {
 func (a *auth) setupFinish(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Token      string          `json:"token"`
-		UserID     string          `json:"user_id"`
 		Challenge  string          `json:"challenge"`
 		Credential json.RawMessage `json:"credential"`
 	}
@@ -162,18 +161,19 @@ func (a *auth) setupFinish(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusUnauthorized, "invalid bootstrap token")
 		return
 	}
-	if _, err := a.svc.FinishRegistration(r.Context(), req.UserID, req.Challenge, req.Credential); err != nil {
+	cred, err := a.svc.FinishRegistration(r.Context(), req.Challenge, req.Credential)
+	if err != nil {
 		logAuthFailure("setup/finish", err)
 		writeJSONError(w, http.StatusBadRequest, "registration failed")
 		return
 	}
-	raw, err := a.svc.Create(r.Context(), req.UserID, r.UserAgent(), clientIP(r))
+	raw, err := a.svc.Create(r.Context(), cred.UserID, r.UserAgent(), clientIP(r))
 	if err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "could not start session")
 		return
 	}
 	a.setSession(w, raw)
-	a.recordAuthEvent(r, stores.ActionEnrol, req.UserID, req.UserID)
+	a.recordAuthEvent(r, stores.ActionEnrol, cred.UserID, cred.UserID)
 	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
 }
 
@@ -255,7 +255,8 @@ func (a *auth) inviteFinish(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusConflict, "invite has not been started")
 		return
 	}
-	if _, err := a.svc.FinishRegistration(r.Context(), inv.UserID, req.Challenge, req.Credential); err != nil {
+	cred, err := a.svc.FinishRegistration(r.Context(), req.Challenge, req.Credential)
+	if err != nil {
 		logAuthFailure("invite/finish", err)
 		writeJSONError(w, http.StatusBadRequest, "registration failed")
 		return
@@ -264,13 +265,13 @@ func (a *auth) inviteFinish(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusInternalServerError, "could not accept invite")
 		return
 	}
-	raw, err := a.svc.Create(r.Context(), inv.UserID, r.UserAgent(), clientIP(r))
+	raw, err := a.svc.Create(r.Context(), cred.UserID, r.UserAgent(), clientIP(r))
 	if err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "could not start session")
 		return
 	}
 	a.setSession(w, raw)
-	a.recordAuthEvent(r, stores.ActionEnrol, inv.UserID, inv.UserID)
+	a.recordAuthEvent(r, stores.ActionEnrol, cred.UserID, cred.UserID)
 	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
 }
 
@@ -325,7 +326,7 @@ func (a *auth) recoveryFinish(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusUnauthorized, "invalid recovery token")
 		return
 	}
-	admin, ok, err := a.soleAdmin(r.Context())
+	_, ok, err := a.soleAdmin(r.Context())
 	if err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "could not look up admins")
 		return
@@ -334,18 +335,19 @@ func (a *auth) recoveryFinish(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusConflict, "recovery is for an instance with a single admin")
 		return
 	}
-	if _, err := a.svc.FinishRegistration(r.Context(), admin.ID, req.Challenge, req.Credential); err != nil {
+	cred, err := a.svc.FinishRegistration(r.Context(), req.Challenge, req.Credential)
+	if err != nil {
 		logAuthFailure("recovery/finish", err)
 		writeJSONError(w, http.StatusBadRequest, "registration failed")
 		return
 	}
-	raw, err := a.svc.Create(r.Context(), admin.ID, r.UserAgent(), clientIP(r))
+	raw, err := a.svc.Create(r.Context(), cred.UserID, r.UserAgent(), clientIP(r))
 	if err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "could not start session")
 		return
 	}
 	a.setSession(w, raw)
-	a.recordAuthEvent(r, stores.ActionEnrol, admin.ID, admin.ID)
+	a.recordAuthEvent(r, stores.ActionEnrol, cred.UserID, cred.UserID)
 	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
 }
 

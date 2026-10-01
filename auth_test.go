@@ -908,3 +908,39 @@ func TestGitSyncSessionAttribution(t *testing.T) {
 		t.Errorf("sync after revoke = %d, want 401", code)
 	}
 }
+
+// TestSetupFinishIgnoresClientUserID pins the fix: setup/finish derives the user
+// from the ceremony challenge, so a forged user_id is ignored and the credential
+// lands on the user setup/begin created.
+func TestSetupFinishIgnoresClientUserID(t *testing.T) {
+	srv, _, st := newTestServer(t)
+	rp := testRP()
+	authn := virtualwebauthn.NewAuthenticator()
+	cred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	client := newClient(t)
+
+	begin := decodeBegin(t, client, srv.URL+"/api/auth/v1/setup/begin", map[string]string{
+		"token": testToken, "display_name": "Ben", "email": "ben@example.com",
+	})
+	attestation, err := virtualwebauthn.ParseAttestationOptions(string(begin.Options))
+	if err != nil {
+		t.Fatalf("parse attestation options: %v", err)
+	}
+	resp := virtualwebauthn.CreateAttestationResponse(rp, authn, cred, *attestation)
+
+	code, body := postJSON(t, client, srv.URL+"/api/auth/v1/setup/finish", map[string]any{
+		"token": testToken, "user_id": "not-the-ceremony-user", "challenge": begin.Challenge,
+		"credential": json.RawMessage(resp),
+	})
+	if code != http.StatusOK {
+		t.Fatalf("setup/finish with a forged user_id = %d: %s", code, body)
+	}
+
+	creds, err := st.ListCredentials(context.Background(), begin.UserID)
+	if err != nil {
+		t.Fatalf("ListCredentials: %v", err)
+	}
+	if len(creds) != 1 {
+		t.Errorf("credentials on the ceremony's user = %d, want 1", len(creds))
+	}
+}
