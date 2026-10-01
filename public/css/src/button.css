@@ -1,0 +1,56 @@
+/* Buttons — the design-system primitive. One base and three intents; a button
+   is a button everywhere, so nothing re-declares padding or radius. */
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
+	padding: var(--ctrl-pad-y) var(--space-4);
+	border: 1px solid transparent;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--text);
+	font: inherit;
+	font-size: var(--text-xs);
+	font-weight: 600;
+	line-height: var(--leading-tight);
+	cursor: pointer;
+	transition:
+		background var(--duration-fast) var(--ease),
+		border-color var(--duration-fast) var(--ease),
+		color var(--duration-fast) var(--ease);
+}
+
+.btn[disabled] {
+	opacity: 0.55;
+	cursor: default;
+}
+
+.btn-primary {
+	background: var(--accent);
+	color: var(--on-accent);
+}
+
+.btn-primary:hover {
+	filter: brightness(1.08);
+}
+
+.btn-ghost {
+	border-color: var(--border-strong);
+	background: transparent;
+	color: var(--text);
+}
+
+.btn-ghost:hover {
+	background: var(--nav-hover);
+}
+
+.btn-danger {
+	border-color: var(--danger);
+	color: var(--danger);
+}
+
+.btn-danger:hover {
+	background: color-mix(in srgb, var(--danger) 12%, transparent);
+}

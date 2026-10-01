@@ -321,11 +321,15 @@ function setNotesMode(mode) {
 notesTabs.forEach(btn => btn.addEventListener('click', () => setNotesMode(btn.dataset.mode)));
 
 if (notesClear) {
-	notesClear.addEventListener('click', () => {
-		const ok = window.confirm(
-			'Clear the notes, pasted screenshots, the timeline, and all completed steps? This cannot be undone.'
-		);
-		if (!ok) return;
+	notesClear.addEventListener('click', async () => {
+		const { confirmed } = await showDialog({
+			title: 'Clear everything?',
+			message:
+				'Clear the notes, pasted screenshots, the timeline, and all completed steps? This cannot be undone.',
+			confirmLabel: 'Clear',
+			danger: true,
+		});
+		if (!confirmed) return;
 		notesArea.value = '';
 		localStorage.removeItem(notesKey);
 		localStorage.removeItem(notesImgKey);
@@ -413,6 +417,83 @@ if (notesHandle) {
 	});
 }
 
+// Modal dialog (native <dialog>) — replaces window.confirm()/prompt(). Resolves
+// { confirmed, value }. `input` adds a text field; `danger` styles the primary
+// action as destructive. The browser supplies the backdrop, focus trap and Esc.
+function showDialog({ title, message, confirmLabel = 'OK', cancelLabel = 'Cancel', danger = false, input = null }) {
+	return new Promise(resolve => {
+		const dialog = document.createElement('dialog');
+		dialog.className = 'dialog';
+
+		const header = document.createElement('div');
+		header.className = 'dialog-header';
+		header.textContent = title;
+
+		const body = document.createElement('div');
+		body.className = 'dialog-body';
+		const text = document.createElement('p');
+		text.textContent = message;
+		body.appendChild(text);
+
+		let field = null;
+		if (input) {
+			field = document.createElement('input');
+			field.className = 'dialog-input';
+			field.type = input.type || 'text';
+			if (input.placeholder) field.placeholder = input.placeholder;
+			body.appendChild(field);
+		}
+
+		const footer = document.createElement('div');
+		footer.className = 'dialog-footer';
+		const cancel = document.createElement('button');
+		cancel.type = 'button';
+		cancel.className = 'btn btn-ghost';
+		cancel.textContent = cancelLabel;
+		const confirm = document.createElement('button');
+		confirm.type = 'button';
+		confirm.className = danger ? 'btn btn-danger' : 'btn btn-primary';
+		confirm.textContent = confirmLabel;
+		footer.append(cancel, confirm);
+
+		dialog.append(header, body, footer);
+		document.body.appendChild(dialog);
+
+		const finish = confirmed => {
+			const value = field ? field.value : undefined;
+			dialog.close();
+			dialog.remove();
+			resolve({ confirmed, value });
+		};
+		cancel.addEventListener('click', () => finish(false));
+		confirm.addEventListener('click', () => finish(true));
+		dialog.addEventListener('cancel', event => {
+			event.preventDefault();
+			finish(false);
+		});
+		if (field) {
+			field.addEventListener('keydown', event => {
+				if (event.key === 'Enter') finish(true);
+			});
+		}
+
+		dialog.showModal();
+		(field || confirm).focus();
+	});
+}
+
+// Declarative dialog open/close (server-rendered dialogs): a trigger carries
+// data-dialog-open="id"; anything with data-dialog-close closes its dialog.
+document.querySelectorAll('[data-dialog-open]').forEach(trigger => {
+	trigger.addEventListener('click', () => {
+		const dialog = document.getElementById(trigger.dataset.dialogOpen);
+		if (dialog) dialog.showModal();
+	});
+});
+document.querySelectorAll('[data-dialog-close]').forEach(trigger => {
+	trigger.addEventListener('click', () => trigger.closest('dialog')?.close());
+});
+
 // Theme switcher
 const html = document.documentElement;
 
@@ -433,6 +514,24 @@ document.querySelectorAll('.theme-btn').forEach(btn => {
 const saved = localStorage.getItem('runbooks-theme') || 'dark';
 document.querySelectorAll('.theme-btn').forEach(btn => {
 	btn.classList.toggle('active', btn.dataset.theme === saved);
+});
+
+// Code weight switcher (applies --mono-weight via data-code-weight)
+function setWeight(w) {
+	localStorage.setItem('runbooks-code-weight', w);
+	html.dataset.codeWeight = w;
+	document.querySelectorAll('.weight-btn').forEach(btn => {
+		btn.classList.toggle('active', btn.dataset.weight === w);
+	});
+}
+
+document.querySelectorAll('.weight-btn').forEach(btn => {
+	btn.addEventListener('click', () => setWeight(btn.dataset.weight));
+});
+
+const savedWeight = localStorage.getItem('runbooks-code-weight') || 'regular';
+document.querySelectorAll('.weight-btn').forEach(btn => {
+	btn.classList.toggle('active', btn.dataset.weight === savedWeight);
 });
 
 // Index page — live filter over the runbook catalogue
@@ -495,12 +594,18 @@ if (syncToastEl) {
 
 // Shared instance bearer for the sync endpoint. Held in sessionStorage only, so
 // it is gone when the browser closes; never localStorage.
-function syncBearer() {
+async function syncBearer() {
 	if (!pageConfig.gitSyncRequiresToken) return null;
-	let token = sessionStorage.getItem('ll-gitsync-token');
+	let token = sessionStorage.getItem('runbooks-gitsync-token');
 	if (!token) {
-		token = window.prompt('Bearer token for this runbooks instance:');
-		if (token) sessionStorage.setItem('ll-gitsync-token', token);
+		const { confirmed, value } = await showDialog({
+			title: 'Git sync token',
+			message: 'Enter the bearer token for this runbooks instance. It is kept for this tab only.',
+			confirmLabel: 'Continue',
+			input: { type: 'password', placeholder: 'Bearer token' },
+		});
+		token = confirmed ? value : null;
+		if (token) sessionStorage.setItem('runbooks-gitsync-token', token);
 	}
 	return token;
 }
@@ -514,7 +619,7 @@ if (notesSync && notesArea) {
 
 	notesSync.addEventListener('click', async () => {
 		if (notesSync.disabled) return;
-		const bearer = syncBearer();
+		const bearer = await syncBearer();
 		if (pageConfig.gitSyncRequiresToken && !bearer) {
 			showSyncToast('error', 'A bearer token is required to sync');
 			return;
@@ -624,6 +729,19 @@ async function getPasskey(options) {
 			userHandle: cred.response.userHandle ? encodeBase64URL(cred.response.userHandle) : undefined,
 		},
 	};
+}
+
+// Sign out (sidebar footer). The endpoint only exists when identity is on.
+const logoutButton = document.querySelector('[data-auth="logout"]');
+if (logoutButton) {
+	logoutButton.addEventListener('click', async () => {
+		logoutButton.disabled = true;
+		try {
+			await fetch('/api/auth/v1/logout', { method: 'POST' });
+		} finally {
+			window.location.assign('/login');
+		}
+	});
 }
 
 const loginButton = document.querySelector('[data-auth="login"]');

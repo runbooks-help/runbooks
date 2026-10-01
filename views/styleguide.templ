@@ -1,0 +1,343 @@
+package views
+
+import "runbooks/parser"
+
+// StyleGuidePage renders the design system inside the app shell, organised by
+// atomicity — Foundations, Layout primitives, Atoms, Molecules, Patterns — from
+// the real tokens and templ components, so it cannot drift. Dev-gated; see
+// styleguide.go and STYLEGUIDE_ENABLED. Machine-readable mirror: /styleguide/llms.
+templ StyleGuidePage(groups []parser.SystemGroup, isAdmin, identityEnabled bool) {
+	@Shell("Styleguide") {
+		<aside class="sidebar">
+			@SidebarHeader()
+			@SidebarNav(groups, "styleguide")
+			@AppearanceControl()
+			@SessionActions(isAdmin, identityEnabled)
+		</aside>
+		<div class="main main--full">
+			<div class="main-header">
+				<h1>Styleguide</h1>
+				<p>
+					Foundations and components, rendered from the real tokens and templ components.
+					Machine-readable mirror: <a href="/styleguide/llms">/styleguide/llms</a>.
+				</p>
+			</div>
+			<div class="content">
+				<div class="sg-inner">
+					<nav class="sg-nav">
+						<span class="sg-group">Foundations</span>
+						<a href="#colours">Colours</a>
+						<a href="#typography">Typography</a>
+						<a href="#spacing">Spacing</a>
+						<a href="#radius">Radius</a>
+						<a href="#shadows">Shadows</a>
+						<a href="#motion">Motion</a>
+						<span class="sg-group">Layout</span>
+						<a href="#layouts">Primitives</a>
+						<span class="sg-group">Atoms</span>
+						<a href="#button">Button</a>
+						<a href="#badge">Badge</a>
+						<a href="#field">Field</a>
+						<a href="#dialog">Dialog</a>
+						<a href="#notice">Notice</a>
+						<span class="sg-group">Molecules</span>
+						<a href="#code">Code</a>
+						<a href="#step">Step</a>
+						<a href="#table">Table</a>
+						<a href="#card">Card</a>
+						<span class="sg-group">Patterns</span>
+						<a href="#appearance">Appearance</a>
+						<a href="#session">Session actions</a>
+						<a href="#admin">Admin form</a>
+					</nav>
+
+					<h2 class="sg-heading">Foundations</h2>
+
+					<section class="sg-section" id="colours">
+						<h3>Colours <span class="sg-atom">foundation</span></h3>
+						<p>Seeded from the mallard — roles, never raw colour. Each swatch reads the live token.</p>
+						<div class="sg-grid">
+							@sgSwatch("--accent", "brand fill")
+							@sgSwatch("--accent-strong", "brand text / icon")
+							@sgSwatch("--accent-lt", "brand tint")
+							@sgSwatch("--link", "links · info")
+							@sgSwatch("--success", "ok")
+							@sgSwatch("--warn", "warn")
+							@sgSwatch("--danger", "danger")
+							@sgSwatch("--bg", "page")
+							@sgSwatch("--surface", "raised")
+							@sgSwatch("--surface-2", "raised 2")
+							@sgSwatch("--nav-bg", "chrome")
+							@sgSwatch("--border", "border")
+						</div>
+					</section>
+
+					<section class="sg-section" id="typography">
+						<h3>Typography <span class="sg-atom">foundation</span></h3>
+						<p>Atkinson Hyperlegible Next for UI and prose; Atkinson Hyperlegible Mono for commands, tokens and identifiers. Code weight is a preference (<code>--mono-weight</code>).</p>
+						<div class="sg-specimen">
+							<div style="font-size: var(--text-2xl); font-weight: 700">Replication lag</div>
+							<div style="font-size: var(--text-xl); font-weight: 600">Step heading</div>
+							<div style="font-size: var(--text-sm)">Body copy at 15px with generous leading, for a runbook opened under duress.</div>
+							<div style="font-size: var(--text-2xs); color: var(--muted)">Muted secondary · hints · captions</div>
+							<div class="sg-mono" style="font-size: var(--text-2xs)">mysql -h db-2 -e "SHOW SLAVE STATUS\G"</div>
+							<div class="sg-mono" style="font-size: var(--text-2xs); color: var(--link)">PROCESSLIST_ID · 0123456789 · Il1 O0 5S rn m</div>
+						</div>
+					</section>
+
+					<section class="sg-section" id="spacing">
+						<h3>Spacing <span class="sg-atom">foundation</span></h3>
+						<p>One scale for every gap and padding — never raw px.</p>
+						<div class="sg-stack">
+							for _, s := range []string{"--space-1", "--space-2", "--space-3", "--space-4", "--space-5", "--space-6", "--space-7"} {
+								<div class="sg-row">
+									<code>{ s }</code>
+									<div class="sg-bar" style={ "width: var(" + s + ")" }></div>
+								</div>
+							}
+						</div>
+					</section>
+
+					<section class="sg-section" id="radius">
+						<h3>Radius <span class="sg-atom">foundation</span></h3>
+						<div class="sg-row">
+							for _, r := range []string{"--radius-sm", "--radius-md", "--radius-lg", "--radius-pill"} {
+								<div class="sg-stack" style="align-items: center">
+									<div class="sg-box" style={ "border-radius: var(" + r + ")" }></div>
+									<code>{ r }</code>
+								</div>
+							}
+						</div>
+					</section>
+
+					<section class="sg-section" id="shadows">
+						<h3>Shadows <span class="sg-atom">foundation</span></h3>
+						<div class="sg-row">
+							for _, sh := range []string{"--shadow-sm", "--shadow-md", "--shadow-lg"} {
+								<div class="sg-stack" style="align-items: center">
+									<div class="sg-box" style={ "border-radius: var(--radius-md); box-shadow: var(" + sh + ")" }></div>
+									<code>{ sh }</code>
+								</div>
+							}
+						</div>
+					</section>
+
+					<section class="sg-section" id="motion">
+						<h3>Motion <span class="sg-atom">foundation</span></h3>
+						<p>Two durations and one easing curve, used for hover and state transitions only.</p>
+						<div class="sg-specimen sg-mono" style="font-size: var(--text-xs)">
+							<div>--duration-fast · 120ms</div>
+							<div>--duration-base · 200ms</div>
+							<div>--ease · cubic-bezier(0.2, 0.8, 0.2, 1)</div>
+						</div>
+					</section>
+
+					<h2 class="sg-heading">Layout primitives</h2>
+
+					<section class="sg-section" id="layouts">
+						<h3>Primitives <span class="sg-atom">layout</span></h3>
+						<p>
+							Layout uses the primitives in <code>layouts.css</code> only — never bespoke flex/grid in a component:
+							<code>.stack</code>, <code>.cluster</code>, <code>.row</code>, <code>.grid</code>, <code>.length</code>…
+						</p>
+						<div class="sg-specimen">
+							<div class="grid" data-cols="3" style="--grid-min: 120px">
+								<div class="sg-box"></div>
+								<div class="sg-box"></div>
+								<div class="sg-box"></div>
+							</div>
+							<div class="cluster">
+								<div class="sg-box"></div>
+								<div class="sg-box"></div>
+								<div class="sg-box"></div>
+							</div>
+						</div>
+					</section>
+
+					<h2 class="sg-heading">Atoms</h2>
+
+					<section class="sg-section" id="button">
+						<h3>Button <span class="sg-atom">atom</span></h3>
+						<p>One base class and three intents; a button is a button everywhere.</p>
+						<div class="sg-row">
+							<button class="btn btn-primary" type="button">Primary</button>
+							<button class="btn btn-ghost" type="button">Ghost</button>
+							<button class="btn btn-danger" type="button">Danger</button>
+							<button class="btn btn-primary" type="button" disabled>Disabled</button>
+						</div>
+					</section>
+
+					<section class="sg-section" id="badge">
+						<h3>Badge <span class="sg-atom">atom</span></h3>
+						<p>Status carries colour; the brand accent never does.</p>
+						<div class="sg-row">
+							<span class="badge badge-ok">Synced</span>
+							<span class="badge badge-warn">Optional</span>
+							<span class="badge badge-danger">Destructive</span>
+							<span class="badge badge-info">Read-only</span>
+						</div>
+					</section>
+
+					<section class="sg-section" id="field">
+						<h3>Field <span class="sg-atom">atom</span></h3>
+						<p>A label, a control and an optional hint. Text inputs and selects share one treatment (<code>.text-input</code> / <code>.select-input</code>); <code>.form-row</code> grows fields to fill the row.</p>
+						<div class="sg-specimen">
+							<div class="form-row">
+								<div class="form-field">
+									<label class="form-label" for="sg-name">Display name</label>
+									<input class="text-input" id="sg-name" type="text" placeholder="e.g. Ben"/>
+								</div>
+								<div class="form-field">
+									<label class="form-label" for="sg-role">Role</label>
+									<select class="select-input" id="sg-role">
+										<option>Member</option>
+										<option>Admin</option>
+									</select>
+									<span class="form-hint">Admins may invite and revoke.</span>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<section class="sg-section" id="dialog">
+						<h3>Dialog <span class="sg-atom">atom</span></h3>
+						<p>
+							A native &lt;dialog&gt; modal — the browser supplies the backdrop, focus trap and Esc.
+							Server-rendered dialogs open with <code>data-dialog-open="id"</code> and close with
+							<code>data-dialog-close</code>; JS confirmations use the same component via <code>showDialog()</code>.
+						</p>
+						<div class="sg-row">
+							<button class="btn btn-primary" type="button" data-dialog-open="sg-dialog">Open dialog</button>
+							<button class="btn btn-danger" type="button" data-dialog-open="sg-dialog-danger">Open destructive</button>
+						</div>
+						<dialog class="dialog" id="sg-dialog">
+							<div class="dialog-header">Dialog title</div>
+							<div class="dialog-body">
+								<p>Body content. Padding and typography come from the dialog module.</p>
+							</div>
+							<div class="dialog-footer">
+								<button class="btn btn-ghost" type="button" data-dialog-close>Cancel</button>
+								<button class="btn btn-primary" type="button" data-dialog-close>Confirm</button>
+							</div>
+						</dialog>
+						<dialog class="dialog" id="sg-dialog-danger">
+							<div class="dialog-header">Clear everything?</div>
+							<div class="dialog-body">
+								<p>The destructive action is a danger button on the right.</p>
+							</div>
+							<div class="dialog-footer">
+								<button class="btn btn-ghost" type="button" data-dialog-close>Cancel</button>
+								<button class="btn btn-danger" type="button" data-dialog-close>Clear</button>
+							</div>
+						</dialog>
+					</section>
+
+					<section class="sg-section" id="notice">
+						<h3>Notice <span class="sg-atom">atom</span></h3>
+						<p>Info, warn and danger, plus the banner used for a destructive runbook.</p>
+						<div class="sg-stack">
+							@Notice("info", "Use the primary node for reads while the replica catches up.")
+							@Notice("warn", "This step briefly stops writes — check the drain is complete first.")
+							@Notice("danger", "READ EVERY STEP BEFORE DOING ANYTHING. This recovery drops and rebuilds the replica.")
+							@FrontmatterNotice("A frontmatter `notice:` renders this banner above the steps.")
+						</div>
+					</section>
+
+					<h2 class="sg-heading">Molecules</h2>
+
+					<section class="sg-section" id="code">
+						<h3>Code block <span class="sg-atom">molecule</span></h3>
+						<p>A language and an optional bracketed label; the label renders a header with a done checkbox. Code stays dark in both themes.</p>
+						@CodeBlock("Promote the replica", "export HOST=\"db-2.prod.internal\"\nmysql -h \"$HOST\" -e \"STOP SLAVE; RESET SLAVE ALL;\"", "bash")
+						@CodeBlock("", "SELECT id, state FROM information_schema.processlist;", "sql")
+					</section>
+
+					<section class="sg-section" id="step">
+						<h3>Step <span class="sg-atom">molecule</span></h3>
+						<div class="steps">
+							@Step(1, "Confirm the lag") {
+								<p>Prose inside a step body. Notice the numbered header and the done checkbox.</p>
+							}
+							@Step(2, "Stop the SQL thread") {
+								<p>The replica no longer applies transactions while you resolve the deadlock.</p>
+								@Notice("warn", "Writes on the primary keep coming until the next step finishes.")
+							}
+							@RollbackStep("Roll back the promotion") {
+								<p>Rollback steps render in the danger styling, without a number.</p>
+							}
+						</div>
+					</section>
+
+					<section class="sg-section" id="table">
+						<h3>List &amp; table <span class="sg-atom">molecule</span></h3>
+						@ListBlock([]string{"First item — plain text", "Second item with `inline code` and **bold**", "Third item, long enough to wrap onto a second line"})
+						@TableBlock([]string{"Column", "Meaning", "Example"}, [][]string{
+							{"`HOST`", "Target host", "`db-2.prod.internal`"},
+							{"`PROCESSLIST_ID`", "Blocked worker", "`4123`"},
+							{"Status", "Whether a step is done", "`done` / `pending`"},
+						})
+					</section>
+
+					<section class="sg-section" id="card">
+						<h3>Card <span class="sg-atom">molecule</span></h3>
+						<div class="card-grid">
+							<a class="runbook-card" href="#">
+								<span class="card-title">Replication Lag (MTS Deadlock)</span>
+								<span class="card-desc">Parallel worker deadlock stalls the replica SQL thread.</span>
+							</a>
+							<a class="runbook-card" href="#">
+								<span class="card-title">Disk Full (inode exhaustion)</span>
+								<span class="card-desc">No space left on device, but df shows free bytes.</span>
+							</a>
+						</div>
+					</section>
+
+					<h2 class="sg-heading">Patterns</h2>
+
+					<section class="sg-section" id="appearance">
+						<h3>Appearance <span class="sg-atom">pattern</span></h3>
+						<p>Theme and code weight, applied before first paint and persisted in <code>runbooks-*</code>. Rendered live in this page's own sidebar.</p>
+						@AppearanceControl()
+					</section>
+
+					<section class="sg-section" id="session">
+						<h3>Session actions <span class="sg-atom">pattern</span></h3>
+						<p>The sidebar footer account row: the Admin link (admins) and Sign out (identity on).</p>
+						@SessionActions(true, true)
+					</section>
+
+					<section class="sg-section" id="admin">
+						<h3>Admin invite form <span class="sg-atom">pattern</span></h3>
+						<p>Role and expiry selects with a primary action — the form used on <code>/admin</code>.</p>
+						<section class="admin-card">
+							<form class="form-row" data-admin="invite">
+								<div class="form-field">
+									<label class="form-label" for="sg-invite-role">Role</label>
+									<select class="select-input" id="sg-invite-role" name="role">
+										<option value="member">Member</option>
+										<option value="admin">Admin</option>
+									</select>
+								</div>
+								<div class="form-field">
+									<label class="form-label" for="sg-invite-ttl">Expires</label>
+									<select class="select-input" id="sg-invite-ttl" name="ttl">
+										<option value="24h">1 day</option>
+										<option value="72h" selected>3 days</option>
+									</select>
+								</div>
+								<button class="btn btn-primary" type="submit">Create invite link</button>
+							</form>
+						</section>
+					</section>
+				</div>
+			</div>
+		</div>
+	}
+}
+
+templ sgSwatch(token, label string) {
+	<div class="sg-swatch">
+		<div class="chip" style={ "background: var(" + token + ")" }></div>
+		<div class="meta"><code>{ token }</code> · { label }</div>
+	</div>
+}

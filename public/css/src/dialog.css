@@ -1,0 +1,57 @@
+/* Dialog — a native <dialog> modal, used for confirmations and prompts instead
+   of window.confirm()/prompt(). The browser supplies the backdrop, focus trap
+   and Esc handling; this only styles the panel. */
+
+dialog.dialog {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: calc(100vw - var(--space-6));
+	max-width: 460px;
+	padding: 0;
+	background: var(--surface);
+	color: var(--text);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-lg);
+}
+
+dialog.dialog::backdrop {
+	background: rgba(0, 0, 0, 0.55);
+}
+
+.dialog-header {
+	padding: var(--space-4) var(--space-5);
+	border-bottom: 1px solid var(--border);
+	font-size: var(--text-md);
+	font-weight: 600;
+}
+
+.dialog-body {
+	padding: var(--space-5);
+	color: var(--muted);
+	font-size: var(--text-sm);
+	line-height: var(--leading-normal);
+}
+
+.dialog-input {
+	width: 100%;
+	margin-top: var(--space-3);
+	padding: var(--space-2) var(--space-3);
+	font: inherit;
+	font-size: var(--text-xs);
+	color: var(--text);
+	background: var(--bg);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+}
+
+.dialog-footer {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-5);
+	border-top: 1px solid var(--border);
+}

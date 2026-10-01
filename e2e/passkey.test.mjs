@@ -8,7 +8,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,6 +27,15 @@ const slowMo = Number(process.env.E2E_SLOWMO || (headed ? 600 : 0));
 const holdMs = Number(process.env.E2E_HOLD_MS || 0);
 const navTimeout = inspect ? 0 : 10000;
 const uiTimeout = inspect ? 0 : 5000;
+
+// snap saves a screenshot when E2E_SCREENSHOT_DIR is set — for eyeballing UI
+// changes the assertions cannot judge.
+const shotDir = process.env.E2E_SCREENSHOT_DIR;
+async function snap(page, name) {
+	if (!shotDir) return;
+	mkdirSync(shotDir, { recursive: true });
+	await page.screenshot({ path: join(shotDir, name + ".png") });
+}
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const atPath = (base, pathname) => (url) => url.origin === new URL(base).origin && url.pathname === pathname;
@@ -157,9 +166,16 @@ async function bootAdmin(page, base) {
 }
 
 async function logout(page, base) {
-	const status = await page.evaluate(() => fetch("/api/auth/v1/logout", { method: "POST" }).then((r) => r.status));
-	assert.equal(status, 200, "logout");
-	await page.goto(base + "/");
+	// Prefer the sidebar's Sign out button; fall back to the endpoint if the
+	// session actions are not rendered.
+	const button = page.locator('[data-auth="logout"]');
+	if (await button.count()) {
+		await button.click();
+	} else {
+		const status = await page.evaluate(() => fetch("/api/auth/v1/logout", { method: "POST" }).then((r) => r.status));
+		assert.equal(status, 200, "logout");
+		await page.goto(base + "/");
+	}
 	await page.waitForURL(atPath(base, "/login"), { timeout: navTimeout });
 }
 
@@ -186,6 +202,7 @@ test("setup, logout and login run the real passkey ceremony", async (t) => {
 	t.after(() => b.stop());
 	try {
 		await bootAdmin(b.page, app.base);
+		await snap(b.page, "index");
 		const { credentials } = await b.cdp.send("WebAuthn.getCredentials", { authenticatorId: b.authenticatorId });
 		assert.equal(credentials.length, 1, "one passkey registered");
 		assert.equal(credentials[0].isResidentCredential, true, "passkey is discoverable");
@@ -194,6 +211,50 @@ test("setup, logout and login run the real passkey ceremony", async (t) => {
 		await logout(b.page, app.base);
 		await signIn(b.page, app.base);
 		await b.page.locator('a[href="/admin"]').waitFor({ timeout: uiTimeout });
+
+		// The design-system styleguide (inside the app shell).
+		await b.page.goto(app.base + "/styleguide");
+		await snap(b.page, "styleguide");
+
+		// The kitchen-sink runbook, for eyeballing every block type.
+		await b.page.goto(app.base + "/gallery");
+		await b.page.fill('.var-input[data-var="HOST"]', "db-2.prod.internal");
+		await snap(b.page, "runbook");
+
+		// The destructive Clear confirmation is a real dialog, not window.confirm().
+		await b.page.locator(".notes-clear").click();
+		await b.page.locator("dialog.dialog").waitFor({ timeout: uiTimeout });
+		await snap(b.page, "dialog");
+		await b.page.locator('dialog.dialog .btn-ghost').click();
+		await b.page.evaluate(() => localStorage.setItem("runbooks-theme", "light"));
+		await b.page.reload();
+		await b.page.locator(".code-group").first().scrollIntoViewIfNeeded();
+		await snap(b.page, "runbook-light-code");
+		await b.page.locator(".rollback-card").scrollIntoViewIfNeeded();
+		await snap(b.page, "runbook-light-rollback");
+		if (process.env.E2E_DEBUG) {
+			const info = await b.page.evaluate(() => {
+				const cs = (sel) => {
+					const el = document.querySelector(sel);
+					if (!el) return "MISSING";
+					const s = getComputedStyle(el);
+					return `${s.fontFamily} | w${s.fontWeight} | ${s.fontSize}`;
+				};
+				const bg = (sel) => {
+					const el = document.querySelector(sel);
+					return el ? getComputedStyle(el).backgroundColor : "MISSING";
+				};
+				return {
+					body: cs("body"),
+					adminLink: cs(".nav-admin a"),
+					navLink: cs(".sidebar nav a"),
+					appearanceLabel: cs(".appearance-label"),
+					codeBlockBg: bg(".code-block"),
+					codeBg: bg(".code-group .code-block"),
+				};
+			});
+			console.log("E2E font/colour probe:", JSON.stringify(info, null, 2));
+		}
 		await holdIfAsked();
 	} catch (err) {
 		await reportFailure(b.page, app.logs());
@@ -213,6 +274,7 @@ test("an admin invites a member, who enrols, and the admin revokes their session
 
 		// The admin mints an invite from the /admin page.
 		await admin.page.goto(app.base + "/admin");
+		await snap(admin.page, "admin");
 		await admin.page.selectOption('form[data-admin="invite"] select[name="role"]', "member");
 		await admin.page.click('form[data-admin="invite"] button[type="submit"]');
 		await admin.page.locator("[data-admin-result]").waitFor({ state: "visible", timeout: uiTimeout });

@@ -19,6 +19,7 @@ import (
 	"runbooks/identity"
 	"runbooks/stores"
 	"runbooks/stores/sqlite"
+	"runbooks/views"
 )
 
 const (
@@ -84,7 +85,15 @@ func newTestServerWith(t *testing.T, mutate func(*config)) (*httptest.Server, *i
 	mux.HandleFunc("/api/auth/v1/invite/begin", a.inviteBegin)
 	mux.HandleFunc("/api/auth/v1/invite/finish", a.inviteFinish)
 	mux.HandleFunc("/api/auth/v1/logout", a.logout)
-	mux.HandleFunc("/admin", a.requireAdmin(a.adminPage))
+	mux.HandleFunc("/admin", a.requireAdmin(func(w http.ResponseWriter, r *http.Request) {
+		users, err := a.st.ListUsers(r.Context())
+		if err != nil {
+			http.Error(w, "could not load users", http.StatusInternalServerError)
+			return
+		}
+		u := userFrom(r.Context())
+		views.AdminPage(nil, users, u.IsAdmin(), a.cfg.IdentityEnabled).Render(r.Context(), w)
+	}))
 	mux.HandleFunc("/api/auth/v1/invites", a.requireAdminAPI(a.createInvite))
 	mux.HandleFunc("/api/auth/v1/sessions/revoke", a.requireAdminAPI(a.revokeSessions))
 	if cfg.IdentityRecoveryToken != "" {

@@ -1,0 +1,73 @@
+# Runbooks — design system reference
+
+Source of truth for building conformant UI. Interactive version: /styleguide
+(dev-gated, off in the default container). Spec: specs/runbooks-design-system.md.
+
+## Stack
+
+Go + templ + plain CSS. No framework, no Tailwind, no utility classes.
+CSS source: public/css/src/ → bundle: public/css/bundle.css (committed).
+Build: `mise run css` / `mise run js` / `mise run build`.
+
+## Palette — seeded from the mallard, dark-first
+
+Roles, never raw colour. `:root` is the DARK theme; `html[data-theme="light"]`
+overrides it.
+
+  --accent         brand fill (primary buttons, active nav)
+  --accent-strong  brand used as text, icon or border (readable on the bg)
+  --accent-lt      translucent brand tint (active/selected backgrounds)
+  --on-accent      text on an --accent fill
+  --link           links and info
+  --success        ok status        --warn   warn status
+  --danger         danger status
+  --bg / --surface / --surface-2 / --nav-bg   page, raised, chrome
+  --text / --muted / --nav-text / --nav-muted
+  --border / --border-strong
+
+Rules:
+- Status is NEVER the brand accent.
+- Code surfaces stay dark in BOTH themes: use the constant --code-* tokens
+  (--code-bg, --code-border, --code-text, --code-var-filled, --code-var-secret).
+  Never put a theme role inside a code block — it renders dark-on-dark in light.
+- Body text and chrome meet WCAG AA on their themed background.
+
+## Typography
+
+  --font-sans  "Atkinson Hyperlegible Next" (UI, prose)
+  --font-mono  "Atkinson Hyperlegible Mono" (commands, tokens, identifiers)
+  --mono-weight  450 default; 500 when data-code-weight="bold"
+
+Self-hosted variable woff2, latin subset. Compact scale --text-2xs..--text-2xl.
+
+## Spacing, size, radius, shadow, motion
+
+  --space-0..7 (0,4,8,12,16,24,32,48)   never raw px for gap/padding
+  --size-app-sidebar / --size-app-header / --size-detail-min|max
+  --ctrl-pad-y   the vertical padding that sets control height
+  --radius-sm|md|lg|pill   --shadow-sm|md|lg   --duration-fast|base   --ease
+
+## Layout contract (enforced)
+
+Layout uses the primitives in layouts.css only — never bespoke flex/grid in a
+component: .stack, .cluster, .row, .inline-icon, .grid[data-cols], .grow,
+.truncate, .list-row, .detail-shell.
+
+## Components
+
+  buttons   .btn + .btn-primary | .btn-ghost | .btn-danger   (button.css)
+  fields    .form-field + .form-label + .text-input | .select-input (+ .form-hint,
+            .form-error); .form-row grows the fields to fill the row  (forms.css)
+  dialog    <dialog class="dialog"> with .dialog-header/-body/-footer, opened by
+            data-dialog-open="id", closed by data-dialog-close (dialog.css)
+  notice    Notice(variant, msg) → .notice-info | .notice-warn | .notice-danger
+  code      CodeBlock(label, template, lang) → per-block done checkbox
+  step      Step(n, title) numbered card; RollbackStep(title) danger card
+  table     TableBlock(headers, rows)   list   ListBlock(items)
+  badges    .badge-ok | .badge-warn | .badge-danger | .badge-info
+
+## Appearance preferences
+
+Applied as data attributes on <html> before first paint; localStorage keys are
+`runbooks-theme` (light|dark|system, default dark) and `runbooks-code-weight`
+(regular|bold, default regular).

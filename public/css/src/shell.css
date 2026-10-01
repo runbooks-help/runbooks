@@ -8,8 +8,9 @@ body {
 	overflow: hidden;
 }
 
-/* Index/welcome page has no notes panel — let main span the full width. */
-body:has(.index-main) {
+/* Index and admin pages have no notes panel — let main span the full width. */
+body:has(.index-main),
+body:has(.main--full) {
 	grid-template-columns: var(--size-app-sidebar) 1fr;
 	grid-template-areas: "sidebar main";
 }
@@ -614,17 +615,32 @@ body.resizing-notes {
 	}
 }
 
-/* ── Theme toggle ────────────────────────────────────────────────── */
-
-.theme-row {
+.appearance {
 	display: flex;
-	gap: 2px;
+	flex-direction: column;
+	gap: var(--space-3);
 	padding: var(--space-4);
 	border-top: 1px solid var(--nav-border);
 	margin-top: auto;
 }
 
-.theme-btn {
+.appearance-label {
+	margin: 0 0 var(--space-1);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--nav-muted);
+}
+
+.theme-row,
+.weight-row {
+	display: flex;
+	gap: 2px;
+}
+
+.theme-btn,
+.weight-btn {
 	flex: 1;
 	padding: var(--space-1) 0;
 	border: none;
@@ -638,12 +654,14 @@ body.resizing-notes {
 		color var(--duration-fast);
 }
 
-.theme-btn:hover {
+.theme-btn:hover,
+.weight-btn:hover {
 	background: var(--nav-hover);
 	color: var(--nav-text);
 }
 
-.theme-btn.active {
+.theme-btn.active,
+.weight-btn.active {
 	background: var(--surface);
 	color: var(--nav-text);
 	font-weight: 500;

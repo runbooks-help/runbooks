@@ -48,6 +48,8 @@ type config struct {
 	IdentitySecureCookies   bool
 	IdentitySessionTTL      time.Duration
 	IdentitySessionIdleTTL  time.Duration
+
+	StyleGuideEnabled bool
 }
 
 func loadConfig() config {
@@ -97,6 +99,9 @@ func loadConfig() config {
 	}
 	cfg.IdentityEnabled = cfg.IdentityDriver != ""
 
+	// The styleguide is a dev/self-host surface, off in the default container.
+	cfg.StyleGuideEnabled = envBool("STYLEGUIDE_ENABLED", false)
+
 	return cfg
 }
 
@@ -124,7 +129,7 @@ func main() {
 
 	index := func(w http.ResponseWriter, r *http.Request) {
 		u := userFrom(r.Context())
-		views.IndexPage(groups, u.IsAdmin()).Render(r.Context(), w)
+		views.IndexPage(groups, u.IsAdmin(), cfg.IdentityEnabled).Render(r.Context(), w)
 	}
 
 	var authn *auth
@@ -155,7 +160,15 @@ func main() {
 		mux.HandleFunc("/api/auth/v1/invite/begin", authn.inviteBegin)
 		mux.HandleFunc("/api/auth/v1/invite/finish", authn.inviteFinish)
 		mux.HandleFunc("/api/auth/v1/logout", authn.logout)
-		mux.HandleFunc("/admin", authn.requireAdmin(authn.adminPage))
+		mux.HandleFunc("/admin", authn.requireAdmin(func(w http.ResponseWriter, r *http.Request) {
+			users, err := store.ListUsers(r.Context())
+			if err != nil {
+				http.Error(w, "could not load users", http.StatusInternalServerError)
+				return
+			}
+			u := userFrom(r.Context())
+			views.AdminPage(groups, users, u.IsAdmin(), cfg.IdentityEnabled).Render(r.Context(), w)
+		}))
 		mux.HandleFunc("/api/auth/v1/invites", authn.requireAdminAPI(authn.createInvite))
 		mux.HandleFunc("/api/auth/v1/sessions/revoke", authn.requireAdminAPI(authn.revokeSessions))
 		// Break-glass recovery is only reachable when a token is configured.
@@ -171,6 +184,11 @@ func main() {
 
 	mux.HandleFunc("/{$}", index)
 
+	if cfg.StyleGuideEnabled {
+		registerStyleGuide(mux, authn, cfg, groups)
+		log.Printf("styleguide enabled at /styleguide")
+	}
+
 	for _, rb := range runbooks {
 		rb := rb
 		page := func(w http.ResponseWriter, r *http.Request) {
@@ -180,6 +198,7 @@ func main() {
 				GitSyncRequiresToken: cfg.GitSyncAPIToken != "",
 				RecordsBasePath:      cfg.GitSyncBasePath,
 				IsAdmin:              u.IsAdmin(),
+				IdentityEnabled:      cfg.IdentityEnabled,
 			}).Render(r.Context(), w)
 		}
 		if authn != nil {

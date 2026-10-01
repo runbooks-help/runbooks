@@ -46,19 +46,41 @@ templ SidebarNav(groups []parser.SystemGroup, active string) {
 	}
 }
 
-templ ThemeToggle() {
-	<div class="theme-row">
-		<button class="theme-btn" data-theme="light" type="button">Light</button>
-		<button class="theme-btn" data-theme="system" type="button">System</button>
-		<button class="theme-btn" data-theme="dark" type="button">Dark</button>
+// AppearanceControl is the sidebar footer: theme and code-weight preferences.
+// Both are applied before first paint (see themeScript) and persisted client-side.
+templ AppearanceControl() {
+	<div class="appearance">
+		<div>
+			<p class="appearance-label">Theme</p>
+			<div class="theme-row">
+				<button class="theme-btn" data-theme="light" type="button">Light</button>
+				<button class="theme-btn" data-theme="system" type="button">System</button>
+				<button class="theme-btn" data-theme="dark" type="button">Dark</button>
+			</div>
+		</div>
+		<div>
+			<p class="appearance-label">Code weight</p>
+			<div class="weight-row">
+				<button class="weight-btn" data-weight="regular" type="button">Regular</button>
+				<button class="weight-btn" data-weight="bold" type="button">Bold</button>
+			</div>
+		</div>
 	</div>
 }
 
-// SidebarAdmin is the sidebar link to the admin page, shown to admins only.
-templ SidebarAdmin() {
-	<nav class="nav-admin">
-		<a href="/admin">Admin</a>
-	</nav>
+// SessionActions is the sidebar footer account section: the Admin page link
+// (admins only) and Sign out (when identity is on).
+templ SessionActions(isAdmin, identityEnabled bool) {
+	if isAdmin || identityEnabled {
+		<nav class="session-actions">
+			if isAdmin {
+				<a href="/admin">Admin</a>
+			}
+			if identityEnabled {
+				<button type="button" data-auth="logout">Sign out</button>
+			}
+		</nav>
+	}
 }
 
 // VarsPanel renders the sidebar variables section for a runbook page.

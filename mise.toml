@@ -27,6 +27,9 @@ IDENTITY_PUBLIC_URL = "http://localhost:8091"
 IDENTITY_BOOTSTRAP_TOKEN = "dev-bootstrap-token"
 IDENTITY_SECURE_COOKIES = "false"
 
+# The design-system styleguide is a dev-only surface (see specs/runbooks-design-system.md).
+STYLEGUIDE_ENABLED = "true"
+
 [tasks.generate]
 description = "Run templ code generation"
 run = "templ generate ./..."

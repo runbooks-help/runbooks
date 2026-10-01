@@ -374,15 +374,6 @@ func (a *auth) soleAdmin(ctx context.Context) (stores.User, bool, error) {
 	return admins[0], true, nil
 }
 
-func (a *auth) adminPage(w http.ResponseWriter, r *http.Request) {
-	users, err := a.st.ListUsers(r.Context())
-	if err != nil {
-		http.Error(w, "could not load users", http.StatusInternalServerError)
-		return
-	}
-	views.AdminPage(users).Render(r.Context(), w)
-}
-
 // createInvite mints an invite for a new user, or a re-enrolment link when
 // user_id is set. It returns the absolute URL to share.
 func (a *auth) createInvite(w http.ResponseWriter, r *http.Request) {

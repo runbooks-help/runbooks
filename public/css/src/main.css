@@ -1,5 +1,10 @@
 @import "fonts.css";
 @import "tokens.css";
 @import "layouts.css";
+@import "button.css";
+@import "badge.css";
+@import "forms.css";
+@import "dialog.css";
 @import "shell.css";
 @import "runbooks.css";
+@import "styleguide.css";

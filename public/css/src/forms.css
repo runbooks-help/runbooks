@@ -1,0 +1,60 @@
+/* Form controls — the field atom. A label, a control and an optional hint.
+   Text inputs and selects share one control treatment, so a form is never
+   hand-styled per page. */
+
+.form-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: var(--space-3);
+}
+
+.form-row .form-field {
+	flex: 1 1 180px;
+}
+
+.form-field {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	min-width: 0;
+}
+
+.form-label {
+	color: var(--muted);
+	font-size: var(--text-xs);
+	font-weight: 600;
+}
+
+.form-hint {
+	color: var(--nav-muted);
+	font-size: var(--text-2xs);
+}
+
+.text-input,
+.select-input {
+	width: 100%;
+	padding: var(--space-2) var(--space-3);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+	background: var(--bg);
+	color: var(--text);
+	font: inherit;
+	font-size: var(--text-xs);
+	outline: none;
+	transition:
+		border-color var(--duration-fast) var(--ease),
+		box-shadow var(--duration-fast) var(--ease);
+}
+
+.text-input:focus-visible,
+.select-input:focus-visible {
+	border-color: var(--accent-strong);
+	box-shadow: 0 0 0 3px var(--accent-lt);
+}
+
+.form-error {
+	min-height: 1.2em;
+	color: var(--danger);
+	font-size: var(--text-2xs);
+}
