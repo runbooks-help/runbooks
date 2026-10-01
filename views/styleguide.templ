@@ -243,8 +243,10 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 					<section class="sg-section" id="code">
 						<h3>Code block <span class="sg-atom">molecule</span></h3>
 						<p>A language and an optional bracketed label; the label renders a header with a done checkbox. Code stays dark in both themes.</p>
-						@CodeBlock("Promote the replica", "export HOST=\"db-2.prod.internal\"\nmysql -h \"$HOST\" -e \"STOP SLAVE; RESET SLAVE ALL;\"", "bash")
-						@CodeBlock("", "SELECT id, state FROM information_schema.processlist;", "sql")
+						<div class="stack">
+							@CodeBlock("Promote the replica", "export HOST=\"db-2.prod.internal\"\nmysql -h \"$HOST\" -e \"STOP SLAVE; RESET SLAVE ALL;\"", "bash")
+							@CodeBlock("", "SELECT id, state FROM information_schema.processlist;", "sql")
+						</div>
 					</section>
 
 					<section class="sg-section" id="step">
