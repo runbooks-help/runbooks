@@ -1,7 +1,9 @@
 # Runbooks — design system reference
 
 Source of truth for building conformant UI. Interactive version: /styleguide
-(dev-gated, off in the default container). Spec: specs/runbooks-design-system.md.
+(dev-gated, off in the default container), organised by atomicity —
+Foundations → Layout primitives → Atoms → Molecules → Patterns.
+Spec: specs/runbooks-design-system.md.
 
 ## Stack
 
@@ -44,27 +46,51 @@ Self-hosted variable woff2, latin subset. Compact scale --text-2xs..--text-2xl.
 
   --space-0..7 (0,4,8,12,16,24,32,48)   never raw px for gap/padding
   --size-app-sidebar / --size-app-header / --size-detail-min|max
-  --ctrl-pad-y   the vertical padding that sets control height
+  --ctrl-pad-y   the vertical padding that sets control height (btn, input, select)
   --radius-sm|md|lg|pill   --shadow-sm|md|lg   --duration-fast|base   --ease
 
-## Layout contract (enforced)
+## App shell & layout contract
+
+Pages render inside the shell: `<aside class="sidebar">` + `<div class="main">`,
+with a `.main-header` and a scrolling `.content` (which sets scroll-padding-top so
+anchored section links don't land flush against the header). A page with no notes
+column marks its main `.main--full`, collapsing the body grid to `sidebar | main`.
 
 Layout uses the primitives in layouts.css only — never bespoke flex/grid in a
 component: .stack, .cluster, .row, .inline-icon, .grid[data-cols], .grow,
 .truncate, .list-row, .detail-shell.
 
+Contextual chrome belongs to the context, not the component — e.g. the sidebar
+footer divider is `.sidebar .appearance`, so the atom can be shown elsewhere (the
+styleguide) without carrying a border that only makes sense in one host.
+
 ## Components
 
-  buttons   .btn + .btn-primary | .btn-ghost | .btn-danger   (button.css)
-  fields    .form-field + .form-label + .text-input | .select-input (+ .form-hint,
-            .form-error); .form-row grows the fields to fill the row  (forms.css)
-  dialog    <dialog class="dialog"> with .dialog-header/-body/-footer, opened by
-            data-dialog-open="id", closed by data-dialog-close (dialog.css)
+  buttons   .btn (+ .btn-primary | .btn-ghost | .btn-danger, [disabled])   button.css
+  badge     .badge-ok | .badge-warn | .badge-danger | .badge-info           badge.css
+  fields    .form-field + .form-label + .text-input | .select-input, plus
+            .form-hint / .form-error                                      forms.css
+            .form-row grows the fields to fill the row; an inline action aligns
+            to the control baseline (align-self) and controls take height from
+            --ctrl-pad-y, so a button lines up with a field. Fields align by
+            their tops, so labels and controls match even when one field has a
+            hint (the hint is absolute, out of flow; the row reserves space).
+            The select uses our own inset chevron (appearance: none).
+  dialog    <dialog class="dialog"> with .dialog-header/-body/-footer         dialog.css
+            Server-rendered: data-dialog-open="id", data-dialog-close.
+            JS confirmations/prompts: showDialog({ title, message, danger, input }).
   notice    Notice(variant, msg) → .notice-info | .notice-warn | .notice-danger
   code      CodeBlock(label, template, lang) → per-block done checkbox
   step      Step(n, title) numbered card; RollbackStep(title) danger card
-  table     TableBlock(headers, rows)   list   ListBlock(items)
-  badges    .badge-ok | .badge-warn | .badge-danger | .badge-info
+  table     TableBlock(headers, rows)        list   ListBlock(items)
+
+## Patterns
+
+  appearance       theme + code weight; the sidebar footer (replaced the old
+                   ThemeToggle). Playwright/screenshot tests target .theme-btn /
+                   .weight-btn.
+  session actions  Admin link (admins) + Sign out (identity on) — the sidebar
+                   footer account row.
 
 ## Appearance preferences
 
