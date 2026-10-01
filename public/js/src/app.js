@@ -549,6 +549,24 @@ document.querySelectorAll('.weight-btn').forEach(btn => {
 	btn.classList.toggle('active', btn.dataset.weight === savedWeight);
 });
 
+// Reading size (applies --text-scale via data-text-size)
+function setSize(s) {
+	localStorage.setItem('runbooks-text-size', s);
+	html.dataset.textSize = s;
+	document.querySelectorAll('.size-btn').forEach(btn => {
+		btn.classList.toggle('active', btn.dataset.size === s);
+	});
+}
+
+document.querySelectorAll('.size-btn').forEach(btn => {
+	btn.addEventListener('click', () => setSize(btn.dataset.size));
+});
+
+const savedSize = localStorage.getItem('runbooks-text-size') || 'medium';
+document.querySelectorAll('.size-btn').forEach(btn => {
+	btn.classList.toggle('active', btn.dataset.size === savedSize);
+});
+
 // Index page — live filter over the runbook catalogue
 const indexSearch = document.querySelector('.index-search');
 if (indexSearch) {

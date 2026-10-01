@@ -160,4 +160,4 @@ func pageConfigJSON(c PageConfig) string {
 }
 
 // themeScript is inlined before first paint to prevent flash of wrong theme.
-const themeScript = `(function(){var r=document.documentElement;var p=localStorage.getItem('runbooks-theme')||'dark';var d=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);r.dataset.theme=d?'dark':'light';r.dataset.codeWeight=localStorage.getItem('runbooks-code-weight')||'regular';})()`
+const themeScript = `(function(){var r=document.documentElement;var p=localStorage.getItem('runbooks-theme')||'dark';var d=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);r.dataset.theme=d?'dark':'light';r.dataset.codeWeight=localStorage.getItem('runbooks-code-weight')||'regular';r.dataset.textSize=localStorage.getItem('runbooks-text-size')||'medium';})()`

@@ -82,15 +82,18 @@
 	   appearance preference switches this to 500. */
 	--mono-weight: 450;
 
-	/* Type scale — compact/dense */
-	--text-2xs: 12px;
-	--text-xs: 14px;
-	--text-sm: 15px;
-	--text-base: 16px;
-	--text-md: 18px;
-	--text-lg: 21px;
-	--text-xl: 25px;
-	--text-2xl: 32px;
+	/* Type scale — compact/dense. The S/M/L reading-size preference sets
+	   --text-scale, which moves the whole scale and nothing else (spacing and
+	   structural sizes stay put). */
+	--text-scale: 1;
+	--text-2xs: calc(12px * var(--text-scale));
+	--text-xs: calc(14px * var(--text-scale));
+	--text-sm: calc(15px * var(--text-scale));
+	--text-base: calc(16px * var(--text-scale));
+	--text-md: calc(18px * var(--text-scale));
+	--text-lg: calc(21px * var(--text-scale));
+	--text-xl: calc(25px * var(--text-scale));
+	--text-2xl: calc(32px * var(--text-scale));
 
 	/* Line heights */
 	--leading-tight: 1.25;
@@ -156,6 +159,14 @@ html[data-theme="light"] {
 /* Code-weight preference (appearance control) */
 html[data-code-weight="bold"] {
 	--mono-weight: 500;
+}
+
+/* Reading-size preference (appearance control) */
+html[data-text-size="small"] {
+	--text-scale: 0.9;
+}
+html[data-text-size="large"] {
+	--text-scale: 1.15;
 }
 
 body {

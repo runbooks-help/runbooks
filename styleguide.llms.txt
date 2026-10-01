@@ -114,5 +114,7 @@ styleguide) without carrying a border that only makes sense in one host.
 ## Appearance preferences
 
 Applied as data attributes on <html> before first paint; localStorage keys are
-`runbooks-theme` (light|dark|system, default dark) and `runbooks-code-weight`
-(regular|bold, default regular).
+`runbooks-theme` (light|dark|system, default dark), `runbooks-code-weight`
+(regular|bold, default regular) and `runbooks-text-size` (small|medium|large,
+default medium). Text size sets `--text-scale`, which moves the type scale and
+nothing else.

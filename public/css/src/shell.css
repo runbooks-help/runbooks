@@ -633,13 +633,15 @@ body.resizing-notes {
 }
 
 .theme-row,
-.weight-row {
+.weight-row,
+.size-row {
 	display: flex;
 	gap: 2px;
 }
 
 .theme-btn,
-.weight-btn {
+.weight-btn,
+.size-btn {
 	flex: 1;
 	padding: var(--space-1) 0;
 	border: none;
@@ -654,13 +656,15 @@ body.resizing-notes {
 }
 
 .theme-btn:hover,
-.weight-btn:hover {
+.weight-btn:hover,
+.size-btn:hover {
 	background: var(--nav-hover);
 	color: var(--nav-text);
 }
 
 .theme-btn.active,
-.weight-btn.active {
+.weight-btn.active,
+.size-btn.active {
 	background: var(--surface);
 	color: var(--nav-text);
 	font-weight: 500;

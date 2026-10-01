@@ -46,8 +46,9 @@ templ SidebarNav(groups []parser.SystemGroup, active string) {
 	}
 }
 
-// AppearanceControl is the sidebar footer: theme and code-weight preferences.
-// Both are applied before first paint (see themeScript) and persisted client-side.
+// AppearanceControl is the sidebar footer: theme, code-weight and reading-size
+// preferences. All are applied before first paint (see themeScript) and
+// persisted client-side.
 templ AppearanceControl() {
 	<div class="appearance">
 		<div>
@@ -63,6 +64,14 @@ templ AppearanceControl() {
 			<div class="weight-row">
 				<button class="weight-btn" data-weight="regular" type="button">Regular</button>
 				<button class="weight-btn" data-weight="bold" type="button">Bold</button>
+			</div>
+		</div>
+		<div>
+			<p class="appearance-label">Text size</p>
+			<div class="size-row">
+				<button class="size-btn" data-size="small" type="button" title="Small">S</button>
+				<button class="size-btn" data-size="medium" type="button" title="Medium">M</button>
+				<button class="size-btn" data-size="large" type="button" title="Large">L</button>
 			</div>
 		</div>
 	</div>
