@@ -49,6 +49,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Prepare SBOM output directory
+        run: mkdir -p sbom
+
       - name: Generate SBOM (SPDX)
         uses: anchore/sbom-action@v0
         with:
