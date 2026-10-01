@@ -26,6 +26,7 @@ templ AdminPage(groups []parser.SystemGroup, users []stores.User, isAdmin, ident
 						<input class="admin-url" type="text" readonly data-admin-url aria-label="Invite link"/>
 						<button class="btn btn-ghost" type="button" data-admin-copy>Copy</button>
 					</div>
+					@liveAlert()
 					<p class="auth-status" data-admin-status hidden></p>
 
 					<section class="admin-card">

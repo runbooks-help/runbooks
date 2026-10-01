@@ -671,6 +671,16 @@
 	box-shadow: var(--shadow-sm);
 }
 
+/* The banner bleeds to the card edges; that chrome belongs to the host, not the
+   component, so the alert can be shown elsewhere without a negative margin. */
+.auth-card > .alert-banner {
+	margin: calc(-1 * var(--space-6)) calc(-1 * var(--space-6)) var(--space-5);
+}
+
+.auth-card > .alert-banner + .auth-lede {
+	margin-bottom: 0;
+}
+
 .auth-title {
 	margin-bottom: var(--space-2);
 	font-size: var(--text-lg);
@@ -748,10 +758,6 @@
 
 .auth-status[hidden] {
 	display: none;
-}
-
-.auth-status--error {
-	color: var(--danger);
 }
 
 .session-actions {

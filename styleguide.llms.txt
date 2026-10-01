@@ -68,6 +68,16 @@ styleguide) without carrying a border that only makes sense in one host.
 
   buttons   .btn (+ .btn-primary | .btn-ghost | .btn-danger, [disabled])   button.css
   badge     .badge-ok | .badge-warn | .badge-danger | .badge-info           badge.css
+  alert     Alert(weight, intent, title, msg). Intent (danger | warn | info |
+            success) is independent of weight (inline | panel | banner); panel is
+            the default and carries no modifier. The intent sets --alert-color,
+            the weight sets the frame: inline = field/form validation, panel =
+            the operation failed but the page works, banner = a blocking
+            condition. The banner's bleed into a card belongs to the host
+            (.auth-card > .alert-banner), not the component. A notice is a prose
+            callout; an alert is state.                                  alert.css
+            JS: showLiveAlert(title, err) fills the page's [data-live-alert]
+            panel; progress text stays .auth-status, not an alert.
   fields    .form-field + .form-label + .text-input | .select-input, plus
             .form-hint / .form-error                                      forms.css
             .form-row grows the fields to fill the row; an inline action aligns

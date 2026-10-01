@@ -240,6 +240,24 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 
 					<h2 class="sg-heading">Molecules</h2>
 
+					<section class="sg-section" id="alert">
+						<h3>Alert <span class="sg-atom">molecule</span></h3>
+						<p>
+							Interactive feedback. Intent (danger, warn, info, success) is independent of
+							weight (inline, panel, banner): the intent sets the colour, the weight sets the
+							frame. Panel is the default; inline is for field validation, banner for a
+							blocking condition. A notice is a prose callout; an alert is state.
+						</p>
+						<div class="sg-stack">
+							@Alert("panel", "danger", "Could not join", "Your browser cancelled or timed out the passkey request.")
+							@Alert("panel", "warn", "Passkey created, email not set", "You can add an email later from the admin table.")
+							@Alert("panel", "info", "Waiting for your passkey", "Approve the request in your browser or password manager.")
+							@Alert("panel", "success", "Invite created", "Share the link; it can be used once and expires in 24 hours.")
+							@Alert("inline", "danger", "", "Enter a valid email address, for example you@example.com.")
+							@Alert("banner", "danger", "Invite not valid", "This invite has already been used or has expired. Ask an admin for a new link.")
+						</div>
+					</section>
+
 					<section class="sg-section" id="code">
 						<h3>Code block <span class="sg-atom">molecule</span></h3>
 						<p>A language and an optional bracketed label; the label renders a header with a done checkbox. Code stays dark in both themes.</p>
@@ -362,6 +380,7 @@ templ styleGuideNav() {
 	</nav>
 	<p class="nav-section">Molecules</p>
 	<nav>
+		<a href="#alert">Alert</a>
 		<a href="#code">Code</a>
 		<a href="#step">Step</a>
 		<a href="#table">Table</a>

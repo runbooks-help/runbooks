@@ -8,6 +8,7 @@ templ LoginPage() {
 				<h1 class="auth-title">Sign in</h1>
 				<p class="auth-lede">Use a passkey to open the runbooks.</p>
 				<button class="auth-button" type="button" data-auth="login">Sign in with a passkey</button>
+				@liveAlert()
 				<p class="auth-status" data-auth-status hidden></p>
 			</div>
 		</div>
@@ -39,6 +40,7 @@ templ SetupPage() {
 					</label>
 					<button class="auth-button" type="submit">Create passkey</button>
 				</form>
+				@liveAlert()
 				<p class="auth-status" data-auth-status hidden></p>
 			</div>
 		</div>
@@ -66,6 +68,7 @@ templ InvitePage(token string, reenrol bool) {
 					}
 					<button class="auth-button" type="submit">Create passkey</button>
 				</form>
+				@liveAlert()
 				<p class="auth-status" data-auth-status hidden></p>
 			</div>
 		</div>
@@ -73,15 +76,13 @@ templ InvitePage(token string, reenrol bool) {
 }
 
 // InviteInvalidPage is shown when an invite link is missing, already used or
-// expired.
+// expired. The blocking condition is the page, so it carries the banner weight.
 templ InviteInvalidPage() {
 	@Shell("Invite") {
 		<div class="auth-main">
 			<div class="auth-card">
-				<h1 class="auth-title">Invite not valid</h1>
-				<p class="auth-lede">
-					This invite has already been used or has expired. Ask an admin for a new link.
-				</p>
+				@Alert("banner", "danger", "Invite not valid", "This invite has already been used or has expired. Ask an admin for a new link.")
+				<p class="auth-lede">Enrolment is blocked until you have a fresh link.</p>
 			</div>
 		</div>
 	}

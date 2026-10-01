@@ -100,7 +100,7 @@ test("break-glass recovery re-enrols the admin's passkey", async (t) => {
 		await logout(b.page, app.base);
 		await b.page.goto(app.base + "/login");
 		await b.page.click('[data-auth="login"]');
-		await b.page.locator("[data-auth-status]").filter({ hasText: "Sign in failed" }).waitFor({ timeout: navTimeout });
+		await b.page.locator("[data-live-alert] .alert-title").filter({ hasText: "Sign in failed" }).waitFor({ timeout: navTimeout });
 
 		// Break-glass re-enrols a passkey for the sole admin.
 		await b.page.goto(app.base + "/recovery");
@@ -138,7 +138,7 @@ test("break-glass recovers an abandoned /setup (admin user with no credential)",
 		await b.page.goto(app.base + "/setup");
 		await b.page.waitForURL(atPath(app.base, "/login"), { timeout: navTimeout });
 		await b.page.click('[data-auth="login"]');
-		await b.page.locator("[data-auth-status]").filter({ hasText: "Sign in failed" }).waitFor({ timeout: navTimeout });
+		await b.page.locator("[data-live-alert] .alert-title").filter({ hasText: "Sign in failed" }).waitFor({ timeout: navTimeout });
 
 		// Break-glass re-enrols a passkey for the orphaned admin and gets back in.
 		await b.page.goto(app.base + "/recovery");

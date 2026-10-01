@@ -694,12 +694,48 @@ async function authPost(url, body) {
 	return data;
 }
 
-function authStatus(message, isError) {
+function authStatus(message) {
 	const el = document.querySelector('[data-auth-status]');
 	if (!el) return;
 	el.textContent = message;
-	el.classList.toggle('auth-status--error', Boolean(isError));
 	el.hidden = !message;
+}
+
+// passkeyErrorMessage turns the terse DOMException the WebAuthn API throws into
+// something a person can act on. The raw text still reaches the alert's detail
+// line, so nothing is lost for debugging.
+function passkeyErrorMessage(err) {
+	const fallbacks = {
+		NotAllowedError:
+			'The passkey request was cancelled or timed out. Try again, or use the device where the passkey already lives.',
+		InvalidStateError: 'That passkey is already registered on this device — try signing in instead.',
+		AbortError: 'The passkey request was interrupted. Please try again.',
+		SecurityError: 'This browser blocked the passkey request. Check that the site is served over HTTPS.',
+	};
+	return fallbacks[err && err.name] || (err && err.message) || 'Something went wrong.';
+}
+
+// showLiveAlert fills the page's panel alert. The weight is fixed in markup;
+// only the text and the optional raw detail vary here.
+function showLiveAlert(title, err) {
+	const el = document.querySelector('[data-live-alert]');
+	if (!el) return;
+	const message = passkeyErrorMessage(err);
+	const detail = message === (err && err.message) ? '' : err && err.message;
+	el.querySelector('.alert-title').textContent = title;
+	el.querySelector('.alert-message').textContent = message;
+	const detailEl = el.querySelector('.alert-detail');
+	detailEl.textContent = detail || '';
+	detailEl.hidden = !detail;
+	el.hidden = false;
+	authStatus('');
+	const adminStatus = document.querySelector('[data-admin-status]');
+	if (adminStatus) adminStatus.hidden = true;
+}
+
+function hideLiveAlert() {
+	const el = document.querySelector('[data-live-alert]');
+	if (el) el.hidden = true;
 }
 
 // createPasskey runs the WebAuthn registration ceremony and returns the
@@ -763,6 +799,7 @@ const loginButton = document.querySelector('[data-auth="login"]');
 if (loginButton) {
 	loginButton.addEventListener('click', async () => {
 		loginButton.disabled = true;
+		hideLiveAlert();
 		authStatus('Waiting for your passkey…');
 		try {
 			const begin = await authPost('/api/auth/v1/login/begin');
@@ -770,7 +807,7 @@ if (loginButton) {
 			await authPost('/api/auth/v1/login/finish', { challenge: begin.challenge, credential });
 			window.location.assign('/');
 		} catch (err) {
-			authStatus(`Sign in failed: ${err.message}`, true);
+			showLiveAlert('Sign in failed', err);
 			loginButton.disabled = false;
 		}
 	});
@@ -783,6 +820,7 @@ if (setupForm) {
 		const fields = Object.fromEntries(new FormData(setupForm).entries());
 		const submit = setupForm.querySelector('button[type="submit"]');
 		if (submit) submit.disabled = true;
+		hideLiveAlert();
 		authStatus('Creating your passkey…');
 		try {
 			const begin = await authPost('/api/auth/v1/setup/begin', {
@@ -799,7 +837,7 @@ if (setupForm) {
 			});
 			window.location.assign('/');
 		} catch (err) {
-			authStatus(`Setup failed: ${err.message}`, true);
+			showLiveAlert('Setup failed', err);
 			if (submit) submit.disabled = false;
 		}
 	});
@@ -813,6 +851,7 @@ if (inviteForm) {
 		const fields = Object.fromEntries(new FormData(inviteForm).entries());
 		const submit = inviteForm.querySelector('button[type="submit"]');
 		if (submit) submit.disabled = true;
+		hideLiveAlert();
 		authStatus('Creating your passkey…');
 		try {
 			const begin = await authPost('/api/auth/v1/invite/begin', {
@@ -824,7 +863,7 @@ if (inviteForm) {
 			await authPost('/api/auth/v1/invite/finish', { token, challenge: begin.challenge, credential });
 			window.location.assign('/');
 		} catch (err) {
-			authStatus(`Could not join: ${err.message}`, true);
+			showLiveAlert('Could not join', err);
 			if (submit) submit.disabled = false;
 		}
 	});
@@ -837,6 +876,7 @@ if (recoveryForm) {
 		const fields = Object.fromEntries(new FormData(recoveryForm).entries());
 		const submit = recoveryForm.querySelector('button[type="submit"]');
 		if (submit) submit.disabled = true;
+		hideLiveAlert();
 		authStatus('Creating your passkey…');
 		try {
 			const begin = await authPost('/api/auth/v1/recovery/begin', { token: fields.token });
@@ -844,7 +884,7 @@ if (recoveryForm) {
 			await authPost('/api/auth/v1/recovery/finish', { token: fields.token, challenge: begin.challenge, credential });
 			window.location.assign('/');
 		} catch (err) {
-			authStatus(`Recovery failed: ${err.message}`, true);
+			showLiveAlert('Recovery failed', err);
 			if (submit) submit.disabled = false;
 		}
 	});
@@ -855,9 +895,9 @@ if (adminStatus) {
 	const adminResult = document.querySelector('[data-admin-result]');
 	const adminUrl = adminResult.querySelector('[data-admin-url]');
 
-	const showAdminStatus = (message, isError) => {
+	const showAdminStatus = message => {
+		hideLiveAlert();
 		adminStatus.textContent = message;
-		adminStatus.classList.toggle('auth-status--error', Boolean(isError));
 		adminStatus.hidden = !message;
 	};
 	const showAdminUrl = url => {
@@ -872,7 +912,7 @@ if (adminStatus) {
 			showAdminStatus('Invite link created — it can only be used once.');
 			showAdminUrl(data.url);
 		} catch (err) {
-			showAdminStatus(err.message, true);
+			showLiveAlert('Could not create the invite', err);
 		}
 	};
 
@@ -896,7 +936,7 @@ if (adminStatus) {
 				await authPost('/api/auth/v1/sessions/revoke', { user_id: button.dataset.userId });
 				showAdminStatus('Sessions revoked.');
 			} catch (err) {
-				showAdminStatus(err.message, true);
+				showLiveAlert('Could not revoke sessions', err);
 			} finally {
 				button.disabled = false;
 			}

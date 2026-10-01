@@ -186,6 +186,8 @@ export async function signIn(page, base) {
 export async function reportFailure(page, logs) {
 	const status = await page?.locator("[data-auth-status]").textContent().catch(() => null);
 	if (status) console.error("auth status:", status);
+	const alert = await page?.locator("[data-live-alert] .alert-message").textContent().catch(() => null);
+	if (alert) console.error("auth alert:", alert.trim());
 	console.error("--- app log ---\n" + logs);
 }
 

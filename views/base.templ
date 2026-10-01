@@ -180,6 +180,33 @@ templ Notice(variant, msg string) {
 	<div class={ "notice " + noticeClass(variant) }>@templ.Raw(noticeHTML(msg))</div>
 }
 
+// Alert is interactive feedback. intent is danger|warn|info|success; weight is
+// inline|panel|banner, where panel is the default and carries no modifier.
+templ Alert(weight, intent, title, msg string) {
+	<div class={ alertClass(weight, intent) } role="alert">
+		<span class="alert-icon" aria-hidden="true">{ alertIcon(intent) }</span>
+		<div class="alert-body">
+			if title != "" {
+				<p class="alert-title">{ title }</p>
+			}
+			<p class="alert-message">{ msg }</p>
+		</div>
+	</div>
+}
+
+// liveAlert is the client-populated panel alert. Rendered empty and hidden;
+// app.js fills the title, message and detail and unhides it.
+templ liveAlert() {
+	<div class="alert alert-danger" role="alert" data-live-alert hidden>
+		<span class="alert-icon" aria-hidden="true">⚠</span>
+		<div class="alert-body">
+			<p class="alert-title"></p>
+			<p class="alert-message"></p>
+			<p class="alert-detail" hidden></p>
+		</div>
+	</div>
+}
+
 templ ListBlock(items []string) {
 	<ul class="prose-list">
 		for _, item := range items {
@@ -230,6 +257,38 @@ func noticeClass(v string) string {
 		return "notice-danger"
 	default:
 		return ""
+	}
+}
+
+func alertClass(weight, intent string) string {
+	class := "alert"
+	switch intent {
+	case "warn":
+		class += " alert-warn"
+	case "info":
+		class += " alert-info"
+	case "success":
+		class += " alert-success"
+	default:
+		class += " alert-danger"
+	}
+	switch weight {
+	case "inline":
+		class += " alert-inline"
+	case "banner":
+		class += " alert-banner"
+	}
+	return class
+}
+
+func alertIcon(intent string) string {
+	switch intent {
+	case "info":
+		return "ⓘ"
+	case "success":
+		return "✓"
+	default:
+		return "⚠"
 	}
 }
 
