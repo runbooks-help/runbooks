@@ -234,6 +234,20 @@ test("setup, logout and login run the real passkey ceremony", async (t) => {
 		await b.page.fill('.var-input[data-var="HOST"]', "db-2.prod.internal");
 		await snap(b.page, "runbook");
 
+		// Ticking every block in a step ticks the step itself.
+		const stepWithBlocks = b.page
+			.locator(".step-card:not(.rollback-card)")
+			.filter({ has: b.page.locator(".code-group") })
+			.first();
+		const blockChecks = stepWithBlocks.locator(".block-check");
+		const blockCount = await blockChecks.count();
+		for (let i = 0; i < blockCount; i++) await blockChecks.nth(i).click();
+		assert.equal(
+			await stepWithBlocks.evaluate(el => el.classList.contains("done")),
+			true,
+			"step ticks when all its blocks are ticked",
+		);
+
 		// The destructive Clear confirmation is a real dialog, not window.confirm().
 		await b.page.locator(".notes-clear").click();
 		await b.page.locator("dialog.dialog").waitFor({ timeout: uiTimeout });

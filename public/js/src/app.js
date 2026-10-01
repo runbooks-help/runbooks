@@ -90,6 +90,16 @@ const codeGroups = () => stepCards().flatMap((card, si) =>
 	}))
 );
 
+// A step follows its own blocks: once every labeled block in it is ticked, the
+// step ticks itself. A manually ticked step is left alone (no roll-back down).
+function rollUpStep(card, record) {
+	if (!card || card.classList.contains('rollback-card') || card.classList.contains('done')) return;
+	const groups = [...card.querySelectorAll('.code-group')];
+	if (groups.length === 0 || !groups.every(g => g.classList.contains('done'))) return;
+	card.classList.add('done');
+	if (record) recordTimeline(stepTimelineEntry(card, true));
+}
+
 function syncHash() {
 	const parts = [];
 	stepCards().forEach((card, i) => {
@@ -115,6 +125,9 @@ function loadHash() {
 }
 
 loadHash();
+// A shared URL whose blocks are all done reads as a done step on load, without
+// adding a timeline entry.
+stepCards().forEach(card => rollUpStep(card, false));
 
 document.addEventListener('click', e => {
 	const stepBtn = e.target.closest('.step-check');
@@ -130,7 +143,9 @@ document.addEventListener('click', e => {
 	if (blockBtn) {
 		const group = blockBtn.closest('.code-group');
 		if (group) {
-			recordTimeline(blockTimelineEntry(group, group.classList.toggle('done')));
+			const done = group.classList.toggle('done');
+			recordTimeline(blockTimelineEntry(group, done));
+			rollUpStep(group.closest('.step-card'), true);
 			syncHash();
 		}
 	}
