@@ -38,7 +38,7 @@ Rules:
 
   --font-sans  "Atkinson Hyperlegible Next" (UI, prose)
   --font-mono  "Atkinson Hyperlegible Mono" (commands, tokens, identifiers)
-  --mono-weight  450 default; 500 when data-code-weight="bold"
+  --mono-weight  450 default; 600 when data-code-weight="bold"
 
 Self-hosted variable woff2, latin subset. Compact scale --text-2xs..--text-2xl.
 
@@ -101,6 +101,7 @@ styleguide) without carrying a border that only makes sense in one host.
   notice    Notice(variant, msg) → .notice-info | .notice-warn | .notice-danger
   code      CodeBlock(label, template, lang) → per-block done checkbox
   step      Step(n, title) numbered card; RollbackStep(title) danger card
+  toc       Contents — the step list at the top of a runbook (three or more steps)
   table     TableBlock(headers, rows)        list   ListBlock(items)
 
 ## Patterns

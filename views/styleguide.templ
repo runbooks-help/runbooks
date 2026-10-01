@@ -255,6 +255,20 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 
 					<h2 class="sg-heading">Molecules</h2>
 
+					<section class="sg-section" id="toc">
+						<h3>Contents <span class="sg-atom">molecule</span></h3>
+						<p>A runbook's step list at the top of the page — shown once a runbook has three or more steps. Each link jumps to that step's card.</p>
+						<nav class="toc" aria-label="Contents">
+							<p class="toc-label">Contents</p>
+							<ol class="toc-list">
+								<li><a href="#toc"><span class="toc-num">1</span>Confirm the lag</a></li>
+								<li><a href="#toc"><span class="toc-num">2</span>Stop the SQL thread</a></li>
+								<li><a href="#toc"><span class="toc-num">3</span>Restart replication</a></li>
+								<li><a href="#rollback">Rollback</a></li>
+							</ol>
+						</nav>
+					</section>
+
 					<section class="sg-section" id="alert">
 						<h3>Alert <span class="sg-atom">molecule</span></h3>
 						<p>
@@ -396,6 +410,7 @@ templ styleGuideNav() {
 	</nav>
 	<p class="nav-section">Molecules</p>
 	<nav>
+		<a href="#toc">Contents</a>
 		<a href="#alert">Alert</a>
 		<a href="#code">Code</a>
 		<a href="#step">Step</a>

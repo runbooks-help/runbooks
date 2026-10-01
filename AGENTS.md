@@ -47,7 +47,7 @@ The living reference is `/styleguide` (dev-gated by `STYLEGUIDE_ENABLED`, set in
   `html[data-theme="light"]` overrides). Roles, never raw colour; status is never the
   brand accent. See `tokens.css`.
 - **Fonts** — self-hosted Atkinson Hyperlegible Next + Mono (variable, latin).
-  `--mono-weight` is 450, or 500 under `html[data-code-weight="bold"]`.
+  `--mono-weight` is 450, or 600 under `html[data-code-weight="bold"]`.
 - **Radii** — squared (4/6/8px); tickboxes are square, not circles.
 - **Badges** — bracketed `[ label ]`, not filled pills.
 - **Code surfaces stay dark in both themes** — use the constant `--code-*` tokens,

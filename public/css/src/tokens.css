@@ -158,7 +158,7 @@ html[data-theme="light"] {
 
 /* Code-weight preference (appearance control) */
 html[data-code-weight="bold"] {
-	--mono-weight: 500;
+	--mono-weight: 600;
 }
 
 /* Reading-size preference (appearance control) */

@@ -57,6 +57,24 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 				@VarsPanel(rb.Vars)
 			}
 			<div class="content">
+				if len(rb.Steps) >= 3 {
+					<nav class="toc" aria-label="Contents">
+						<p class="toc-label">Contents</p>
+						<ol class="toc-list">
+							for i, step := range rb.Steps {
+								<li>
+									<a href={ "#" + slugify(step.Title) }>
+										<span class="toc-num">{ numStr(i + 1) }</span>
+										{ step.Title }
+									</a>
+								</li>
+							}
+							if len(rb.Rollback) > 0 {
+								<li><a href="#rollback">Rollback</a></li>
+							}
+						</ol>
+					</nav>
+				}
 				<div class="steps">
 					for i, step := range rb.Steps {
 						@stepCard(i+1, step, false)

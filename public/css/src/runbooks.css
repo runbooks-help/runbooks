@@ -2,6 +2,54 @@
 
 /* ── Step cards ──────────────────────────────────────────────────── */
 
+/* Contents — the step list at the top of a runbook (three or more steps). */
+.toc {
+	max-width: 1440px;
+	margin-bottom: var(--space-5);
+	padding: var(--space-3) var(--space-4);
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md);
+}
+
+.toc-label {
+	margin: 0 0 var(--space-2);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--muted);
+}
+
+.toc-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.toc-list a {
+	display: flex;
+	align-items: baseline;
+	gap: var(--space-2);
+	font-size: var(--text-sm);
+	color: var(--text);
+	text-decoration: none;
+}
+
+.toc-list a:hover {
+	color: var(--accent-strong);
+}
+
+.toc-num {
+	min-width: 1.5em;
+	font-size: var(--text-2xs);
+	color: var(--muted);
+	font-variant-numeric: tabular-nums;
+}
+
 .steps {
 	display: flex;
 	flex-direction: column;
