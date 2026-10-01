@@ -65,6 +65,9 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 					if rb.Category != "" {
 						<span class="badge">{ parser.CategoryName(rb.Category) }</span>
 					}
+					if rb.Acknowledge != "" {
+						<span class="badge badge-warn" data-ack-badge hidden title="You acknowledged this runbook this session">acknowledged</span>
+					}
 				</div>
 				<h1>{ rb.Title }</h1>
 				<p>@templ.Raw(proseHTML(rb.Description))</p>

@@ -663,6 +663,7 @@ if (runbookRoot) {
 const ackDialog = document.querySelector('[data-ack-dialog]');
 if (ackDialog) {
 	const gated = document.querySelector('[data-ack]');
+	const badge = document.querySelector('[data-ack-badge]');
 	const key = 'runbooks-ack:' + location.pathname;
 	const clearGate = () => {
 		if (gated) {
@@ -670,13 +671,24 @@ if (ackDialog) {
 			gated.dataset.ack = 'done';
 		}
 	};
-	if (sessionStorage.getItem(key) === 'on') {
+	// Leave a reminder in the header that this destructive runbook was accepted.
+	const showBadge = (at) => {
+		if (!badge) return;
+		badge.hidden = false;
+		if (at) badge.title = `You acknowledged this runbook this session at ${new Date(at).toLocaleTimeString()}`;
+	};
+
+	const ackedAt = sessionStorage.getItem(key);
+	if (ackedAt) {
 		clearGate();
+		showBadge(ackedAt);
 	} else {
 		ackDialog.addEventListener('cancel', e => e.preventDefault());
 		ackDialog.querySelector('[data-ack-accept]')?.addEventListener('click', () => {
-			sessionStorage.setItem(key, 'on');
+			const at = new Date().toISOString();
+			sessionStorage.setItem(key, at);
 			clearGate();
+			showBadge(at);
 			ackDialog.close();
 		});
 		ackDialog.showModal();

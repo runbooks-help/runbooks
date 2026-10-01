@@ -2,6 +2,11 @@
    so the status reads without a filled chip. Colour carries meaning and maps to
    the status roles, never the brand accent. */
 
+/* The author display above would otherwise beat the UA rule for [hidden]. */
+.badge[hidden] {
+	display: none;
+}
+
 .badge {
 	display: inline-flex;
 	align-items: baseline;

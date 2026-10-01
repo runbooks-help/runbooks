@@ -65,7 +65,9 @@ test("a destructive runbook gates the page behind an acknowledgement", async (t)
 		await bootAdmin(b.page, app.base);
 		await b.page.goto(app.base + "/destructive-demo");
 		const dialog = b.page.locator("[data-ack-dialog]");
+		const badge = b.page.locator("[data-ack-badge]");
 		await dialog.waitFor({ state: "visible", timeout: uiTimeout });
+		assert.equal(await badge.isHidden(), true, "no acknowledgement marker before accepting");
 		assert.equal(
 			await b.page.locator("[data-ack]").evaluate(el => el.hasAttribute("inert")),
 			true,
@@ -76,8 +78,10 @@ test("a destructive runbook gates the page behind an acknowledgement", async (t)
 		await b.page.locator("[data-ack-accept]").click();
 		assert.equal(await dialog.evaluate(el => el.open), false, "accept clears the gate");
 		assert.equal(await b.page.locator("[data-ack]").evaluate(el => el.hasAttribute("inert")), false, "the gate is cleared");
+		assert.equal(await badge.isVisible(), true, "a reminder is left in the header after accepting");
 		await b.page.reload();
 		assert.equal(await dialog.evaluate(el => el.open), false, "stays acknowledged within the session");
+		assert.equal(await badge.isVisible(), true, "the reminder survives a reload within the session");
 	} catch (err) {
 		await reportFailure(b.page, app.logs());
 		throw err;
