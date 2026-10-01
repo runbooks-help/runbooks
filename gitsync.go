@@ -14,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"runbooks/stores"
 )
 
 type gitSyncRequest struct {
@@ -22,6 +24,31 @@ type gitSyncRequest struct {
 	Notes         string      `json:"notes"`
 	RunbookSource string      `json:"runbook_source"`
 	Images        []syncImage `json:"images"`
+}
+
+// gitSyncJob is one sync: the parsed request plus the commit identity resolved
+// from the caller's session (or the machine fallback).
+type gitSyncJob struct {
+	req    gitSyncRequest
+	author commitAuthor
+}
+
+type commitAuthor struct {
+	name  string
+	email string
+}
+
+// resolveAuthor picks the commit identity: the user record when it carries an
+// email, otherwise the configured machine identity (the automation fallback).
+func resolveAuthor(cfg config, u stores.User) commitAuthor {
+	if u.ID != "" && u.Email != "" {
+		name := u.DisplayName
+		if name == "" {
+			name = cfg.GitSyncAuthorName
+		}
+		return commitAuthor{name: name, email: u.Email}
+	}
+	return commitAuthor{name: cfg.GitSyncAuthorName, email: cfg.GitSyncAuthorEmail}
 }
 
 type syncImage struct {
@@ -59,14 +86,23 @@ func handleGitSync(cfg config) http.HandlerFunc {
 			return
 		}
 
-		// A user session satisfies the endpoint; otherwise the shared instance
-		// token does. When the token is empty the operator has declared the route
-		// sits behind upstream (proxy/SSO) auth.
-		if !sessionAuthorized(r.Context()) && cfg.GitSyncAPIToken != "" {
-			auth := r.Header.Get("Authorization")
-			token := strings.TrimPrefix(auth, bearerPrefix)
-			if !strings.HasPrefix(auth, bearerPrefix) ||
-				subtle.ConstantTimeCompare([]byte(token), []byte(cfg.GitSyncAPIToken)) != 1 {
+		// A user session (or a proxy assertion) satisfies the endpoint;
+		// otherwise the shared instance token does, as the documented
+		// automation fallback for CI and scripts. With identity on and no
+		// token, an unauthenticated caller is refused rather than assumed to
+		// sit behind upstream auth — only a session or the token gets in.
+		if !sessionAuthorized(r.Context()) {
+			switch {
+			case cfg.GitSyncAPIToken != "":
+				auth := r.Header.Get("Authorization")
+				token := strings.TrimPrefix(auth, bearerPrefix)
+				if !strings.HasPrefix(auth, bearerPrefix) ||
+					subtle.ConstantTimeCompare([]byte(token), []byte(cfg.GitSyncAPIToken)) != 1 {
+					w.WriteHeader(http.StatusUnauthorized)
+					json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+					return
+				}
+			case cfg.IdentityEnabled:
 				w.WriteHeader(http.StatusUnauthorized)
 				json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
 				return
@@ -83,7 +119,10 @@ func handleGitSync(cfg config) http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 		defer cancel()
 
-		sha, changed, err := doGitSync(ctx, cfg, req)
+		sha, changed, err := doGitSync(ctx, cfg, gitSyncJob{
+			req:    req,
+			author: resolveAuthor(cfg, userFrom(r.Context())),
+		})
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -97,7 +136,9 @@ func handleGitSync(cfg config) http.HandlerFunc {
 	}
 }
 
-func doGitSync(ctx context.Context, cfg config, req gitSyncRequest) (string, bool, error) {
+func doGitSync(ctx context.Context, cfg config, job gitSyncJob) (string, bool, error) {
+	req := job.req
+
 	gitSyncMu.Lock()
 	defer gitSyncMu.Unlock()
 
@@ -117,11 +158,11 @@ func doGitSync(ctx context.Context, cfg config, req gitSyncRequest) (string, boo
 		return "", false, fmt.Errorf("clone failed")
 	}
 
-	if cfg.GitSyncAuthorName != "" {
-		gitRun(ctx, ws, env, "config", "user.name", cfg.GitSyncAuthorName)
+	if job.author.name != "" {
+		gitRun(ctx, ws, env, "config", "user.name", job.author.name)
 	}
-	if cfg.GitSyncAuthorEmail != "" {
-		gitRun(ctx, ws, env, "config", "user.email", cfg.GitSyncAuthorEmail)
+	if job.author.email != "" {
+		gitRun(ctx, ws, env, "config", "user.email", job.author.email)
 	}
 
 	if err := gitRun(ctx, ws, env, "checkout", cfg.GitSyncBranch); err != nil {

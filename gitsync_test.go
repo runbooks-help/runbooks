@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
@@ -11,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"runbooks/stores"
 )
 
 // initTestRepo creates a bare git repo and pushes an initial empty commit to it.
@@ -373,4 +376,82 @@ func TestLoadConfig_GitSyncEnabled(t *testing.T) {
 func nowDate() string {
 	out, _ := exec.Command("date", "-u", "+%Y-%m-%d").Output()
 	return strings.TrimSpace(string(out))
+}
+
+// mustGitOutput runs git and returns its trimmed stdout.
+func mustGitOutput(t *testing.T, dir string, args ...string) string {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("git %s: %v", strings.Join(args, " "), err)
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// doRequestAs submits a sync carrying an authenticated user, the shape
+// gateGitSync produces for a session (or proxy) request.
+func doRequestAs(t *testing.T, handler http.HandlerFunc, req gitSyncRequest, u stores.User) *httptest.ResponseRecorder {
+	t.Helper()
+	body, err := json.Marshal(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := httptest.NewRequest(http.MethodPost, "/api/git-sync/v1", bytes.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(r.Context(), sessionAuthKey{}, true)
+	ctx = context.WithValue(ctx, userKey{}, u)
+	w := httptest.NewRecorder()
+	handler(w, r.WithContext(ctx))
+	return w
+}
+
+func TestGitSync_PerUserAuthor(t *testing.T) {
+	repoURL := initTestRepo(t)
+	cfg := testCfg(repoURL)
+	cfg.IdentityEnabled = true
+	handler := handleGitSync(cfg)
+
+	u := stores.User{ID: "u1", DisplayName: "Ada Lovelace", Email: "ada@example.com"}
+	w := doRequestAs(t, handler, gitSyncRequest{RunbookSlug: "author", RunbookTitle: "Author", Notes: "hi"}, u)
+	if w.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	clone := t.TempDir()
+	mustGit(t, clone, "clone", repoURL, ".")
+	if got, want := mustGitOutput(t, clone, "log", "-1", "--no-show-signature", "--format=%an <%ae>"), "Ada Lovelace <ada@example.com>"; got != want {
+		t.Errorf("commit author = %q, want %q", got, want)
+	}
+}
+
+func TestGitSync_AuthorFallsBackWithoutEmail(t *testing.T) {
+	repoURL := initTestRepo(t)
+	handler := handleGitSync(testCfg(repoURL))
+
+	// A user without an email cannot author a commit: the machine identity does.
+	u := stores.User{ID: "u2", DisplayName: "No Email"}
+	w := doRequestAs(t, handler, gitSyncRequest{RunbookSlug: "fallback", RunbookTitle: "Fallback", Notes: "hi"}, u)
+	if w.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	clone := t.TempDir()
+	mustGit(t, clone, "clone", repoURL, ".")
+	if got, want := mustGitOutput(t, clone, "log", "-1", "--no-show-signature", "--format=%an <%ae>"), "Test Bot <bot@test.com>"; got != want {
+		t.Errorf("commit author = %q, want the machine fallback %q", got, want)
+	}
+}
+
+func TestGitSync_UnauthenticatedIdentityOn_401(t *testing.T) {
+	// Identity on and no automation token: there is no anonymous way in.
+	cfg := testCfg(initTestRepo(t))
+	cfg.IdentityEnabled = true
+	handler := handleGitSync(cfg)
+
+	w := doRequest(t, handler, gitSyncRequest{RunbookSlug: "nobody", Notes: "x"})
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("want 401, got %d: %s", w.Code, w.Body.String())
+	}
 }

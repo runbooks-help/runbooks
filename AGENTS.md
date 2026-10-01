@@ -233,8 +233,11 @@ Authoring conventions that have bitten us:
   sits in the `.main-header` and persists `runbooks-notes` (on|off, default on),
   applied before paint in `app.js`.
 - The notes **Sync** button only renders when the server has git sync enabled
-  (`GITSYNC_REPO` + a credential + endpoint auth). See the git-sync spec for the
-  config; the dev config lives in `mise.toml` `[env]`.
+  (`GITSYNC_REPO` + a credential + endpoint auth). With identity on, `/api/git-sync/v1`
+  requires a session and the commit is authored as the signed-in user
+  (`DisplayName <Email>`); `GITSYNC_API_TOKEN` is the CI/automation fallback and
+  `GITSYNC_AUTHOR_*` applies only when the user has no email. See the git-sync spec
+  for the config; the dev config lives in `mise.toml` `[env]`.
 
 ## Licence & SBOM
 

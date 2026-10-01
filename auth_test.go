@@ -97,6 +97,7 @@ func newTestServerWith(t *testing.T, mutate func(*config)) (*httptest.Server, *i
 	mux.HandleFunc("/api/auth/v1/invites", a.requireAdminAPI(a.createInvite))
 	mux.HandleFunc("/api/auth/v1/sessions/revoke", a.requireAdminAPI(a.revokeSessions))
 	mux.HandleFunc("/api/runbooks/v1/ack", a.requireAPI(a.ackRunbook))
+	mux.HandleFunc("/api/git-sync/v1", a.gateGitSync(handleGitSync(cfg)))
 	if cfg.IdentityRecoveryToken != "" {
 		mux.HandleFunc("/recovery", a.recoveryPage)
 		mux.HandleFunc("/api/auth/v1/recovery/begin", a.recoveryBegin)
@@ -842,5 +843,68 @@ func TestAckRunbookRecordsEvent(t *testing.T) {
 	}
 	if ack.ActorUserID != adminID || ack.Detail != "mts-deadlock-recovery" {
 		t.Errorf("ack event = %+v, want actor %s detail mts-deadlock-recovery", *ack, adminID)
+	}
+}
+
+// TestGitSyncSessionAttribution exercises the gated endpoint end-to-end: a
+// signed-in user's commits carry their name/email, a plain member may sync (v1
+// is instance-wide), and a revoked session gets 401.
+func TestGitSyncSessionAttribution(t *testing.T) {
+	repoURL := initTestRepo(t)
+	srv, svc, st := newTestServerWith(t, func(cfg *config) {
+		cfg.GitSyncRepo = repoURL
+		cfg.GitSyncBranch = "main"
+		cfg.GitSyncBasePath = "runs"
+		cfg.GitSyncAuthorName = "Machine"
+		cfg.GitSyncAuthorEmail = "machine@test.com"
+		cfg.GitSyncUsername = "oauth2"
+		cfg.GitSyncToken = "test-token"
+		cfg.GitSyncEnabled = true
+	})
+	rp := testRP()
+	adminAuthn := virtualwebauthn.NewAuthenticator()
+	adminCred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	admin, adminID := bootstrapAdmin(t, srv, rp, adminAuthn, adminCred)
+
+	sync := func(client *http.Client) int {
+		t.Helper()
+		body, err := json.Marshal(gitSyncRequest{RunbookSlug: "session-sync", RunbookTitle: "Session Sync", Notes: "hi"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp, err := client.Post(srv.URL+"/api/git-sync/v1", "application/json", bytes.NewReader(body))
+		if err != nil {
+			t.Fatalf("sync: %v", err)
+		}
+		defer resp.Body.Close()
+		_, _ = io.Copy(io.Discard, resp.Body)
+		return resp.StatusCode
+	}
+
+	if code := sync(admin); code != http.StatusOK {
+		t.Fatalf("admin sync = %d, want 200", code)
+	}
+	clone := t.TempDir()
+	mustGit(t, clone, "clone", repoURL, ".")
+	if got, want := mustGitOutput(t, clone, "log", "-1", "--no-show-signature", "--format=%an <%ae>"), "Ben <ben@example.com>"; got != want {
+		t.Errorf("commit author = %q, want %q", got, want)
+	}
+
+	// A member may sync too — v1 authorization is instance-wide, not per-runbook.
+	raw, err := svc.CreateInvite(context.Background(), adminID, stores.RoleMember, "", time.Hour)
+	if err != nil {
+		t.Fatalf("CreateInvite: %v", err)
+	}
+	member, _ := enrolInvite(t, srv, st, rp, raw, "Sam")
+	if code := sync(member); code != http.StatusOK {
+		t.Errorf("member sync = %d, want 200", code)
+	}
+
+	// Revoking the session closes the door: no session and no token → 401.
+	if code, body := postJSON(t, admin, srv.URL+"/api/auth/v1/sessions/revoke", map[string]string{"user_id": adminID}); code != http.StatusOK {
+		t.Fatalf("revoke = %d: %s", code, body)
+	}
+	if code := sync(admin); code != http.StatusUnauthorized {
+		t.Errorf("sync after revoke = %d, want 401", code)
 	}
 }
