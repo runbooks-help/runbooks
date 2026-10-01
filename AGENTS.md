@@ -23,7 +23,7 @@ All tasks are mise tasks (`mise install` once to pull Go, templ, gofumpt, Node).
 | `mise run css` / `mise run js` | One-shot esbuild bundle. |
 | `mise run lintcss` / `mise run fmtcss` | stylelint / Prettier over `public/css/src/**`. |
 | `mise run test` | Go tests + JS unit tests (`node --test`). |
-| `mise run test:e2e` | Browser E2E: the real WebAuthn ceremony via a CDP virtual authenticator, against a throwaway instance. Covers setup→logout→login, invite→member enrol→revoke, break-glass recovery, and an abandoned `/setup` (admin user with no credential). Needs a system Chromium (`CHROMIUM=/path` to override); `playwright-core` installs into `e2e/` on demand. |
+| `mise run test:e2e` | Browser E2E behind `e2e/harness.mjs` (shared boot + Chromium + virtual authenticator): `passkey.test.mjs` (identity), `runbook.test.mjs` (page interactions), `styleguide.test.mjs` (design-system screenshots). `E2E_SCREENSHOT_DIR=…` writes the screenshots. Needs a system Chromium (`CHROMIUM=/path` to override); `playwright-core` installs into `e2e/` on demand. |
 | `mise run test:e2e:headed` | The same tests in visible windows. `E2E_SLOWMO=ms` paces the actions, `E2E_HOLD_MS=ms` holds at the end of each test (default: run straight through). |
 | `mise run test:e2e:inspect` | Headed with the **Playwright Inspector** (`page.pause()` breakpoints before the setup, invite-enrol and recovery submits). Step over / resume from the inspector window. |
 
@@ -34,20 +34,51 @@ compose MySQL/Postgres (`mise run test:mysql` / `test:postgres`).
 Ports: dev serves `8091` (air proxies `8090` → `8091`). The binary reads `PORT`,
 default `8090`; the container listens on `8090`.
 
+## Design system
+
+The app has its own visual identity — see `~/openspec/plans/specs/runbooks-design-system.md`.
+The living reference is `/styleguide` (dev-gated by `STYLEGUIDE_ENABLED`, set in
+`mise.toml` `[env]`), organised by atomicity; `/styleguide/llms` is the agent mirror
+(embedded from `styleguide.llms.txt`).
+
+- **Palette** — seeded from the mallard, dark-first (`:root` is dark;
+  `html[data-theme="light"]` overrides). Roles, never raw colour; status is never the
+  brand accent. See `tokens.css`.
+- **Fonts** — self-hosted Atkinson Hyperlegible Next + Mono (variable, latin).
+  `--mono-weight` is 450, or 500 under `html[data-code-weight="bold"]`.
+- **Radii** — squared (4/6/8px); tickboxes are square, not circles.
+- **Badges** — bracketed `[ label ]`, not filled pills.
+- **Code surfaces stay dark in both themes** — use the constant `--code-*` tokens,
+  never a theme role inside a code block (it renders dark-on-dark in light).
+- **Contextual chrome belongs to the context**, not the component (e.g. the sidebar
+  footer divider is `.sidebar .appearance`), so a component can be shown elsewhere
+  without doubling a host frame.
+- **CSS modules** live in `public/css/src/` (`tokens`, `layouts`, `button`, `badge`,
+  `forms`, `dialog`, `shell`, `runbooks`, `styleguide`); `shell.css` / `runbooks.css`
+  are still due to be split (design-system tasks file, Task 3).
+
 ## Layout
 
 ```
-main.go              loads content/, wires routes (index, runbook pages, /api/git-sync/v1), serves /public/
-gitsync.go           server-owned git sync: POST /api/git-sync/v1, GITSYNC_* config, git clone/commit/push
+main.go              loads content/, wires routes (index, runbook, admin, styleguide, auth, git-sync), serves /public/
+auth.go              identity HTTP: setup/login/invite/recovery, session cookie, read gating, admin invite + revoke
+styleguide.go        dev-gated /styleguide + /styleguide/llms
+identity/            identity service: WebAuthn ceremonies, sessions, invites (no HTTP)
+stores/              identity persistence: Store contract + sqlite/ mysql/ postgres/ + storetest/
 parser/parser.go     frontmatter + body parser; content discovery; sidebar grouping/ordering
-views/base.templ     Shell + reusable components (SidebarNav, VarsPanel, CodeBlock, Step, Notice, …)
-views/index.templ    welcome page at /: search + common-issue shortcuts + card catalogue
-views/runbook.templ  page composition (RunbookPage, stepCard, renderBlock, notes panel)
+views/base.templ     Shell + shared components (SidebarNav, VarsPanel, CodeBlock, Step, Notice, AppearanceControl, SessionActions, …)
+views/index.templ    welcome page at / (search + common-issue shortcuts + card catalogue)
+views/runbook.templ  runbook page (steps, vars panel, notes panel)
+views/admin.templ    /admin — invite form + users table
+views/styleguide.templ  the design system at /styleguide
+views/auth.templ     /login, /setup, /invite/<token>, /recovery
 views/helpers.go     inline-markdown → HTML helpers, slugify, JSON embedding, PageConfig, theme script
 content/<system>/<category>/<file>.md   the runbooks themselves
 public/css/src/      source CSS (bundled → public/css/bundle.css)
-public/js/src/       source JS (bundled → public/js/bundle.js, theme-init.js)
+public/fonts/        self-hosted Atkinson Hyperlegible Next + Mono (variable, latin)
+public/js/src/       source JS (bundled → public/js/bundle.js)
 public/js/vendor/    marked, highlight.js, jszip (checked in, not bundled)
+e2e/                 browser E2E: harness.mjs + passkey/runbook/styleguide suites
 cmd/css, cmd/js      esbuild wrappers (see build pipeline below)
 tmp/                 air build output
 ```
