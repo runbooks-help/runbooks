@@ -31,20 +31,33 @@
 	font-size: var(--text-2xs);
 }
 
+/* --ctrl-pad-y sets the control height for buttons, inputs and selects alike,
+   so a button sitting inline with a field lines up. */
 .text-input,
 .select-input {
 	width: 100%;
-	padding: var(--space-2) var(--space-3);
+	padding: var(--ctrl-pad-y) var(--space-3);
 	border: 1px solid var(--border);
 	border-radius: var(--radius-sm);
-	background: var(--bg);
+	background-color: var(--bg);
 	color: var(--text);
 	font: inherit;
 	font-size: var(--text-xs);
+	line-height: var(--leading-tight);
 	outline: none;
 	transition:
 		border-color var(--duration-fast) var(--ease),
 		box-shadow var(--duration-fast) var(--ease);
+}
+
+/* Replace the native chevron with our own, inset from the edge. */
+.select-input {
+	appearance: none;
+	padding-right: var(--space-6);
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%238b8fa3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right var(--space-3) center;
+	background-size: 14px 14px;
 }
 
 .text-input:focus-visible,
