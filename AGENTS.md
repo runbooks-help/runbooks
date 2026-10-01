@@ -91,6 +91,7 @@ LICENSE / NOTICE     outbound FSL-1.1-MIT + the third-party notices that must be
 DEPENDENCIES.md      dependency inventory + FSL classification
 THIRD_PARTY_NOTICES.md  generated full licence texts (do not hand-edit)
 docs/sbom.md         SBOM formats, regeneration and verification
+docs/layout.md       the layout contract: primitives, tokens, stylelint enforcement
 tmp/                 air build output
 ```
 
@@ -218,8 +219,11 @@ Authoring conventions that have bitten us:
 - `/` serves the welcome/index page (`views.IndexPage`), not a redirect;
   unknown paths 404. The index is generated from `parser.CommonIssues` +
   `GroupBySystem`, so it needs no content file of its own.
-- stylelint bans `!important` (`declaration-no-important`). Prettier uses tabs,
-  width 100.
+- stylelint: `declaration-no-important` is on (two documented exceptions in
+  `.stylelintrc.json` — `code.css` over the syntax highlighter, `responsive.css` the
+  override layer), and `declaration-property-unit-allowed-list` bans raw px in
+  `margin`/`padding`/`gap` — spacing comes from tokens (use `--space-hair` below
+  `--space-1`). See `docs/layout.md`. Prettier uses tabs, width 100.
 - **E2E virtual-authenticator options**: Chromium's `WebAuthn.addVirtualAuthenticator`
   names the backup flags `defaultBackupEligibility` / `defaultBackupState`; the
   `hasBackup*` spellings are silently ignored (so BE never gets set). `e2e/passkey.test.mjs`

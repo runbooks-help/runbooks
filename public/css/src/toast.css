@@ -41,7 +41,7 @@
 	color: inherit;
 	opacity: 0.6;
 	font-size: 12px;
-	padding: 2px;
+	padding: var(--space-hair);
 	line-height: 1;
 }
 

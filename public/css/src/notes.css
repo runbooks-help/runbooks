@@ -156,7 +156,7 @@ body.resizing-notes {
 	font-weight: var(--mono-weight);
 	font-size: var(--text-2xs);
 	background: rgba(128, 128, 128, 0.15);
-	padding: 1px 4px;
+	padding: var(--space-hair) var(--space-1);
 	border-radius: 3px;
 }
 

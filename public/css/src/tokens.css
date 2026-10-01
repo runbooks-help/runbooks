@@ -56,7 +56,8 @@
 	--tip-text: #e9eaf1;
 	--tip-border: rgba(106, 168, 141, 0.3);
 
-	/* Spacing scale */
+	/* Spacing scale — `hair` is the sub-scale gap/hairline below space-1. */
+	--space-hair: 2px;
 	--space-0: 0px;
 	--space-1: 4px;
 	--space-2: 8px;
@@ -74,6 +75,7 @@
 
 	/* Component sizing */
 	--ctrl-pad-y: 7px; /* vertical padding that sets interactive control height — btn, input, select */
+	--size-step-num: 26px; /* the step-number badge; the collapsed-step indent derives from it */
 
 	/* Type — Atkinson Hyperlegible Next (UI) + Mono (commands) */
 	--font-sans: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, -apple-system, sans-serif;

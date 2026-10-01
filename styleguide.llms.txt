@@ -54,8 +54,10 @@ instructions are short and imperative. Keep real code and identifier names.
 ## Spacing, size, radius, shadow, motion
 
   --space-0..7 (0,4,8,12,16,24,32,48)   never raw px for gap/padding
+  --space-hair  sub-scale hairline (2px) below space-1
   --size-app-sidebar / --size-app-header / --size-detail-min|max
   --ctrl-pad-y   the vertical padding that sets control height (btn, input, select)
+  --size-step-num  the step-number badge; the collapsed-step indent derives from it
   --radius-sm|md|lg|pill   --shadow-sm|md|lg   --duration-fast|base   --ease
 
 ## App shell & layout contract
@@ -72,7 +74,9 @@ on `<body>`; closed on scrim/Esc/✕).
 
 Layout uses the primitives in layouts.css only — never bespoke flex/grid in a
 component: .stack, .cluster, .row, .inline-icon, .grid[data-cols], .grow,
-.truncate, .list-row, .detail-shell.
+.truncate, .list-row, .detail-shell. Spacing comes from tokens: no raw px in
+margin/padding/gap (stylelint `declaration-property-unit-allowed-list`; use
+--space-hair for sub-scale hairlines). Full contract: docs/layout.md.
 
 Contextual chrome belongs to the context, not the component — e.g. the sidebar
 footer divider is `.sidebar .appearance`, so the atom can be shown elsewhere (the

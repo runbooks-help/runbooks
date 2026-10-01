@@ -1,6 +1,6 @@
 .notes-tabs {
 	display: flex;
-	gap: 2px;
+	gap: var(--space-hair);
 }
 
 .notes-tab {

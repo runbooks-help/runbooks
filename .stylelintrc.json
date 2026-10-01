@@ -8,6 +8,17 @@
     "no-duplicate-selectors": true,
     "no-empty-source": true,
     "no-invalid-double-slash-comments": true,
-    "declaration-no-important": true
-  }
+    "declaration-no-important": true,
+    "declaration-property-unit-allowed-list": {
+      "/^(margin|padding|gap|row-gap|column-gap)/": ["em", "rem", "%"]
+    }
+  },
+  "overrides": [
+    {
+      "files": ["public/css/src/code.css", "public/css/src/responsive.css"],
+      "rules": {
+        "declaration-no-important": null
+      }
+    }
+  ]
 }

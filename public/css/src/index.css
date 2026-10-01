@@ -31,7 +31,7 @@
 	list-style: none;
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--space-hair);
 }
 
 .ci-list a {
@@ -83,12 +83,6 @@
 	letter-spacing: 0.06em;
 	color: var(--muted);
 	margin-bottom: var(--space-2);
-}
-
-.index-empty {
-	margin-top: var(--space-5);
-	color: var(--muted);
-	font-size: var(--text-sm);
 }
 
 .index-empty {

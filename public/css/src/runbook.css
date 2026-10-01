@@ -117,7 +117,8 @@
 .step-preview {
 	display: none;
 	margin: 0;
-	padding: 0 var(--space-5) var(--space-4) calc(var(--space-5) + 26px + var(--space-3));
+	padding: 0 var(--space-5) var(--space-4)
+		calc(var(--space-5) + var(--size-step-num) + var(--space-3));
 	color: var(--muted);
 	font-size: var(--text-sm);
 }
@@ -216,8 +217,8 @@ body.zen .main {
 }
 
 .step-num {
-	width: 26px;
-	height: 26px;
+	width: var(--size-step-num);
+	height: var(--size-step-num);
 	border-radius: 50%;
 	background: var(--accent-lt);
 	color: var(--nav-active-text);

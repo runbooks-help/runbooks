@@ -74,7 +74,7 @@ body:has(.main--full) {
 .sidebar nav {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--space-hair);
 	padding: 0 var(--space-2);
 }
 

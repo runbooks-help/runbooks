@@ -26,7 +26,7 @@
 .size-row,
 .steps-row {
 	display: flex;
-	gap: 2px;
+	gap: var(--space-hair);
 }
 
 .theme-btn,
