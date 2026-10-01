@@ -313,6 +313,49 @@ func StoreContract(t *testing.T, newStore func(t *testing.T) stores.Store) {
 			t.Errorf("UpdateInvite missing err = %v, want nil (idempotent)", err)
 		}
 	})
+
+	t.Run("auth events", func(t *testing.T) {
+		s := newStore(t)
+
+		if empty, err := s.ListAuthEvents(ctx); err != nil {
+			t.Fatalf("ListAuthEvents empty: %v", err)
+		} else if len(empty) != 0 {
+			t.Errorf("ListAuthEvents empty len = %d, want 0", len(empty))
+		}
+
+		full := stores.AuthEvent{
+			At:           base,
+			ActorUserID:  "u1",
+			Action:       stores.ActionLogin,
+			TargetUserID: "u1",
+			IP:           "203.0.113.7",
+			UserAgent:    "Mozilla/5.0",
+		}
+		if err := s.InsertAuthEvent(ctx, full); err != nil {
+			t.Fatalf("InsertAuthEvent: %v", err)
+		}
+		sparse := stores.AuthEvent{At: base.Add(time.Minute), Action: stores.ActionLogout}
+		if err := s.InsertAuthEvent(ctx, sparse); err != nil {
+			t.Fatalf("InsertAuthEvent sparse: %v", err)
+		}
+
+		events, err := s.ListAuthEvents(ctx)
+		if err != nil {
+			t.Fatalf("ListAuthEvents: %v", err)
+		}
+		if len(events) != 2 {
+			t.Fatalf("ListAuthEvents len = %d, want 2", len(events))
+		}
+		// The store assigns ids on insert; compare everything else, oldest first.
+		full.ID = events[0].ID
+		sparse.ID = events[1].ID
+		if diff := cmp.Diff(full, events[0]); diff != "" {
+			t.Errorf("first event mismatch (-want +got):\n%s", diff)
+		}
+		if diff := cmp.Diff(sparse, events[1]); diff != "" {
+			t.Errorf("second event mismatch (-want +got):\n%s", diff)
+		}
+	})
 }
 
 func isConflict(err error) bool {

@@ -725,3 +725,84 @@ func TestProxyAuthRefusesDisabledUser(t *testing.T) {
 		t.Fatalf("disabled proxy user = %d, want 302", code)
 	}
 }
+
+func TestAuthEvents(t *testing.T) {
+	srv, _, st := newTestServer(t)
+	rp := testRP()
+	adminAuthn := virtualwebauthn.NewAuthenticator()
+	adminCred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	adminClient, adminID := bootstrapAdmin(t, srv, rp, adminAuthn, adminCred)
+	adminAuthn.AddCredential(adminCred)
+
+	// The admin mints an invite; the invitee enrols, producing a member.
+	code, body := postJSON(t, adminClient, srv.URL+"/api/auth/v1/invites", map[string]string{"role": "member"})
+	if code != http.StatusOK {
+		t.Fatalf("create invite = %d: %s", code, body)
+	}
+	var invite struct {
+		Token string `json:"token"`
+	}
+	if err := json.Unmarshal(body, &invite); err != nil {
+		t.Fatalf("decode invite: %v", err)
+	}
+	_, member := enrolInvite(t, srv, st, rp, invite.Token, "Sam")
+
+	// The admin revokes the member's sessions, then signs out and back in.
+	if code, body := postJSON(t, adminClient, srv.URL+"/api/auth/v1/sessions/revoke", map[string]string{"user_id": member.ID}); code != http.StatusOK {
+		t.Fatalf("revoke = %d: %s", code, body)
+	}
+	if code, _ := postJSON(t, adminClient, srv.URL+"/api/auth/v1/logout", nil); code != http.StatusOK {
+		t.Fatalf("logout = %d, want 200", code)
+	}
+	code, body = postJSON(t, adminClient, srv.URL+"/api/auth/v1/login/begin", nil)
+	if code != http.StatusOK {
+		t.Fatalf("login/begin = %d: %s", code, body)
+	}
+	var lb beginResponse
+	if err := json.Unmarshal(body, &lb); err != nil {
+		t.Fatalf("login/begin json: %v", err)
+	}
+	assertion, err := virtualwebauthn.ParseAssertionOptions(string(lb.Options))
+	if err != nil {
+		t.Fatalf("parse assertion options: %v", err)
+	}
+	assertionResp := virtualwebauthn.CreateAssertionResponse(rp, adminAuthn, adminCred, *assertion)
+	if code, body := postJSON(t, adminClient, srv.URL+"/api/auth/v1/login/finish", map[string]any{
+		"challenge": lb.Challenge, "credential": json.RawMessage(assertionResp),
+	}); code != http.StatusOK {
+		t.Fatalf("login/finish = %d: %s", code, body)
+	}
+
+	events, err := st.ListAuthEvents(context.Background())
+	if err != nil {
+		t.Fatalf("ListAuthEvents: %v", err)
+	}
+	want := []struct {
+		action stores.AuthAction
+		actor  string
+		target string
+	}{
+		{stores.ActionEnrol, adminID, adminID},
+		{stores.ActionInvite, adminID, ""},
+		{stores.ActionEnrol, member.ID, member.ID},
+		{stores.ActionRevoke, adminID, member.ID},
+		{stores.ActionLogout, adminID, adminID},
+		{stores.ActionLogin, adminID, adminID},
+	}
+	if len(events) != len(want) {
+		t.Fatalf("auth events = %d, want %d: %+v", len(events), len(want), events)
+	}
+	for i, w := range want {
+		e := events[i]
+		if e.Action != w.action || e.ActorUserID != w.actor || e.TargetUserID != w.target {
+			t.Errorf("event %d = {%s %s->%s}, want {%s %s->%s}",
+				i, e.Action, e.ActorUserID, e.TargetUserID, w.action, w.actor, w.target)
+		}
+		if e.At.IsZero() {
+			t.Errorf("event %d (%s) has no timestamp", i, e.Action)
+		}
+	}
+	if events[0].IP == "" || events[0].UserAgent == "" {
+		t.Errorf("first event missing request metadata: ip=%q ua=%q", events[0].IP, events[0].UserAgent)
+	}
+}

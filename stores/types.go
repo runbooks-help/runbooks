@@ -120,3 +120,35 @@ func (i Invite) Used() bool { return !i.UsedAt.IsZero() }
 
 // Expired reports whether the invite is past its expiry at now.
 func (i Invite) Expired(now time.Time) bool { return !now.Before(i.ExpiresAt) }
+
+// AuthAction names an audited identity action. The set is deliberately small;
+// the hosted layer augments it.
+type AuthAction string
+
+const (
+	// ActionLogin is a completed passkey sign-in.
+	ActionLogin AuthAction = "login"
+	// ActionLogout is a session ending.
+	ActionLogout AuthAction = "logout"
+	// ActionEnrol is a passkey added to a user (bootstrap, invite or recovery).
+	ActionEnrol AuthAction = "enrol"
+	// ActionInvite is an enrolment invite minted by an admin.
+	ActionInvite AuthAction = "invite"
+	// ActionRevoke is a user's sessions ended by an admin.
+	ActionRevoke AuthAction = "revoke"
+	// ActionDisable is a user disabled by an admin. Reserved: no core endpoint
+	// emits it yet.
+	ActionDisable AuthAction = "disable"
+)
+
+// AuthEvent is one append-only audit row: who did what, to whom, from where. The
+// store assigns ID on insert; the optional fields are stored NULL when empty.
+type AuthEvent struct {
+	ID           int64
+	At           time.Time
+	ActorUserID  string
+	Action       AuthAction
+	TargetUserID string
+	IP           string
+	UserAgent    string
+}

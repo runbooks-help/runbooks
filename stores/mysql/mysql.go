@@ -408,3 +408,56 @@ func scanInvite(scan func(dest ...any) error) (stores.Invite, error) {
 	}
 	return inv, nil
 }
+
+// InsertAuthEvent appends an audit row. The store assigns the id.
+func (s *store) InsertAuthEvent(ctx context.Context, e stores.AuthEvent) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO auth_events (at, actor_user_id, action, target_user_id, ip, user_agent) VALUES (?, ?, ?, ?, ?, ?)`,
+		e.At.Unix(),
+		nullable.Null[string]{V: e.ActorUserID, Valid: e.ActorUserID != ""},
+		string(e.Action),
+		nullable.Null[string]{V: e.TargetUserID, Valid: e.TargetUserID != ""},
+		nullable.Null[string]{V: e.IP, Valid: e.IP != ""},
+		nullable.Null[string]{V: e.UserAgent, Valid: e.UserAgent != ""})
+	return err
+}
+
+// ListAuthEvents returns every audit row, oldest first.
+func (s *store) ListAuthEvents(ctx context.Context) ([]stores.AuthEvent, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, at, actor_user_id, action, target_user_id, ip, user_agent FROM auth_events ORDER BY id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []stores.AuthEvent
+	for rows.Next() {
+		e, err := scanAuthEvent(rows.Scan)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, e)
+	}
+	return events, rows.Err()
+}
+
+func scanAuthEvent(scan func(dest ...any) error) (stores.AuthEvent, error) {
+	var (
+		e         stores.AuthEvent
+		at        int64
+		actorID   nullable.Null[string]
+		targetID  nullable.Null[string]
+		ip        nullable.Null[string]
+		userAgent nullable.Null[string]
+	)
+	if err := scan(&e.ID, &at, &actorID, &e.Action, &targetID, &ip, &userAgent); err != nil {
+		return stores.AuthEvent{}, err
+	}
+	e.At = time.Unix(at, 0).UTC()
+	e.ActorUserID = actorID.V
+	e.TargetUserID = targetID.V
+	e.IP = ip.V
+	e.UserAgent = userAgent.V
+	return e, nil
+}

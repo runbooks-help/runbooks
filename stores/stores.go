@@ -17,6 +17,7 @@ type Store interface {
 	SessionStore
 	ChallengeStore
 	InviteStore
+	AuthEventStore
 
 	// Close releases the database.
 	Close() error
@@ -68,4 +69,11 @@ type InviteStore interface {
 	GetInvite(ctx context.Context, id string) (Invite, error)
 	InsertInvite(ctx context.Context, i Invite) error
 	UpdateInvite(ctx context.Context, i Invite) error
+}
+
+// AuthEventStore is the append-only audit half of the contract. Insert assigns
+// no id; List returns events oldest-first and treats empty as OK.
+type AuthEventStore interface {
+	InsertAuthEvent(ctx context.Context, e AuthEvent) error
+	ListAuthEvents(ctx context.Context) ([]AuthEvent, error)
 }

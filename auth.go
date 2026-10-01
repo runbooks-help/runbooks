@@ -100,6 +100,7 @@ func (a *auth) loginFinish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.setSession(w, raw)
+	a.recordAuthEvent(r, stores.ActionLogin, user.ID, user.ID)
 	writeJSON(w, http.StatusOK, map[string]string{"id": user.ID, "displayName": user.DisplayName})
 }
 
@@ -172,6 +173,7 @@ func (a *auth) setupFinish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.setSession(w, raw)
+	a.recordAuthEvent(r, stores.ActionEnrol, req.UserID, req.UserID)
 	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
 }
 
@@ -268,6 +270,7 @@ func (a *auth) inviteFinish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.setSession(w, raw)
+	a.recordAuthEvent(r, stores.ActionEnrol, inv.UserID, inv.UserID)
 	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
 }
 
@@ -342,6 +345,7 @@ func (a *auth) recoveryFinish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.setSession(w, raw)
+	a.recordAuthEvent(r, stores.ActionEnrol, admin.ID, admin.ID)
 	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
 }
 
@@ -427,6 +431,7 @@ func (a *auth) createInvite(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusInternalServerError, "could not create invite")
 		return
 	}
+	a.recordAuthEvent(r, stores.ActionInvite, admin.ID, userID)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"url":        a.cfg.IdentityPublicURL + "/invite/" + raw,
 		"token":      raw,
@@ -460,15 +465,36 @@ func (a *auth) revokeSessions(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusInternalServerError, "could not revoke sessions")
 		return
 	}
+	a.recordAuthEvent(r, stores.ActionRevoke, userFrom(r.Context()).ID, userID)
 	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
 }
 
 func (a *auth) logout(w http.ResponseWriter, r *http.Request) {
+	if u, ok := a.sessionUser(r); ok {
+		a.recordAuthEvent(r, stores.ActionLogout, u.ID, u.ID)
+	}
 	if c, err := r.Cookie(sessionCookieName); err == nil {
 		_ = a.svc.Revoke(r.Context(), c.Value)
 	}
 	a.clearSession(w)
 	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
+}
+
+// recordAuthEvent appends an audit row, best-effort. A failed insert is logged
+// and never fails the request: the state change it describes has already
+// happened.
+func (a *auth) recordAuthEvent(r *http.Request, action stores.AuthAction, actorID, targetID string) {
+	e := stores.AuthEvent{
+		At:           time.Now().UTC(),
+		ActorUserID:  actorID,
+		Action:       action,
+		TargetUserID: targetID,
+		IP:           clientIP(r),
+		UserAgent:    r.UserAgent(),
+	}
+	if err := a.st.InsertAuthEvent(r.Context(), e); err != nil {
+		logAuthFailure("auth/event "+string(action), err)
+	}
 }
 
 // sessionUser resolves the session cookie to a user.
