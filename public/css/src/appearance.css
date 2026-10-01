@@ -1,0 +1,65 @@
+.appearance {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	padding: var(--space-4);
+	margin-top: auto;
+}
+
+/* The footer divider belongs to the sidebar, not the component — so the
+   component can be shown elsewhere (the styleguide) without doubling a frame. */
+.sidebar .appearance {
+	border-top: 1px solid var(--nav-border);
+}
+
+.appearance-label {
+	margin: 0 0 var(--space-1);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--nav-muted);
+}
+
+.theme-row,
+.weight-row,
+.size-row,
+.steps-row {
+	display: flex;
+	gap: 2px;
+}
+
+.theme-btn,
+.weight-btn,
+.size-btn,
+.steps-btn {
+	flex: 1;
+	padding: var(--space-1) 0;
+	border: none;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--nav-muted);
+	font-size: var(--text-2xs);
+	cursor: pointer;
+	transition:
+		background var(--duration-fast),
+		color var(--duration-fast);
+}
+
+.theme-btn:hover,
+.weight-btn:hover,
+.size-btn:hover,
+.steps-btn:hover {
+	background: var(--nav-hover);
+	color: var(--nav-text);
+}
+
+.theme-btn.active,
+.weight-btn.active,
+.size-btn.active,
+.steps-btn.active {
+	background: var(--surface);
+	color: var(--nav-text);
+	font-weight: 500;
+	box-shadow: var(--shadow-sm);
+}

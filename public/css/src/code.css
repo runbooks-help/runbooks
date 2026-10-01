@@ -1,0 +1,176 @@
+.code-block {
+	position: relative;
+	background: var(--code-bg);
+	border-radius: var(--radius-md);
+	border: 1px solid var(--code-border);
+}
+
+.code-block pre {
+	padding: var(--space-4);
+	padding-right: 48px;
+	overflow-x: auto;
+}
+
+.code-block code {
+	font-family: var(--font-mono);
+	font-weight: var(--mono-weight);
+	font-size: var(--text-2xs);
+	line-height: 1.7;
+	color: var(--code-text);
+	white-space: pre;
+}
+
+.code-block .var-placeholder,
+.code-block .var-placeholder * {
+	color: #f87171 !important;
+	background: rgba(248, 113, 113, 0.15);
+	border-radius: 3px;
+	padding: 0 3px;
+	font-style: italic;
+}
+
+.code-block .var-filled {
+	color: var(--code-var-filled);
+	background: rgba(106, 168, 141, 0.12);
+	border-radius: 3px;
+	padding: 0 3px;
+}
+
+.code-block .var-secret {
+	color: var(--code-var-secret);
+	background: rgba(128, 128, 128, 0.15);
+	border-radius: 3px;
+	padding: 0 3px;
+	letter-spacing: 0.1em;
+}
+
+.code-label-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+}
+
+.code-label {
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--muted);
+}
+
+.block-check {
+	width: 22px;
+	height: 22px;
+	border-radius: var(--radius-sm);
+	border: 1.5px solid #444;
+	background: transparent;
+	color: transparent;
+	font-size: 10px;
+	font-weight: 700;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	cursor: pointer;
+	transition:
+		border-color var(--duration-fast),
+		background var(--duration-fast),
+		color var(--duration-fast),
+		box-shadow var(--duration-fast);
+}
+
+.block-check:hover {
+	border-color: var(--accent-strong);
+	color: var(--accent-strong);
+	box-shadow: 0 0 0 3px rgba(106, 168, 141, 0.15);
+}
+
+.code-group.done .block-check {
+	background: var(--accent);
+	border-color: var(--accent-strong);
+	color: #fff;
+}
+
+.code-group.done .code-label {
+	text-decoration: line-through;
+	opacity: 0.5;
+}
+
+.code-group.done .code-block {
+	opacity: 0.35;
+}
+
+/* Syntax highlighting — Atom One Dark adapted for the #111 code background. */
+
+.hljs-keyword,
+.hljs-operator,
+.hljs-reserved {
+	color: #c678dd;
+}
+
+.hljs-string,
+.hljs-doctag {
+	color: #98c379;
+}
+
+.hljs-number,
+.hljs-literal {
+	color: #d19a66;
+}
+
+.hljs-comment {
+	color: #5c6370;
+	font-style: italic;
+}
+
+.hljs-title,
+.hljs-function {
+	color: #61aeee;
+}
+
+.hljs-variable,
+.hljs-attr {
+	color: #e5c07b;
+}
+
+.hljs-built_in,
+.hljs-meta {
+	color: #e06c75;
+}
+
+.hljs-type,
+.hljs-name {
+	color: #56b6c2;
+}
+
+.var-filled {
+	color: #e5e5e5;
+}
+
+.copy-btn {
+	position: absolute;
+	top: var(--space-2);
+	right: var(--space-2);
+	padding: var(--space-1) var(--space-2);
+	background: #1f1f1f;
+	border: 1px solid #333;
+	border-radius: var(--radius-sm);
+	color: #888;
+	font-size: 11px;
+	cursor: pointer;
+	transition:
+		background var(--duration-fast),
+		color var(--duration-fast);
+	white-space: nowrap;
+}
+
+.copy-btn:hover {
+	background: #2a2a2a;
+	color: #e5e5e5;
+}
+
+.copy-btn.copied {
+	color: var(--code-var-filled);
+	border-color: rgba(106, 168, 141, 0.3);
+}

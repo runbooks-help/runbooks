@@ -83,7 +83,7 @@
 }
 
 /* Banner weight — a blocking condition. The frame belongs here; the bleed into a
-   hosting card belongs to the context (see .auth-card in runbooks.css), so the
+   hosting card belongs to the context (see .auth-card in auth.css), so the
    same banner can be shown anywhere without a negative margin. */
 .alert-banner {
 	padding: var(--space-3) var(--space-6);

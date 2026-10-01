@@ -1,0 +1,50 @@
+/* The author display below would otherwise beat the UA rule for [hidden], so the
+   empty toast (and its close ✕) would sit at the bottom of the panel always. */
+.notes-sync-toast[hidden] {
+	display: none;
+}
+
+.notes-sync-toast {
+	position: absolute;
+	bottom: var(--space-3);
+	left: var(--space-3);
+	right: var(--space-3);
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius-sm);
+	font-size: var(--text-2xs);
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	z-index: 10;
+}
+
+.notes-sync-toast--success {
+	background: var(--accent-lt);
+	color: var(--nav-active-text);
+	border: 1px solid var(--accent);
+}
+
+.notes-sync-toast--error {
+	background: rgba(239, 68, 68, 0.06);
+	color: var(--danger);
+	border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.notes-sync-toast-msg {
+	flex: 1;
+}
+
+.notes-sync-toast-close {
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: inherit;
+	opacity: 0.6;
+	font-size: 12px;
+	padding: 2px;
+	line-height: 1;
+}
+
+.notes-sync-toast-close:hover {
+	opacity: 1;
+}

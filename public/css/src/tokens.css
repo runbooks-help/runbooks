@@ -176,42 +176,6 @@ body {
 	font-size: 1em;
 }
 
-h1 {
-	font-size: var(--text-2xl);
-	font-weight: 700;
-	line-height: var(--leading-tight);
-}
-h2 {
-	font-size: var(--text-xl);
-	font-weight: 600;
-	line-height: var(--leading-tight);
-}
-h3 {
-	font-size: var(--text-lg);
-	font-weight: 600;
-	line-height: var(--leading-snug);
-}
-h4 {
-	font-size: var(--text-md);
-	font-weight: 600;
-	line-height: var(--leading-snug);
-}
-h5 {
-	font-size: var(--text-base);
-	font-weight: 600;
-	line-height: var(--leading-normal);
-}
-h6 {
-	font-size: var(--text-sm);
-	font-weight: 600;
-	line-height: var(--leading-normal);
-	color: var(--muted);
-}
-
-.muted {
-	color: var(--muted);
-}
-
 /* Compact density for 1366–1439px — everything is slightly smaller to reclaim space */
 @media (max-width: 1439px) {
 	:root {

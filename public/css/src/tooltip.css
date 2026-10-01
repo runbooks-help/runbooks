@@ -1,0 +1,68 @@
+.hint-btn {
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	color: var(--muted);
+	font-size: 11px;
+	font-weight: 700;
+	line-height: 1;
+	cursor: pointer;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	transition:
+		background var(--duration-fast),
+		border-color var(--duration-fast),
+		color var(--duration-fast);
+}
+
+.hint-btn:hover,
+.hint-btn.active {
+	background: var(--accent-lt);
+	border-color: var(--accent-strong);
+	color: var(--accent-strong);
+}
+
+.hint-popup {
+	position: fixed;
+	z-index: 200;
+	width: 440px;
+	background: #111;
+	border: 1px solid #2a2a2a;
+	border-radius: var(--radius-md);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+	padding: var(--space-3) var(--space-4);
+	visibility: hidden;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 120ms;
+}
+
+.hint-popup.open {
+	visibility: visible;
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.hint-popup-label {
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: #555;
+	margin-bottom: var(--space-2);
+}
+
+.hint-popup pre {
+	font-family: var(--font-mono);
+	font-weight: var(--mono-weight);
+	font-size: var(--text-2xs);
+	line-height: 1.6;
+	color: #e5e5e5;
+	white-space: pre-wrap;
+	word-break: break-all;
+}

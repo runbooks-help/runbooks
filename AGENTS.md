@@ -55,9 +55,13 @@ The living reference is `/styleguide` (dev-gated by `STYLEGUIDE_ENABLED`, set in
 - **Contextual chrome belongs to the context**, not the component (e.g. the sidebar
   footer divider is `.sidebar .appearance`), so a component can be shown elsewhere
   without doubling a host frame.
-- **CSS modules** live in `public/css/src/` (`tokens`, `layouts`, `button`, `badge`,
-  `forms`, `dialog`, `shell`, `runbooks`, `styleguide`); `shell.css` / `runbooks.css`
-  are still due to be split (design-system tasks file, Task 3).
+- **CSS modules** live in `public/css/src/`, one subject per file: `fonts`, `tokens`,
+  `typography`, `layouts`, `button`, `badge`, `alert`, `forms`, `dialog`, `shell`,
+  `vars`, `tooltip`, `notes`, `tabs`, `toast`, `appearance`, `runbook`, `code`,
+  `notice`, `table`, `card`, `index`, `auth`, `admin`, `responsive`, `styleguide`.
+  `shell.css` is the chrome grid + sidebar/nav/main; `runbook.css` is the runbook
+  page; `responsive.css` holds the below-1200px rail/drawers and the print block, and
+  imports last so its overrides land after the components they target.
 
 ## Layout
 
@@ -220,7 +224,7 @@ Authoring conventions that have bitten us:
   names the backup flags `defaultBackupEligibility` / `defaultBackupState`; the
   `hasBackup*` spellings are silently ignored (so BE never gets set). `e2e/passkey.test.mjs`
   relies on the `default*` names to present a synced-passkey (BE=1) shape.
-- **Below 1200px the shell reflows** (thin rail + off-canvas drawers, driven by `data-drawer` on `<body>`; see `shell.css`): the 196px sidebar would otherwise starve the main column on portrait/thin screens. `app.js` drives the rail menu, notes toggle, scrim and Esc.
+- **Below 1200px the shell reflows** (thin rail + off-canvas drawers, driven by `data-drawer` on `<body>`; see `responsive.css`): the 196px sidebar would otherwise starve the main column on portrait/thin screens. `app.js` drives the rail menu, notes toggle, scrim and Esc.
 - The runbook page's right-hand notes panel is hideable; the toggle (`data-notes-toggle`)
   sits in the `.main-header` and persists `runbooks-notes` (on|off, default on),
   applied before paint in `app.js`.

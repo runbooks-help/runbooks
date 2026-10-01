@@ -1,0 +1,38 @@
+.card-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: var(--space-3);
+}
+
+.runbook-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	padding: var(--space-3) var(--space-4);
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md);
+	color: var(--text);
+	text-decoration: none;
+	box-shadow: var(--shadow-sm);
+	transition:
+		border-color var(--duration-fast),
+		box-shadow var(--duration-fast);
+}
+
+.runbook-card:hover {
+	border-color: var(--accent-strong);
+	box-shadow: var(--shadow-md);
+}
+
+.card-title {
+	font-size: var(--text-xs);
+	font-weight: 600;
+	line-height: var(--leading-snug);
+}
+
+.card-desc {
+	font-size: var(--text-2xs);
+	color: var(--muted);
+	line-height: var(--leading-normal);
+}

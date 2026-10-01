@@ -1,0 +1,134 @@
+.index-inner {
+	max-width: 1040px;
+	margin: 0 auto;
+}
+
+.index-search {
+	width: 100%;
+	padding: var(--space-3) var(--space-4);
+	font-size: var(--text-base);
+	font-family: inherit;
+	color: var(--text);
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md);
+	outline: none;
+	transition:
+		border-color var(--duration-fast),
+		box-shadow var(--duration-fast);
+}
+
+.index-search::placeholder {
+	color: var(--nav-muted);
+}
+
+.index-search:focus {
+	border-color: var(--accent-strong);
+	box-shadow: 0 0 0 3px rgba(106, 168, 141, 0.18);
+}
+
+.ci-list {
+	list-style: none;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.ci-list a {
+	display: flex;
+	align-items: baseline;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius-sm);
+	font-size: var(--text-xs);
+	color: var(--text);
+	text-decoration: none;
+	transition: background var(--duration-fast);
+}
+
+.ci-list a:hover {
+	background: var(--nav-hover);
+}
+
+.ci-label {
+	font-weight: 600;
+	flex-shrink: 0;
+}
+
+.ci-dots {
+	flex: 1;
+	border-bottom: 1px dotted var(--border);
+	transform: translateY(-3px);
+}
+
+.ci-title {
+	color: var(--muted);
+	flex-shrink: 0;
+}
+
+.index-system {
+	font-size: var(--text-md);
+	margin-top: var(--space-6);
+	margin-bottom: var(--space-2);
+}
+
+.index-category {
+	margin-top: var(--space-5);
+}
+
+.index-category-label {
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--muted);
+	margin-bottom: var(--space-2);
+}
+
+.index-empty {
+	margin-top: var(--space-5);
+	color: var(--muted);
+	font-size: var(--text-sm);
+}
+
+.index-empty {
+	margin-top: var(--space-5);
+	color: var(--muted);
+	font-size: var(--text-sm);
+}
+
+.index-welcome {
+	margin-top: var(--space-6);
+	padding: var(--space-6);
+	background: var(--surface);
+	border: 1px dashed var(--border);
+	border-radius: var(--radius-md);
+	color: var(--muted);
+	font-size: var(--text-sm);
+	line-height: var(--leading-normal);
+}
+
+.index-welcome-title {
+	margin-bottom: var(--space-2);
+	color: var(--text);
+	font-size: var(--text-md);
+	font-weight: 600;
+}
+
+.index-welcome code {
+	padding: 0.1em 0.35em;
+	background: var(--nav-hover);
+	border-radius: var(--radius-sm);
+	font-family: var(--font-mono);
+	font-weight: var(--mono-weight);
+	font-size: 0.9em;
+	color: var(--text);
+}
+
+.runbook-card[hidden],
+.index-group[hidden],
+.index-category[hidden],
+.common-issues[hidden],
+.index-empty[hidden] {
+	display: none;
+}

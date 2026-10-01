@@ -1,0 +1,27 @@
+.notes-tabs {
+	display: flex;
+	gap: 2px;
+}
+
+.notes-tab {
+	font-size: var(--text-2xs);
+	color: var(--nav-muted);
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: var(--space-1) var(--space-2);
+	border-radius: var(--radius-sm);
+	transition:
+		color var(--duration-fast),
+		background var(--duration-fast);
+}
+
+.notes-tab:hover {
+	color: var(--text);
+	background: var(--nav-hover);
+}
+
+.notes-tab.active {
+	color: var(--text);
+	background: var(--nav-hover);
+}

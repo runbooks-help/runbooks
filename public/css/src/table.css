@@ -1,0 +1,32 @@
+.table-wrap {
+	overflow-x: auto;
+}
+
+.table-wrap table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: var(--text-xs);
+	line-height: var(--leading-normal);
+}
+
+.table-wrap th,
+.table-wrap td {
+	padding: var(--space-2) var(--space-3);
+	text-align: left;
+	border-bottom: 1px solid var(--border);
+}
+
+.table-wrap th {
+	font-weight: 600;
+	color: var(--muted);
+	border-bottom-width: 2px;
+	white-space: nowrap;
+}
+
+.table-wrap tr:last-child td {
+	border-bottom: none;
+}
+
+.table-wrap td code {
+	white-space: nowrap;
+}
