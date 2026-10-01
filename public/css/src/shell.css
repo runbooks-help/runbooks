@@ -623,8 +623,13 @@ body.resizing-notes {
 	flex-direction: column;
 	gap: var(--space-3);
 	padding: var(--space-4);
-	border-top: 1px solid var(--nav-border);
 	margin-top: auto;
+}
+
+/* The footer divider belongs to the sidebar, not the component — so the
+   component can be shown elsewhere (the styleguide) without doubling a frame. */
+.sidebar .appearance {
+	border-top: 1px solid var(--nav-border);
 }
 
 .appearance-label {
