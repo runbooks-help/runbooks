@@ -212,9 +212,12 @@ test("setup, logout and login run the real passkey ceremony", async (t) => {
 		await signIn(b.page, app.base);
 		await b.page.locator('a[href="/admin"]').waitFor({ timeout: uiTimeout });
 
-		// The design-system styleguide (inside the app shell).
+		// The design-system styleguide (inside the app shell), and an anchored
+		// section so the scroll offset is visible.
 		await b.page.goto(app.base + "/styleguide");
 		await snap(b.page, "styleguide");
+		await b.page.goto(app.base + "/styleguide#step");
+		await snap(b.page, "styleguide-anchor");
 
 		// The kitchen-sink runbook, for eyeballing every block type.
 		await b.page.goto(app.base + "/gallery");

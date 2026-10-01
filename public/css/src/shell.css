@@ -275,6 +275,9 @@ nav a.active {
 	flex: 1;
 	overflow-y: auto;
 	padding: var(--space-6);
+	/* Anchor targets (e.g. styleguide section links) get breathing room instead
+	   of landing flush against the header. */
+	scroll-padding-top: var(--space-6);
 }
 
 /* ── Notes panel ────────────────────────────────────────────────── */
