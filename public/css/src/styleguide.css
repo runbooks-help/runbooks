@@ -21,7 +21,7 @@
 .sg-section > h3 {
 	margin-bottom: var(--space-4);
 	display: flex;
-	align-items: center;
+	align-items: baseline;
 	gap: var(--space-2);
 	font-size: var(--text-lg);
 }
@@ -34,9 +34,10 @@
 
 .sg-atom {
 	padding: 1px var(--space-2);
-	border: 1px solid var(--border);
+	border: 1px solid color-mix(in srgb, var(--accent-strong) 45%, transparent);
 	border-radius: var(--radius-pill);
-	color: var(--nav-muted);
+	background: var(--accent-lt);
+	color: var(--accent-strong);
 	font-size: var(--text-2xs);
 	font-weight: 600;
 	text-transform: uppercase;
