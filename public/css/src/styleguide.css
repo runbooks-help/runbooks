@@ -18,10 +18,12 @@
 
 /* The title owns the gap below it, so content breathes whether or not the
    section has a description paragraph. */
+/* The tier pill is optically centred against the heading, not baseline-aligned:
+   a baseline match reads low next to a much larger title. */
 .sg-section > h3 {
 	margin-bottom: var(--space-4);
 	display: flex;
-	align-items: baseline;
+	align-items: center;
 	gap: var(--space-2);
 	font-size: var(--text-lg);
 }
