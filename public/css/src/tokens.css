@@ -15,6 +15,12 @@
 :root {
 	color-scheme: dark;
 
+	/* Runbooks is a standard-dynamic-range (SDR) interface. Some Chromium builds on
+	   Linux mis-convert SDR content into an HDR output (blacks lifted, colours
+	   washed out); declaring SDR asks the UA not to push us down that path. It is a
+	   no-op on renderers that get it right. See docs/troubleshooting.md. */
+	dynamic-range-limit: standard;
+
 	--bg: #17161d;
 	--surface: #201f29;
 	--surface-2: #272633;

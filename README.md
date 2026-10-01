@@ -144,6 +144,11 @@ SET GLOBAL read_only = 0;
 ` ``
 ```
 
+## Troubleshooting
+
+See [docs/troubleshooting.md](docs/troubleshooting.md) — notably, dark colours looking
+washed out on an HDR display in Chromium-based browsers, and the workarounds.
+
 ## Licence
 
 Runbooks is source-available under [FSL-1.1-MIT](LICENSE): free to self-host,
