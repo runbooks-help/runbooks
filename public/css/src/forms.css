@@ -1,19 +1,33 @@
 /* Form controls — the field atom. A label, a control and an optional hint.
    Text inputs and selects share one control treatment, so a form is never
-   hand-styled per page. */
+   hand-styled per page.
+
+   Alignment: fields align by their tops, so labels and controls line up across a
+   row even when one field has a hint. The hint is out of flow (absolutely
+   positioned), so it cannot push its control out of line; the row reserves space
+   for it instead. An inline action sits at the control baseline via align-self. */
 
 .form-row {
 	display: flex;
 	flex-wrap: wrap;
-	align-items: flex-end;
+	align-items: flex-start;
 	gap: var(--space-3);
+}
+
+.form-row:has(.form-hint) {
+	padding-bottom: var(--space-5);
 }
 
 .form-row .form-field {
 	flex: 1 1 180px;
 }
 
+.form-row > .btn {
+	align-self: flex-end;
+}
+
 .form-field {
+	position: relative;
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-1);
@@ -27,6 +41,10 @@
 }
 
 .form-hint {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	margin-top: 2px;
 	color: var(--nav-muted);
 	font-size: var(--text-2xs);
 }
