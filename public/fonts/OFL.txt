@@ -1,28 +1,9 @@
-Runbooks — third-party notices
-==============================
+Atkinson Hyperlegible Next
+Copyright 2020 Braille Institute of America, Inc.
 
-Runbooks
-Copyright 2026 Benjamin Cable
-
-Runbooks itself is licensed under the Functional Source License, Version 1.1,
-MIT Future License (FSL-1.1-MIT) — see LICENSE. Each version converts to the
-MIT licence on the second anniversary of its release.
-
-Runbooks bundles third-party software. Each component remains under its own
-licence, not the FSL. The components and their licences are inventoried in
-DEPENDENCIES.md, and their full licence texts are reproduced in
-THIRD_PARTY_NOTICES.md.
-
-Two components require explicit notice here.
-
-
-Atkinson Hyperlegible Next / Atkinson Hyperlegible Mono (fonts) — OFL-1.1
-------------------------------------------------------------------------
-
-Atkinson Hyperlegible Next: Copyright 2020 Braille Institute of America, Inc.
-
-Atkinson Hyperlegible Mono: Copyright 2020-2024 The Atkinson Hyperlegible Mono
-Project Authors (https://github.com/googlefonts/atkinson-hyperlegible-next-mono)
+Atkinson Hyperlegible Mono
+Copyright 2020-2024 The Atkinson Hyperlegible Mono Project Authors
+(https://github.com/googlefonts/atkinson-hyperlegible-next-mono)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:
@@ -41,7 +22,7 @@ with others.
 
 The OFL allows the licensed fonts to be used, studied, modified and
 redistributed freely as long as they are not sold by themselves. The
-fonts, including any derivative works, can be bundled, embedded,
+fonts, including any derivative works, can be bundled, embedded, 
 redistributed and/or sold with any software provided that any reserved
 names are not used by derivative works. The fonts and derivatives,
 however, cannot be released under any other type of license. The
@@ -114,16 +95,3 @@ INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
 DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
-
-
-go-sql-driver/mysql — MPL-2.0
------------------------------
-
-Copyright 2012 The Go-MySQL-Driver Authors.
-Licensed under the Mozilla Public License, v. 2.0.
-Full licence: https://www.mozilla.org/en-US/MPL/2.0/
-Source code: https://github.com/go-sql-driver/mysql
-
-The driver is used unmodified. It remains under MPL-2.0; the FSL-1.1-MIT above
-applies to Runbooks and not to this component, and nothing in these notices
-restricts your rights under the MPL in the driver's source code.

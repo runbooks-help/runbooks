@@ -190,3 +190,14 @@ go list -deps -f '{{with .Module}}{{.Path}}{{end}}' . | sort -u   # linked into 
 
 A machine-readable SBOM (SPDX + CycloneDX, covering the binary and the container
 image) is a planned addition; this file is the human-readable companion.
+
+## Third-party licence texts
+
+`THIRD_PARTY_NOTICES.md` reproduces the full licence text and copyright for every
+distributed component. It is generated — do not edit it by hand:
+
+```bash
+mise run notices
+```
+
+CI regenerates it and fails if the committed file differs.

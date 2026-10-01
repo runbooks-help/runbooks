@@ -32,6 +32,11 @@ jobs:
       - name: Verify committed bundles are up to date
         run: git diff --exit-code -- public/css/bundle.css public/js/bundle.js
 
+      - name: Verify third-party notices are up to date
+        run: |
+          go run ./cmd/notices
+          git diff --exit-code -- THIRD_PARTY_NOTICES.md
+
       - name: go vet
         run: go vet ./...
 

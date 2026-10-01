@@ -153,3 +153,7 @@ run = """
 [tasks."db:down"]
 description = "Stop the local test databases"
 run = "podman compose down -v"
+
+[tasks.notices]
+description = "Regenerate THIRD_PARTY_NOTICES.md from the linked modules and vendored assets"
+run = "go run ./cmd/notices"
