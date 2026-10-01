@@ -40,6 +40,17 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 			</div>
 		</aside>
 		<div class="main">
+			if rb.Acknowledge != "" {
+				<dialog class="dialog" id="ack-dialog" data-ack-dialog>
+					<div class="dialog-header">Acknowledge this runbook</div>
+					<div class="dialog-body">
+						<p>{ rb.Acknowledge }</p>
+					</div>
+					<div class="dialog-footer">
+						<button class="btn btn-danger" type="button" data-ack-accept>I understand</button>
+					</div>
+				</dialog>
+			}
 			<div class="zen-bar">
 				<span class="zen-title">{ rb.Title }</span>
 				<span class="zen-count"></span>
@@ -64,7 +75,14 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 			if len(rb.Vars) > 0 {
 				@VarsPanel(rb.Vars)
 			}
-			<div class="content" data-runbook>
+			<div
+				class="content"
+				data-runbook
+				if rb.Acknowledge != "" {
+					data-ack="pending"
+					inert
+				}
+			>
 				if len(rb.Steps) >= 3 {
 					<nav class="toc" aria-label="Contents" hidden>
 						<p class="toc-label">Contents</p>

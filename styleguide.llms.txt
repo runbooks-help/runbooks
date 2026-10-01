@@ -109,9 +109,13 @@ styleguide) without carrying a border that only makes sense in one host.
 
 ## Patterns
 
-  appearance       theme + code weight; the sidebar footer (replaced the old
-                   ThemeToggle). Playwright/screenshot tests target .theme-btn /
-                   .weight-btn.
+  appearance       theme, code weight, reading size, steps and contents; the
+                   sidebar footer. Playwright targets .theme-btn / .weight-btn /
+                   .size-btn / .steps-btn.
+  acknowledgement  a destructive runbook's frontmatter `acknowledge:` gates the
+                   page behind a non-dismissable danger dialog; the steps are
+                   inert until accepted (once per session). See
+                   specs/runbooks-danger-ack.md.
   session actions  Admin link (admins) + Sign out (identity on) — the sidebar
                    footer account row.
 

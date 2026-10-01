@@ -216,7 +216,10 @@ func categoryDisplayName(dir string) string {
 
 type RunbookDef struct {
 	RunbookMeta `yaml:",inline"`
+	// Notice is a passive banner. Acknowledge, when set, marks the runbook
+	// destructive: the reader must accept it in a modal before the page is usable.
 	Notice      string     `yaml:"notice"`
+	Acknowledge string     `yaml:"acknowledge"`
 	Vars        []VarField `yaml:"vars"`
 	Steps       []Step
 	Rollback    []Step

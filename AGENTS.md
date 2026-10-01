@@ -130,7 +130,8 @@ symptoms:                                # optional: extra keywords the index fi
   - Last_SQL_Error
   - duplicate entry error 1062
 common: true                             # optional: pin into the "Common issues" shortlist
-notice: "READ EVERY STEP BEFORE DOING ANYTHING!"   # banner; READ EVERY STEP wording for destructive runs
+notice: "READ EVERY STEP BEFORE DOING ANYTHING!"   # passive banner
+acknowledge: "This drops and rebuilds the replica."  # gates the page behind an "I understand" dialog (destructive)
 vars:
   - id: mts-processlist-id               # DOM id; must be unique
     label: Blocked worker's processlist Id

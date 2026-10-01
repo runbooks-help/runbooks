@@ -66,6 +66,7 @@ symptoms:          # optional: extra keywords the index filter matches
   - duplicate entry error 1062
 common: true       # optional: pin into the index "Common issues" shortlist
 notice: "Production traffic is affected by this procedure. Read all steps before starting."
+acknowledge: "This drops and rebuilds the replica. Take it out of the load balancer first."  # gates the page behind an I-understand dialog
 vars:
   - id: some-ip
     label: Server IP

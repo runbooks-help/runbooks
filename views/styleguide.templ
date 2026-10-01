@@ -219,6 +219,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 						<div class="sg-row">
 							<button class="btn btn-primary" type="button" data-dialog-open="sg-dialog">Open dialog</button>
 							<button class="btn btn-danger" type="button" data-dialog-open="sg-dialog-danger">Open destructive</button>
+							<button class="btn btn-danger" type="button" data-dialog-open="sg-ack">Open acknowledgement</button>
 						</div>
 						<dialog class="dialog" id="sg-dialog">
 							<div class="dialog-header">Dialog title</div>
@@ -238,6 +239,15 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 							<div class="dialog-footer">
 								<button class="btn btn-ghost" type="button" data-dialog-close>Cancel</button>
 								<button class="btn btn-danger" type="button" data-dialog-close>Clear</button>
+							</div>
+						</dialog>
+						<dialog class="dialog" id="sg-ack">
+							<div class="dialog-header">Acknowledge this runbook</div>
+							<div class="dialog-body">
+								<p>A destructive runbook declares <code>acknowledge:</code>; this dialog states it and the steps stay inert until accepted. In the app it is not dismissable — only <em>I understand</em> or leaving the page.</p>
+							</div>
+							<div class="dialog-footer">
+								<button class="btn btn-danger" type="button" data-dialog-close>I understand</button>
 							</div>
 						</dialog>
 					</section>

@@ -55,3 +55,31 @@ test("the runbook page: step roll-up, the clear dialog, and light mode", async (
 		throw err;
 	}
 });
+
+test("a destructive runbook gates the page behind an acknowledgement", async (t) => {
+	const app = await startApp();
+	t.after(() => app.stop());
+	const b = await startBrowser();
+	t.after(() => b.stop());
+	try {
+		await bootAdmin(b.page, app.base);
+		await b.page.goto(app.base + "/destructive-demo");
+		const dialog = b.page.locator("[data-ack-dialog]");
+		await dialog.waitFor({ state: "visible", timeout: uiTimeout });
+		assert.equal(
+			await b.page.locator("[data-ack]").evaluate(el => el.hasAttribute("inert")),
+			true,
+			"the runbook is inert until acknowledged",
+		);
+		await b.page.keyboard.press("Escape");
+		assert.equal(await dialog.evaluate(el => el.open), true, "Esc does not dismiss the acknowledgement");
+		await b.page.locator("[data-ack-accept]").click();
+		assert.equal(await dialog.evaluate(el => el.open), false, "accept clears the gate");
+		assert.equal(await b.page.locator("[data-ack]").evaluate(el => el.hasAttribute("inert")), false, "the gate is cleared");
+		await b.page.reload();
+		assert.equal(await dialog.evaluate(el => el.open), false, "stays acknowledged within the session");
+	} catch (err) {
+		await reportFailure(b.page, app.logs());
+		throw err;
+	}
+});

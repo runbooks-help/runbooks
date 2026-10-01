@@ -658,6 +658,31 @@ if (runbookRoot) {
 	if (localStorage.getItem('runbooks-zen') === 'on') setZen(true, 0);
 }
 
+// Destructive runbooks: gate the page behind an acknowledgement, once per
+// session. The dialog cannot be dismissed — only accepted.
+const ackDialog = document.querySelector('[data-ack-dialog]');
+if (ackDialog) {
+	const gated = document.querySelector('[data-ack]');
+	const key = 'runbooks-ack:' + location.pathname;
+	const clearGate = () => {
+		if (gated) {
+			gated.removeAttribute('inert');
+			gated.dataset.ack = 'done';
+		}
+	};
+	if (sessionStorage.getItem(key) === 'on') {
+		clearGate();
+	} else {
+		ackDialog.addEventListener('cancel', e => e.preventDefault());
+		ackDialog.querySelector('[data-ack-accept]')?.addEventListener('click', () => {
+			sessionStorage.setItem(key, 'on');
+			clearGate();
+			ackDialog.close();
+		});
+		ackDialog.showModal();
+	}
+}
+
 // Index page — live filter over the runbook catalogue
 const indexSearch = document.querySelector('.index-search');
 if (indexSearch) {

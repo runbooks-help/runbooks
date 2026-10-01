@@ -17,6 +17,10 @@ test("the styleguide renders its sections", async (t) => {
 			await b.page.goto(app.base + "/styleguide" + section);
 			await snap(b.page, "styleguide" + (section ? "-" + section.slice(1) : ""));
 		}
+		await b.page.goto(app.base + "/styleguide#dialog");
+		await b.page.locator('[data-dialog-open="sg-ack"]').click();
+		await b.page.locator("#sg-ack").waitFor({ state: "visible" });
+		await snap(b.page, "styleguide-ack");
 		await holdIfAsked();
 	} catch (err) {
 		await reportFailure(b.page, app.logs());

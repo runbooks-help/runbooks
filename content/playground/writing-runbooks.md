@@ -53,7 +53,8 @@ Only `title` and `slug` are required; everything else is optional.
 | `description` | One-line summary under the `<h1>`. |
 | `symptoms` | Extra keywords the index search matches. |
 | `common` | `true` pins it into the "Common issues" shortlist. |
-| `notice` | A banner above the body. |
+| `notice` | A passive banner above the body. |
+| `acknowledge` | Marks the runbook destructive: the page is gated behind an "I understand" dialog until accepted (once per session). |
 | `vars` | Runtime inputs — see the next step. |
 
 ## Inputs with `vars`
@@ -74,6 +75,12 @@ systemctl --user restart "{{SERVICE}}"
 `## Heading` starts a numbered step. `### Heading` splits a long step without starting a new card. A step body takes ordinary Markdown: **bold**, *italic*, `inline code`, [links](https://example.com), bullet lists and tables.
 
 > [!info] Titles lead with the symptom, not the mechanism — a runbook is read under duress.
+
+For a destructive runbook, don't rely on a banner: add `acknowledge:` and the reader must accept it before the page is usable.
+
+```yaml [Frontmatter]
+acknowledge: "This drops and rebuilds the replica. Take it out of the load balancer first."
+```
 
 ## Code blocks and checkoffs
 
