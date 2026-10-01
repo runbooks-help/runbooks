@@ -13,10 +13,13 @@
 }
 
 .sg-section {
-	margin-top: var(--space-5);
+	margin-top: var(--space-6);
 }
 
+/* The title owns the gap below it, so content breathes whether or not the
+   section has a description paragraph. */
 .sg-section > h3 {
+	margin-bottom: var(--space-4);
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
@@ -24,7 +27,7 @@
 }
 
 .sg-section > p {
-	margin: var(--space-1) 0 var(--space-4);
+	margin: 0 0 var(--space-4);
 	color: var(--muted);
 	font-size: var(--text-sm);
 }
