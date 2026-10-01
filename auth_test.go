@@ -622,3 +622,106 @@ func decodeBegin(t *testing.T, client *http.Client, url string, body any) beginR
 	}
 	return b
 }
+
+// proxyConfig turns on proxy delegation for a test server, with explicit header
+// names (the production defaults are the same).
+func proxyConfig(c *config) {
+	c.IdentityTrustProxyAuth = true
+	c.IdentityProxyUserHeader = "Auth-Request-Email"
+	c.IdentityProxyNameHeader = "Auth-Request-Name"
+}
+
+func getWithHeaders(t *testing.T, client *http.Client, url string, headers map[string]string) (int, []byte) {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("GET %s: %v", url, err)
+	}
+	defer res.Body.Close()
+	data, _ := io.ReadAll(res.Body)
+	return res.StatusCode, data
+}
+
+func TestProxyAuthProvisionsAndGates(t *testing.T) {
+	srv, _, st := newTestServerWith(t, proxyConfig)
+	client := newClient(t)
+	headers := map[string]string{
+		"Auth-Request-Email": "proxied@example.com",
+		"Auth-Request-Name":  "Proxied Person",
+	}
+
+	if code, _ := getWithHeaders(t, client, srv.URL+"/", nil); code != http.StatusFound {
+		t.Fatalf("index without an assertion = %d, want 302", code)
+	}
+
+	if code, body := getWithHeaders(t, client, srv.URL+"/", headers); code != http.StatusOK {
+		t.Fatalf("index with an assertion = %d: %s", code, body)
+	}
+
+	users, err := st.ListUsers(context.Background())
+	if err != nil {
+		t.Fatalf("ListUsers: %v", err)
+	}
+	if len(users) != 1 {
+		t.Fatalf("users = %d, want 1 provisioned", len(users))
+	}
+	u := users[0]
+	if u.Email != "proxied@example.com" || u.DisplayName != "Proxied Person" || u.Role != stores.RoleMember {
+		t.Errorf("provisioned user = %+v", u)
+	}
+
+	// A member is not an admin: the admin page is forbidden, not redirected.
+	if code, _ := getWithHeaders(t, client, srv.URL+"/admin", headers); code != http.StatusForbidden {
+		t.Errorf("/admin as a proxy member = %d, want 403", code)
+	}
+}
+
+func TestProxyAuthNameFallsBackToEmail(t *testing.T) {
+	srv, _, st := newTestServerWith(t, proxyConfig)
+	client := newClient(t)
+
+	if code, _ := getWithHeaders(t, client, srv.URL+"/", map[string]string{"Auth-Request-Email": "noname@example.com"}); code != http.StatusOK {
+		t.Fatalf("index with an assertion = %d, want 200", code)
+	}
+	users, _ := st.ListUsers(context.Background())
+	if len(users) != 1 || users[0].DisplayName != "noname@example.com" {
+		t.Errorf("users = %+v, want one with the email as display name", users)
+	}
+}
+
+func TestProxyAuthIgnoredWhenOff(t *testing.T) {
+	srv, _, st := newTestServer(t)
+	client := newClient(t)
+
+	code, _ := getWithHeaders(t, client, srv.URL+"/", map[string]string{"Auth-Request-Email": "proxied@example.com"})
+	if code != http.StatusFound {
+		t.Fatalf("index with an assertion while off = %d, want 302", code)
+	}
+	users, _ := st.ListUsers(context.Background())
+	if len(users) != 0 {
+		t.Errorf("provisioned %d users with proxy auth off, want 0", len(users))
+	}
+}
+
+func TestProxyAuthRefusesDisabledUser(t *testing.T) {
+	srv, _, st := newTestServerWith(t, proxyConfig)
+	if err := st.InsertUser(context.Background(), stores.User{
+		ID: "gone", Email: "gone@example.com", DisplayName: "Gone",
+		Role: stores.RoleMember, CreatedAt: time.Now(), DisabledAt: time.Now(),
+	}); err != nil {
+		t.Fatalf("insert disabled user: %v", err)
+	}
+	client := newClient(t)
+
+	code, _ := getWithHeaders(t, client, srv.URL+"/", map[string]string{"Auth-Request-Email": "gone@example.com"})
+	if code != http.StatusFound {
+		t.Fatalf("disabled proxy user = %d, want 302", code)
+	}
+}

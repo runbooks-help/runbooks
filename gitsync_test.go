@@ -43,15 +43,14 @@ func mustGit(t *testing.T, dir string, args ...string) {
 
 func testCfg(repoURL string) config {
 	return config{
-		GitSyncRepo:           repoURL,
-		GitSyncBranch:         "main",
-		GitSyncBasePath:       "runs",
-		GitSyncAuthorName:     "Test Bot",
-		GitSyncAuthorEmail:    "bot@test.com",
-		GitSyncUsername:       "oauth2",
-		GitSyncToken:          "test-token",
-		GitSyncTrustProxyAuth: true,
-		GitSyncEnabled:        repoURL != "",
+		GitSyncRepo:        repoURL,
+		GitSyncBranch:      "main",
+		GitSyncBasePath:    "runs",
+		GitSyncAuthorName:  "Test Bot",
+		GitSyncAuthorEmail: "bot@test.com",
+		GitSyncUsername:    "oauth2",
+		GitSyncToken:       "test-token",
+		GitSyncEnabled:     repoURL != "",
 	}
 }
 
@@ -327,26 +326,30 @@ func TestLoadConfig_GitSyncEnabled(t *testing.T) {
 		for _, k := range []string{
 			"GITSYNC_REPO", "GITSYNC_TOKEN", "GITSYNC_SSH_KEY",
 			"GITSYNC_API_TOKEN", "GITSYNC_TRUST_PROXY_AUTH",
+			"IDENTITY_DB_DRIVER", "IDENTITY_TRUST_PROXY_AUTH",
 		} {
 			t.Setenv(k, "")
 		}
 	}
 
 	cases := []struct {
-		name  string
-		repo  string
-		token string
-		ssh   string
-		api   string
-		trust bool
-		want  bool
+		name      string
+		repo      string
+		token     string
+		ssh       string
+		api       string
+		driver    string
+		proxyAuth bool
+		want      bool
 	}{
-		{"nothing", "", "", "", "", false, false},
-		{"repo only", "https://h/r.git", "", "", "", false, false},
-		{"repo+token, no endpoint auth", "https://h/r.git", "t", "", "", false, false},
-		{"repo+ssh, no endpoint auth", "git@h:r.git", "", "/k", "", false, false},
-		{"repo+token+api token", "https://h/r.git", "t", "", "a", false, true},
-		{"repo+token+proxy auth", "https://h/r.git", "t", "", "", true, true},
+		{"nothing", "", "", "", "", "", false, false},
+		{"repo only", "https://h/r.git", "", "", "", "", false, false},
+		{"repo+token, no endpoint auth", "https://h/r.git", "t", "", "", "", false, false},
+		{"repo+ssh, no endpoint auth", "git@h:r.git", "", "/k", "", "", false, false},
+		{"repo+token+api token", "https://h/r.git", "t", "", "a", "", false, true},
+		{"repo+token+identity proxy auth", "https://h/r.git", "t", "", "", "sqlite", true, true},
+		{"proxy auth without identity", "https://h/r.git", "t", "", "", "", true, false},
+		{"identity on, proxy off", "https://h/r.git", "t", "", "", "sqlite", false, false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -355,8 +358,9 @@ func TestLoadConfig_GitSyncEnabled(t *testing.T) {
 			t.Setenv("GITSYNC_TOKEN", tc.token)
 			t.Setenv("GITSYNC_SSH_KEY", tc.ssh)
 			t.Setenv("GITSYNC_API_TOKEN", tc.api)
-			if tc.trust {
-				t.Setenv("GITSYNC_TRUST_PROXY_AUTH", "true")
+			t.Setenv("IDENTITY_DB_DRIVER", tc.driver)
+			if tc.proxyAuth {
+				t.Setenv("IDENTITY_TRUST_PROXY_AUTH", "true")
 			}
 			if got := loadConfig().GitSyncEnabled; got != tc.want {
 				t.Errorf("GitSyncEnabled = %v, want %v", got, tc.want)

@@ -59,7 +59,7 @@ func newAuth(svc *identity.Service, st stores.Store, cfg config) *auth {
 }
 
 func (a *auth) loginPage(w http.ResponseWriter, r *http.Request) {
-	if _, ok := a.sessionUser(r); ok {
+	if _, ok := a.resolveUser(r); ok {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
@@ -484,6 +484,41 @@ func (a *auth) sessionUser(r *http.Request) (stores.User, bool) {
 	return u, true
 }
 
+// proxyUser resolves an identity asserted by the upstream proxy, provisioning a
+// member on first sight. It returns false when delegation is off or the identity
+// header is absent or empty, so a request with neither a session nor an
+// assertion is simply unauthenticated. This is a per-request assertion, not a
+// session: no cookie is set and no session row is written.
+func (a *auth) proxyUser(r *http.Request) (stores.User, bool) {
+	if !a.cfg.IdentityTrustProxyAuth {
+		return stores.User{}, false
+	}
+	header := a.cfg.IdentityProxyUserHeader
+	if header == "" {
+		header = "Auth-Request-Email"
+	}
+	email := strings.TrimSpace(r.Header.Get(header))
+	if email == "" {
+		return stores.User{}, false
+	}
+	u, err := a.svc.ProvisionProxyUser(r.Context(), email, r.Header.Get(a.cfg.IdentityProxyNameHeader))
+	if err != nil {
+		logAuthFailure("proxy/provision", err)
+		return stores.User{}, false
+	}
+	return u, true
+}
+
+// resolveUser is the one authentication rule for every gate: a session cookie
+// first, then an upstream proxy assertion. A failure to provision the asserted
+// identity is logged and treated as unauthenticated, never surfaced.
+func (a *auth) resolveUser(r *http.Request) (stores.User, bool) {
+	if u, ok := a.sessionUser(r); ok {
+		return u, true
+	}
+	return a.proxyUser(r)
+}
+
 func (a *auth) setSession(w http.ResponseWriter, raw string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
@@ -533,7 +568,7 @@ func (a *auth) validBootstrap(token string) bool {
 // requirePage redirects an unauthenticated request to the login page.
 func (a *auth) requirePage(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		u, ok := a.sessionUser(r)
+		u, ok := a.resolveUser(r)
 		if !ok {
 			http.Redirect(w, r, "/login", http.StatusFound)
 			return
@@ -545,7 +580,7 @@ func (a *auth) requirePage(next http.HandlerFunc) http.HandlerFunc {
 // requireAdmin gates an authenticated page to admins.
 func (a *auth) requireAdmin(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		u, ok := a.sessionUser(r)
+		u, ok := a.resolveUser(r)
 		if !ok {
 			http.Redirect(w, r, "/login", http.StatusFound)
 			return
@@ -562,7 +597,7 @@ func (a *auth) requireAdmin(next http.HandlerFunc) http.HandlerFunc {
 // and 403 rather than redirecting.
 func (a *auth) requireAdminAPI(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		u, ok := a.sessionUser(r)
+		u, ok := a.resolveUser(r)
 		if !ok {
 			writeJSONError(w, http.StatusUnauthorized, "sign in required")
 			return
@@ -575,13 +610,15 @@ func (a *auth) requireAdminAPI(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// gateGitSync marks a session-authenticated git-sync request so the handler
-// skips its shared-token check; anything else falls through to the handler's
-// own token / proxy-assertion rules (the CI path).
+// gateGitSync marks an authenticated git-sync request so the handler skips its
+// shared-token check, and carries the resolved user so a commit can be
+// attributed per user. Anything else falls through to the handler's own token
+// rules (the CI path).
 func (a *auth) gateGitSync(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := a.sessionUser(r); ok {
+		if u, ok := a.resolveUser(r); ok {
 			r = r.WithContext(context.WithValue(r.Context(), sessionAuthKey{}, true))
+			r = r.WithContext(context.WithValue(r.Context(), userKey{}, u))
 		}
 		next(w, r)
 	}

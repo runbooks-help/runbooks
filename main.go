@@ -24,17 +24,16 @@ import (
 var static embed.FS
 
 type config struct {
-	GitSyncRepo           string
-	GitSyncBranch         string
-	GitSyncBasePath       string
-	GitSyncAuthorName     string
-	GitSyncAuthorEmail    string
-	GitSyncUsername       string
-	GitSyncToken          string
-	GitSyncSSHKey         string
-	GitSyncAPIToken       string
-	GitSyncTrustProxyAuth bool
-	GitSyncEnabled        bool
+	GitSyncRepo        string
+	GitSyncBranch      string
+	GitSyncBasePath    string
+	GitSyncAuthorName  string
+	GitSyncAuthorEmail string
+	GitSyncUsername    string
+	GitSyncToken       string
+	GitSyncSSHKey      string
+	GitSyncAPIToken    string
+	GitSyncEnabled     bool
 
 	IdentityEnabled         bool
 	IdentityDriver          string
@@ -73,15 +72,6 @@ func loadConfig() config {
 	if cfg.GitSyncUsername == "" {
 		cfg.GitSyncUsername = "oauth2"
 	}
-	cfg.GitSyncTrustProxyAuth = envBool("GITSYNC_TRUST_PROXY_AUTH", false)
-
-	// A repo and a credential are required to do anything, and the write route
-	// must never be reachable unauthenticated: without either a shared token or
-	// an explicit assertion that upstream auth exists, sync stays disabled.
-	hasCredential := cfg.GitSyncToken != "" || cfg.GitSyncSSHKey != ""
-	hasEndpointAuth := cfg.GitSyncAPIToken != "" || cfg.GitSyncTrustProxyAuth
-	cfg.GitSyncEnabled = cfg.GitSyncRepo != "" && hasCredential && hasEndpointAuth
-
 	// Identity is off unless a database driver is configured.
 	cfg.IdentityDriver = strings.TrimSpace(os.Getenv("IDENTITY_DB_DRIVER"))
 	cfg.IdentityDSN = strings.TrimSpace(os.Getenv("IDENTITY_DB_DSN"))
@@ -89,7 +79,10 @@ func loadConfig() config {
 	cfg.IdentityBootstrapToken = os.Getenv("IDENTITY_BOOTSTRAP_TOKEN")
 	cfg.IdentityRecoveryToken = os.Getenv("IDENTITY_RECOVERY_TOKEN")
 	cfg.IdentityTrustProxyAuth = envBool("IDENTITY_TRUST_PROXY_AUTH", false)
-	cfg.IdentityProxyUserHeader = envOr("IDENTITY_PROXY_USER_HEADER", "X-Auth-Request-Email")
+	// A custom identity header keeps no deprecated X- prefix (RFC 6648). The
+	// operator points this at whatever their proxy emits — oauth2-proxy uses
+	// X-Auth-Request-Email, Authelia Remote-Email.
+	cfg.IdentityProxyUserHeader = envOr("IDENTITY_PROXY_USER_HEADER", "Auth-Request-Email")
 	cfg.IdentityProxyNameHeader = os.Getenv("IDENTITY_PROXY_NAME_HEADER")
 	cfg.IdentitySecureCookies = envBool("IDENTITY_SECURE_COOKIES", true)
 	cfg.IdentitySessionTTL = envDuration("IDENTITY_SESSION_TTL", 720*time.Hour)
@@ -98,6 +91,17 @@ func loadConfig() config {
 		cfg.IdentityDSN = "file:./data/runbooks.db"
 	}
 	cfg.IdentityEnabled = cfg.IdentityDriver != ""
+
+	if cfg.IdentityTrustProxyAuth {
+		log.Printf("IDENTITY_TRUST_PROXY_AUTH is on: the instance must be reachable only through the trusted proxy that sets and strips %s, or the header is an impersonation hole", cfg.IdentityProxyUserHeader)
+	}
+
+	// A repo and a credential are required to do anything, and the write route
+	// must never be reachable unauthenticated: without a shared token or an
+	// upstream-auth assertion (the identity proxy setting), sync stays off.
+	hasCredential := cfg.GitSyncToken != "" || cfg.GitSyncSSHKey != ""
+	hasEndpointAuth := cfg.GitSyncAPIToken != "" || (cfg.IdentityEnabled && cfg.IdentityTrustProxyAuth)
+	cfg.GitSyncEnabled = cfg.GitSyncRepo != "" && hasCredential && hasEndpointAuth
 
 	// The styleguide is a dev/self-host surface, off in the default container.
 	cfg.StyleGuideEnabled = envBool("STYLEGUIDE_ENABLED", false)
