@@ -945,6 +945,11 @@ if (logoutButton) {
 		try {
 			await fetch('/api/auth/v1/logout', { method: 'POST' });
 		} finally {
+			// A fresh sign-in re-acknowledges destructive runbooks: the acknowledgement
+			// is per session, and signing out ends the session.
+			Object.keys(sessionStorage)
+				.filter(k => k.startsWith('runbooks-ack:'))
+				.forEach(k => sessionStorage.removeItem(k));
 			window.location.assign('/login');
 		}
 	});
