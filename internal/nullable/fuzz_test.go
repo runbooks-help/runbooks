@@ -43,12 +43,26 @@ func FuzzNullStringRoundTrip(f *testing.F) {
 			}
 			return
 		}
+		// encoding/json replaces invalid UTF-8 with U+FFFD, and how that
+		// replacement is escaped varies by Go version; require stability only
+		// once the value is valid.
+		if !utf8.ValidString(back.V) {
+			t.Fatalf("json round trip did not yield valid UTF-8: %q", back.V)
+		}
 		b2, err := json.Marshal(back)
 		if err != nil {
 			t.Fatalf("Marshal2: %v", err)
 		}
-		if string(b2) != string(b) {
-			t.Fatalf("json not stable for invalid UTF-8: %s -> %s", b, b2)
+		var again Null[string]
+		if err := json.Unmarshal(b2, &again); err != nil {
+			t.Fatalf("Unmarshal2: %v", err)
+		}
+		b3, err := json.Marshal(again)
+		if err != nil {
+			t.Fatalf("Marshal3: %v", err)
+		}
+		if string(b3) != string(b2) {
+			t.Fatalf("json not stable for invalid UTF-8: %s -> %s", b2, b3)
 		}
 	})
 }

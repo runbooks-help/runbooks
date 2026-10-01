@@ -19,7 +19,7 @@ func initTestRepo(t *testing.T) string {
 	t.Helper()
 
 	bare := t.TempDir()
-	mustGit(t, "", "init", "--bare", bare)
+	mustGit(t, "", "init", "--bare", "-b", "main", bare)
 
 	// Clone the bare repo, make an initial commit, push
 	work := t.TempDir()
