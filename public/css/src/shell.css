@@ -591,6 +591,135 @@ body.resizing-notes {
 	font-weight: 600;
 }
 
+/* ── Narrow layout: thin rail + off-canvas drawers ───────────────────
+   Below 1200px the fixed sidebar (196px) and notes column (460px) starve the
+   main column — a portrait monitor, a 125% laptop, or a split window. The
+   sidebar collapses to a thin rail and both panels become off-canvas drawers. */
+
+.rail {
+	display: none;
+}
+
+.drawer-close {
+	display: none;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border: none;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--muted);
+	font-size: var(--text-sm);
+	cursor: pointer;
+}
+
+.drawer-close:hover {
+	background: var(--nav-hover);
+	color: var(--text);
+}
+
+.drawer-scrim {
+	display: none;
+	position: fixed;
+	inset: 0;
+	z-index: 30;
+	background: rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 1199.98px) {
+	body,
+	body.notes-hidden,
+	body:has(.index-main),
+	body:has(.main--full) {
+		grid-template-columns: 56px 1fr;
+		grid-template-areas: "rail main";
+	}
+
+	.rail {
+		grid-area: rail;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-3) 0;
+		background: var(--nav-bg);
+		border-right: 1px solid var(--nav-border);
+	}
+
+	.rail-brand {
+		color: var(--accent-strong);
+		font-weight: 700;
+		font-size: var(--text-md);
+		line-height: 1;
+		text-decoration: none;
+	}
+
+	.rail-btn {
+		width: 36px;
+		height: 36px;
+		border: none;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		color: var(--nav-muted);
+		font-size: var(--text-base);
+		cursor: pointer;
+	}
+
+	.rail-btn:hover {
+		background: var(--nav-hover);
+		color: var(--nav-text);
+	}
+
+	.sidebar {
+		position: fixed;
+		inset-block: 0;
+		left: 0;
+		width: 264px;
+		z-index: 40;
+		transform: translateX(-100%);
+		transition: transform var(--duration-base) var(--ease);
+		box-shadow: var(--shadow-lg);
+	}
+
+	.sidebar-close {
+		position: absolute;
+		top: var(--space-3);
+		right: var(--space-3);
+	}
+
+	body[data-drawer="sidebar"] .sidebar {
+		transform: none;
+	}
+
+	/* Present the notes drawer even if the wide preference hid the column. */
+	.notes-panel,
+	body.notes-hidden .notes-panel {
+		display: flex;
+		position: fixed;
+		inset-block: 0;
+		right: 0;
+		width: 460px;
+		max-width: 92vw;
+		z-index: 40;
+		transform: translateX(100%);
+		transition: transform var(--duration-base) var(--ease);
+		box-shadow: var(--shadow-lg);
+	}
+
+	body[data-drawer="notes"] .notes-panel {
+		transform: none;
+	}
+
+	.drawer-close {
+		display: inline-flex;
+	}
+
+	body[data-drawer] .drawer-scrim {
+		display: block;
+	}
+}
+
 @media print {
 	body {
 		display: block !important;

@@ -16,6 +16,7 @@ templ Shell(title string) {
 		</head>
 		<body>
 			{ children... }
+			<div class="drawer-scrim" data-drawer-scrim></div>
 			<script src="/public/js/vendor/jszip.min.js"></script>
 			<script src="/public/js/vendor/marked.min.js"></script>
 			<script src="/public/js/vendor/highlight.min.js"></script>
@@ -28,6 +29,16 @@ templ SidebarHeader() {
 	<a class="sidebar-logo" href="/">
 		<span class="wordmark"><span class="wordmark-run">run</span>books</span>
 	</a>
+	<button class="drawer-close sidebar-close" type="button" data-drawer-close aria-label="Close">✕</button>
+}
+
+// Rail is the thin left strip in the narrow layout: the brand mark and a menu
+// button that opens the sidebar drawer. Hidden while the window is wide.
+templ Rail() {
+	<aside class="rail">
+		<a class="rail-brand" href="/" aria-label="Runbooks">r</a>
+		<button class="rail-btn" type="button" data-rail-menu aria-label="Menu" aria-expanded="false">☰</button>
+	</aside>
 }
 
 templ SidebarNav(groups []parser.SystemGroup, active string) {

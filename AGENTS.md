@@ -220,6 +220,7 @@ Authoring conventions that have bitten us:
   names the backup flags `defaultBackupEligibility` / `defaultBackupState`; the
   `hasBackup*` spellings are silently ignored (so BE never gets set). `e2e/passkey.test.mjs`
   relies on the `default*` names to present a synced-passkey (BE=1) shape.
+- **Below 1200px the shell reflows** (thin rail + off-canvas drawers, driven by `data-drawer` on `<body>`; see `shell.css`): the 196px sidebar would otherwise starve the main column on portrait/thin screens. `app.js` drives the rail menu, notes toggle, scrim and Esc.
 - The runbook page's right-hand notes panel is hideable; the toggle (`data-notes-toggle`)
   sits in the `.main-header` and persists `runbooks-notes` (on|off, default on),
   applied before paint in `app.js`.

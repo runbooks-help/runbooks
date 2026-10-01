@@ -6,6 +6,7 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 	@Shell(rb.Title) {
 		@templ.Raw("<script id=\"runbook-source\" type=\"application/json\">" + jsonString(rb.Source) + "</script>")
 		@templ.Raw("<script id=\"page-config\" type=\"application/json\">" + pageConfigJSON(cfg) + "</script>")
+		@Rail()
 		<aside class="sidebar">
 			@SidebarHeader()
 			@SidebarNav(groups, rb.Slug)
@@ -31,6 +32,7 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 						<button class="notes-sync" type="button">Sync</button>
 					}
 				</div>
+				<button class="drawer-close notes-close" type="button" data-drawer-close aria-label="Close">✕</button>
 			</div>
 			<textarea class="notes-textarea" spellcheck="false" placeholder="Markdown supported — paste screenshots too"></textarea>
 			<div class="notes-preview" hidden></div>

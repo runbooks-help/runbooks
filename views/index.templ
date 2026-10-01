@@ -6,6 +6,7 @@ import "runbooks/parser"
 // shortcuts declared in runbook frontmatter, then the full catalogue as cards.
 templ IndexPage(systems []parser.SystemGroup, isAdmin, identityEnabled bool) {
 	@Shell("") {
+		@Rail()
 		<aside class="sidebar">
 			@SidebarHeader()
 			@SidebarNav(systems, "")

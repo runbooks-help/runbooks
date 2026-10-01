@@ -9,6 +9,7 @@ import (
 // runbooks application rather than a standalone card.
 templ AdminPage(groups []parser.SystemGroup, users []stores.User, isAdmin, identityEnabled bool) {
 	@Shell("Admin") {
+		@Rail()
 		<aside class="sidebar">
 			@SidebarHeader()
 			@SidebarNav(groups, "admin")

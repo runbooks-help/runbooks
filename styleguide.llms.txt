@@ -60,10 +60,15 @@ instructions are short and imperative. Keep real code and identifier names.
 
 ## App shell & layout contract
 
-Pages render inside the shell: `<aside class="sidebar">` + `<div class="main">`,
-with a `.main-header` and a scrolling `.content` (which sets scroll-padding-top so
-anchored section links don't land flush against the header). A page with no notes
-column marks its main `.main--full`, collapsing the body grid to `sidebar | main`.
+Pages render inside the shell: `<aside class="rail">` + `<aside class="sidebar">` +
+`<div class="main">`, with a `.main-header` and a scrolling `.content` (which sets
+scroll-padding-top so anchored section links don't land flush against the header). A
+page with no notes column marks its main `.main--full`, collapsing the body grid to
+`sidebar | main`.
+
+Below 1200px the shell reflows: the sidebar collapses to a 56px rail and both the
+sidebar and the notes panel become off-canvas drawers (the `data-drawer` attribute
+on `<body>`; closed on scrim/Esc/✕).
 
 Layout uses the primitives in layouts.css only — never bespoke flex/grid in a
 component: .stack, .cluster, .row, .inline-icon, .grid[data-cols], .grow,

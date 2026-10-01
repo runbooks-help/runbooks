@@ -7,6 +7,7 @@ package views
 // STYLEGUIDE_ENABLED. Machine-readable mirror: /styleguide/llms.
 templ StyleGuidePage(isAdmin, identityEnabled bool) {
 	@Shell("Styleguide") {
+		@Rail()
 		<aside class="sidebar">
 			@SidebarHeader()
 			@styleGuideNav()

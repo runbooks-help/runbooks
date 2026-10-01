@@ -706,6 +706,25 @@ if (ackDialog) {
 
 // Notes panel: hide it or bring it back, remembered across runbooks. Runs before
 // first paint, so a hidden panel does not flash in.
+// Off-canvas drawers for the narrow layout: the rail's menu, the notes panel and
+// the scrim. Below 1200px both panels are drawers; above, notes is a column.
+const narrowShell = window.matchMedia('(max-width: 1199.98px)');
+
+function setDrawer(name) {
+	if (name) document.body.dataset.drawer = name;
+	else delete document.body.dataset.drawer;
+	document.querySelector('[data-rail-menu]')?.setAttribute('aria-expanded', String(name === 'sidebar'));
+}
+
+document.querySelector('[data-rail-menu]')?.addEventListener('click', () => {
+	setDrawer(document.body.dataset.drawer === 'sidebar' ? null : 'sidebar');
+});
+document.querySelector('[data-drawer-scrim]')?.addEventListener('click', () => setDrawer(null));
+document.querySelectorAll('[data-drawer-close]').forEach(btn => btn.addEventListener('click', () => setDrawer(null)));
+document.addEventListener('keydown', e => {
+	if (e.key === 'Escape' && document.body.dataset.drawer) setDrawer(null);
+});
+
 const notesToggle = document.querySelector('[data-notes-toggle]');
 if (notesToggle) {
 	const applyNotes = (shown) => {
@@ -713,11 +732,23 @@ if (notesToggle) {
 		notesToggle.setAttribute('aria-pressed', String(shown));
 		notesToggle.textContent = shown ? 'Hide notes' : 'Show notes';
 	};
-	applyNotes(localStorage.getItem('runbooks-notes') !== 'off');
+	// Wide: the persisted preference governs the notes column. Narrow: notes is a
+	// closed drawer, opened on demand.
+	if (!narrowShell.matches) applyNotes(localStorage.getItem('runbooks-notes') !== 'off');
 	notesToggle.addEventListener('click', () => {
+		if (narrowShell.matches) {
+			setDrawer(document.body.dataset.drawer === 'notes' ? null : 'notes');
+			notesToggle.textContent = document.body.dataset.drawer === 'notes' ? 'Hide notes' : 'Show notes';
+			return;
+		}
 		const show = document.body.classList.contains('notes-hidden');
 		localStorage.setItem('runbooks-notes', show ? 'on' : 'off');
 		applyNotes(show);
+	});
+	narrowShell.addEventListener('change', () => {
+		setDrawer(null);
+		if (narrowShell.matches) document.body.classList.remove('notes-hidden');
+		else applyNotes(localStorage.getItem('runbooks-notes') !== 'off');
 	});
 }
 
