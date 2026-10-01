@@ -1,6 +1,7 @@
 [tools]
 go = "latest"
 "aqua:a-h/templ" = "latest"
+"aqua:anchore/syft" = "latest"
 gofumpt = "latest"
 node = "latest"
 "go:github.com/go-gremlins/gremlins/cmd/gremlins" = "latest"
@@ -157,3 +158,21 @@ run = "podman compose down -v"
 [tasks.notices]
 description = "Regenerate THIRD_PARTY_NOTICES.md from the linked modules and vendored assets"
 run = "go run ./cmd/notices"
+
+[tasks.sbom]
+description = "Generate SPDX + CycloneDX SBOMs for the built binary"
+depends = ["build"]
+run = """
+  mkdir -p sbom
+  syft ./runbooks -o spdx-json=sbom/runbooks.spdx.json -o cyclonedx-json=sbom/runbooks.cdx.json
+  echo "wrote sbom/runbooks.spdx.json, sbom/runbooks.cdx.json"
+"""
+
+[tasks."sbom:image"]
+description = "Build the container image and generate SPDX + CycloneDX SBOMs for it"
+run = """
+  podman build -t runbooks:sbom .
+  mkdir -p sbom
+  syft runbooks:sbom -o spdx-json=sbom/runbooks-image.spdx.json -o cyclonedx-json=sbom/runbooks-image.cdx.json
+  echo "wrote sbom/runbooks-image.spdx.json, sbom/runbooks-image.cdx.json"
+"""

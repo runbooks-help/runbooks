@@ -1,5 +1,6 @@
 /runbooks
 /tmp/
+/sbom/
 
 # Per-developer dev-task config for pi-devtasks
 /.pi/dev.json

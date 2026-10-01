@@ -3,6 +3,7 @@ name: Container
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
 
@@ -12,6 +13,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write   # cosign keyless attestation
 
     steps:
       - uses: actions/checkout@v4
@@ -39,9 +41,42 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
+          load: true
           push: ${{ github.event_name == 'push' }}
           tags: |
             ${{ steps.tag.outputs.value }}
             ${{ steps.tag.outputs.extra }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Generate SBOM (SPDX)
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ steps.tag.outputs.value }}
+          format: spdx-json
+          output-file: sbom/runbooks.spdx.json
+
+      - name: Generate SBOM (CycloneDX)
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ steps.tag.outputs.value }}
+          format: cyclonedx-json
+          output-file: sbom/runbooks.cdx.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom/
+
+      - name: Install cosign
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: sigstore/cosign-installer@v3
+
+      - name: Attest SBOM against the release image
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          cosign attest --yes \
+            --predicate sbom/runbooks.spdx.json \
+            --type spdxjson \
+            "${{ steps.tag.outputs.value }}"
