@@ -147,6 +147,16 @@
 	font-size: var(--text-2xs);
 }
 
+/* A sidebar-width frame, so sidebar components are shown in their real context
+   rather than stretched across the page. */
+.sg-sidebar {
+	width: 240px;
+	background: var(--nav-bg);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	overflow: hidden;
+}
+
 .sg-tile {
 	padding: var(--space-3) var(--space-4);
 	background: var(--accent-lt);

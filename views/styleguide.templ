@@ -293,14 +293,18 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 
 					<section class="sg-section" id="appearance">
 						<h3>Appearance <span class="sg-atom">pattern</span></h3>
-						<p>Theme and code weight, applied before first paint and persisted in <code>runbooks-*</code>. Rendered live in this page's own sidebar.</p>
-						@AppearanceControl()
+						<p>Theme and code weight, applied before first paint and persisted in <code>runbooks-*</code>. A sidebar component — shown here in a sidebar-width frame, as it appears in the app.</p>
+						<div class="sg-sidebar">
+							@AppearanceControl()
+						</div>
 					</section>
 
 					<section class="sg-section" id="session">
 						<h3>Session actions <span class="sg-atom">pattern</span></h3>
 						<p>The sidebar footer account row: the Admin link (admins) and Sign out (identity on).</p>
-						@SessionActions(true, true)
+						<div class="sg-sidebar">
+							@SessionActions(true, true)
+						</div>
 					</section>
 
 					<section class="sg-section" id="admin">
