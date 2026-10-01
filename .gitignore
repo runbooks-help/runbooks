@@ -1,6 +1,9 @@
 /runbooks
 /tmp/
 
+# Per-developer dev-task config for pi-devtasks
+/.pi/dev.json
+
 # E2E harness dependencies (package.json / lockfile are committed)
 /e2e/node_modules/
 
