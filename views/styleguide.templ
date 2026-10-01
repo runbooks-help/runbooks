@@ -73,7 +73,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 					<section class="sg-section" id="radius">
 						<h3>Radius <span class="sg-atom">foundation</span></h3>
 						<div class="sg-row">
-							for _, r := range []string{"--radius-sm", "--radius-md", "--radius-lg", "--radius-pill"} {
+							for _, r := range []string{"--radius-sm", "--radius-md", "--radius-lg"} {
 								<div class="sg-stack" style="align-items: center">
 									<div class="sg-box" style={ "border-radius: var(" + r + ")" }></div>
 									<code>{ r }</code>

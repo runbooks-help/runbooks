@@ -42,7 +42,7 @@
 .step-check {
 	width: 32px;
 	height: 32px;
-	border-radius: 50%;
+	border-radius: var(--radius-sm);
 	border: 2px solid var(--border);
 	background: transparent;
 	color: transparent;
@@ -198,7 +198,7 @@
 .block-check {
 	width: 22px;
 	height: 22px;
-	border-radius: 50%;
+	border-radius: var(--radius-sm);
 	border: 1.5px solid #444;
 	background: transparent;
 	color: transparent;
