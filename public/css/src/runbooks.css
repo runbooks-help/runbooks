@@ -817,6 +817,13 @@
 	white-space: nowrap;
 }
 
+.runbook-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-3);
+	margin-bottom: var(--space-2);
+}
+
 .runbook-card[hidden],
 .index-group[hidden],
 .index-category[hidden],

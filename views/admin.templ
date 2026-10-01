@@ -69,12 +69,18 @@ templ AdminPage(groups []parser.SystemGroup, users []stores.User, isAdmin, ident
 										<tr>
 											<td>{ u.DisplayName }</td>
 											<td>{ u.Email }</td>
-											<td>{ string(u.Role) }</td>
+											<td>
+												if u.IsAdmin() {
+													<span class="badge badge-info">admin</span>
+												} else {
+													<span class="badge">member</span>
+												}
+											</td>
 											<td>
 												if u.Enabled() {
-													Active
+													<span class="badge badge-ok">active</span>
 												} else {
-													Disabled
+													<span class="badge badge-danger">disabled</span>
 												}
 											</td>
 											<td class="admin-actions">

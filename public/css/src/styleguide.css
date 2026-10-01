@@ -34,16 +34,28 @@
 	font-size: var(--text-sm);
 }
 
+/* The tier tag: a bracketed label, matching the badge atom. */
 .sg-atom {
-	padding: 1px var(--space-2);
-	border: 1px solid color-mix(in srgb, var(--accent-strong) 45%, transparent);
-	border-radius: var(--radius-pill);
-	background: var(--accent-lt);
+	white-space: nowrap;
 	color: var(--accent-strong);
+	font-family: var(--font-mono);
 	font-size: var(--text-2xs);
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.06em;
+	font-weight: var(--mono-weight);
+}
+
+.sg-atom::before,
+.sg-atom::after {
+	opacity: 0.5;
+}
+
+.sg-atom::before {
+	content: "[";
+	margin-right: 0.3em;
+}
+
+.sg-atom::after {
+	content: "]";
+	margin-left: 0.3em;
 }
 
 .sg-grid {

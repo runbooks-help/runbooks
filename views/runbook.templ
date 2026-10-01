@@ -41,6 +41,12 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 		</aside>
 		<div class="main">
 			<div class="main-header">
+				<div class="runbook-tags">
+					<span class="badge">{ parser.SystemName(rb.Group) }</span>
+					if rb.Category != "" {
+						<span class="badge">{ parser.CategoryName(rb.Category) }</span>
+					}
+				</div>
 				<h1>{ rb.Title }</h1>
 				<p>@templ.Raw(proseHTML(rb.Description))</p>
 			</div>

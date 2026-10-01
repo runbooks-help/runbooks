@@ -191,6 +191,14 @@ func systemDisplayName(dir string) string {
 	return categoryDisplayName(dir)
 }
 
+// SystemName returns the display name for a system directory, for callers
+// outside this package (e.g. a page label).
+func SystemName(dir string) string { return systemDisplayName(dir) }
+
+// CategoryName returns the display name for a category directory; empty when
+// the runbook sits directly under its system.
+func CategoryName(dir string) string { return categoryDisplayName(dir) }
+
 // categoryDisplayName title-cases a hyphenated directory name. An empty name
 // means the runbook sits directly under its system, with no subheading.
 func categoryDisplayName(dir string) string {
