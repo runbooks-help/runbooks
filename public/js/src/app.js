@@ -626,6 +626,36 @@ if (runbookRoot) {
 		setContents(on);
 		localStorage.setItem('runbooks-contents', on ? 'on' : 'off');
 	});
+
+	// Zen mode: hide the chrome, one step at a time. Esc exits.
+	const zenCards = [...runbookRoot.querySelectorAll('.step-card:not(.rollback-card)')];
+	const zenCount = document.querySelector('.zen-count');
+	let zenCurrent = 0;
+
+	const setZen = (on, current = zenCurrent) => {
+		document.body.classList.toggle('zen', on);
+		if (!on) {
+			localStorage.setItem('runbooks-zen', 'off');
+			applySteps(localStorage.getItem('runbooks-steps') || 'first');
+			return;
+		}
+		zenCurrent = Math.max(0, Math.min(current, zenCards.length - 1));
+		zenCards.forEach((card, i) => setCardState(card, i === zenCurrent));
+		if (zenCount) zenCount.textContent = `Step ${zenCurrent + 1} of ${zenCards.length}`;
+	};
+
+	document.querySelector('[data-zen-action="enter"]')?.addEventListener('click', () => {
+		localStorage.setItem('runbooks-zen', 'on');
+		setZen(true, 0);
+	});
+	document.querySelector('[data-zen-action="exit"]')?.addEventListener('click', () => setZen(false));
+	document.querySelector('[data-zen-action="prev"]')?.addEventListener('click', () => setZen(true, zenCurrent - 1));
+	document.querySelector('[data-zen-action="next"]')?.addEventListener('click', () => setZen(true, zenCurrent + 1));
+	document.addEventListener('keydown', e => {
+		if (e.key === 'Escape' && document.body.classList.contains('zen')) setZen(false);
+	});
+
+	if (localStorage.getItem('runbooks-zen') === 'on') setZen(true, 0);
 }
 
 // Index page — live filter over the runbook catalogue

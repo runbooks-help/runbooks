@@ -154,7 +154,8 @@ vars:
   **Contents** list is **optional and off by default** (the collapsed steps are the
   contents); `runbooks-steps` (`first`|`all`) and `runbooks-contents` (`on`|`off`)
   are reading preferences in the Appearance control, applied before paint in
-  `app.js`.
+  `app.js`. **Zen** (a toolbar button, Esc to exit) hides the chrome and shows one
+  step at a time.
 - ` ```lang [Label] ` → code block; the bracket label renders a header with a
   per-block "done" checkbox. `lang` must match the parser's fence regex
   (`[a-z]*` — lowercase only).

@@ -103,6 +103,8 @@ styleguide) without carrying a border that only makes sense in one host.
   step      Step(n, title, preview) numbered card; the header toggles it and a
             collapsed card shows the preview line; RollbackStep(title) danger card
   contents  .contents-btn in the step toolbar — reveals the optional .toc list
+  zen       body.zen hides the chrome (.sidebar/.notes-panel/.main-header/.toc/
+            .step-controls/#rollback) and shows one step via .zen-bar; Esc exits
   table     TableBlock(headers, rows)        list   ListBlock(items)
 
 ## Patterns
@@ -121,5 +123,6 @@ synchronous at the end of the body and so also runs before first paint.
 localStorage keys: `runbooks-theme` (light|dark|system, default dark),
 `runbooks-code-weight` (regular|bold, default regular), `runbooks-text-size`
 (small|medium|large, default medium), `runbooks-steps` (first|all, default
-first) and `runbooks-contents` (on|off, default off). Text size sets
-`--text-scale`, which moves the type scale and nothing else.
+first), `runbooks-contents` (on|off, default off) and `runbooks-zen` (on|off,
+default off). Text size sets `--text-scale`, which moves the type scale and
+nothing else.

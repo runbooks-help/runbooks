@@ -40,6 +40,14 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 			</div>
 		</aside>
 		<div class="main">
+			<div class="zen-bar">
+				<span class="zen-title">{ rb.Title }</span>
+				<span class="zen-count"></span>
+				<span class="spacer"></span>
+				<button type="button" data-zen-action="prev">← Previous</button>
+				<button type="button" data-zen-action="next">Next →</button>
+				<button type="button" data-zen-action="exit">Exit zen</button>
+			</div>
 			<div class="main-header">
 				<div class="runbook-tags">
 					<span class="badge">{ parser.SystemName(rb.Group) }</span>
@@ -83,6 +91,7 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 						<span class="spacer"></span>
 						<button type="button" data-steps-action="expand">Expand all</button>
 						<button type="button" data-steps-action="collapse">Collapse all</button>
+						<button type="button" data-zen-action="enter">Zen</button>
 					</div>
 				}
 				<div class="steps">
