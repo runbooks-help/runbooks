@@ -6,6 +6,12 @@
 	overflow: hidden;
 	background: var(--nav-bg);
 	position: relative;
+	justify-self: end;
+	width: var(--notes-width, 460px);
+	transition:
+		transform var(--duration-base) var(--ease),
+		opacity var(--duration-base) var(--ease),
+		visibility 0s linear 0s;
 }
 
 .notes-resize {
@@ -29,20 +35,242 @@ body.resizing-notes {
 	user-select: none;
 }
 
+/* Past the usable floor the panel pins at the minimum and this cue offers the
+   dismissal, so the drag has a visible limit rather than an invisible tripwire.
+   A scrim mutes the notes behind the centred cue. */
+body.notes-dismiss-armed .notes-resize {
+	background: var(--accent-strong);
+	opacity: 0.9;
+}
+
+.notes-panel::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.28);
+	opacity: 0;
+	pointer-events: none;
+	z-index: 4;
+	transition: opacity var(--duration-fast) var(--ease);
+}
+
+body.notes-dismiss-armed .notes-panel::before {
+	opacity: 1;
+}
+
+.notes-dismiss-hint {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 5;
+	margin: 0;
+	padding: var(--space-2) var(--space-4);
+	background: var(--tip-bg);
+	color: var(--tip-text);
+	border: 1px solid var(--tip-border);
+	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-md);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	text-align: center;
+	white-space: nowrap;
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+	transition:
+		opacity var(--duration-fast) var(--ease),
+		visibility 0s linear var(--duration-fast);
+}
+
+body.notes-dismiss-armed .notes-dismiss-hint {
+	opacity: 1;
+	visibility: visible;
+	transition:
+		opacity var(--duration-fast) var(--ease),
+		visibility 0s linear 0s;
+}
+
 .notes-header {
+	border-bottom: 1px solid var(--nav-border);
+	flex-shrink: 0;
+	position: relative;
+}
+
+.notes-row {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	flex-wrap: wrap;
 	gap: var(--space-2);
-	padding: var(--space-3) var(--space-3) var(--space-2) var(--space-4);
-	border-bottom: 1px solid var(--nav-border);
+	padding: var(--space-2) var(--space-3);
+}
+
+.notes-row + .notes-row {
+	border-top: 1px solid var(--nav-border);
+}
+
+.notes-row-end,
+.notes-overflow {
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+	position: relative;
+}
+
+/* The composer toolbar. */
+.notes-compose {
+	display: flex;
+	align-items: center;
+	gap: var(--space-hair);
+	min-width: 0;
+}
+
+.notes-tool {
+	width: 26px;
+	height: 26px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	flex-shrink: 0;
+	border: none;
+	background: none;
+	color: var(--nav-muted);
+	border-radius: var(--radius-sm);
+	font: inherit;
+	font-size: var(--text-2xs);
+	cursor: pointer;
+	transition:
+		color var(--duration-fast),
+		background var(--duration-fast);
+}
+
+.notes-tool:hover,
+.notes-tool[aria-expanded="true"] {
+	background: var(--nav-hover);
+	color: var(--text);
+}
+
+.notes-tool-icon {
+	display: block;
+}
+
+.notes-tool-sep {
+	width: var(--space-2);
+	flex-shrink: 0;
+}
+
+/* Overflow: rare and destructive actions stay out of the writing loop. */
+.notes-menu {
+	position: absolute;
+	top: calc(100% + var(--space-1));
+	right: 0;
+	min-width: 168px;
+	background: var(--surface);
+	border: 1px solid var(--border-strong);
+	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-lg);
+	padding: var(--space-1);
+	z-index: 20;
+}
+
+.notes-menu[hidden] {
+	display: none;
+}
+
+.notes-menu button {
+	display: flex;
+	width: 100%;
+	text-align: left;
+	padding: var(--space-2) var(--space-3);
+	border: none;
+	background: none;
+	color: var(--text);
+	border-radius: var(--radius-sm);
+	font: inherit;
+	font-size: var(--text-2xs);
+	cursor: pointer;
+}
+
+.notes-menu button:hover {
+	background: var(--nav-hover);
+}
+
+.notes-menu-danger {
+	color: var(--danger);
+}
+
+.notes-menu-sep {
+	height: 1px;
+	background: var(--border);
+	margin: var(--space-1) 0;
+}
+
+/* Syntax cheatsheet — non-modal, stays beside the caret. */
+.notes-cheatsheet {
+	position: absolute;
+	top: calc(100% + var(--space-1));
+	left: var(--space-3);
+	width: min(322px, calc(100% - var(--space-5)));
+	background: var(--surface);
+	border: 1px solid var(--border-strong);
+	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-lg);
+	padding: var(--space-3);
+	z-index: 20;
+}
+
+.notes-cheatsheet[hidden] {
+	display: none;
+}
+
+.notes-cheatsheet-label {
+	font-size: var(--text-2xs);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--muted);
+	font-weight: 600;
+	margin-bottom: var(--space-2);
+}
+
+.notes-cheatsheet-list {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: var(--space-1) var(--space-3);
+	align-items: baseline;
+}
+
+.notes-cheatsheet-list dt {
+	font-family: var(--font-mono);
+	font-weight: var(--mono-weight);
+	font-size: var(--text-2xs);
+	color: var(--text);
+	white-space: nowrap;
+}
+
+.notes-cheatsheet-list dd {
+	font-size: var(--text-2xs);
+	color: var(--muted);
+}
+
+.notes-cheatsheet-tip {
+	margin-top: var(--space-3);
+	padding-top: var(--space-2);
+	border-top: 1px solid var(--border);
+	font-size: var(--text-2xs);
+	color: var(--muted);
+}
+
+/* The formatting tools do not apply to rendered output. */
+.notes-panel[data-mode="preview"] .notes-compose {
+	display: none;
 }
 
 .notes-record {
 	display: flex;
 	align-items: center;
 	gap: var(--space-1);
+	margin-left: auto;
 	font-size: var(--text-2xs);
 	color: var(--nav-muted);
 	cursor: pointer;
@@ -59,35 +287,6 @@ body.resizing-notes {
 .notes-record input {
 	margin: 0;
 	accent-color: var(--accent);
-}
-
-.notes-actions {
-	display: flex;
-	gap: var(--space-1);
-}
-
-.notes-clear,
-.notes-print,
-.notes-export,
-.notes-sync {
-	font-size: var(--text-2xs);
-	color: var(--nav-muted);
-	background: none;
-	border: none;
-	cursor: pointer;
-	padding: var(--space-1) var(--space-2);
-	border-radius: var(--radius-sm);
-	transition:
-		color var(--duration-fast),
-		background var(--duration-fast);
-}
-
-.notes-clear:hover,
-.notes-print:hover,
-.notes-export:hover,
-.notes-sync:hover {
-	color: var(--text);
-	background: var(--nav-hover);
 }
 
 .notes-sync:disabled,
@@ -125,6 +324,14 @@ body.resizing-notes {
 	color: var(--text);
 	font-size: var(--text-xs);
 	line-height: 1.7;
+}
+
+.notes-preview a {
+	color: var(--link);
+}
+
+.notes-preview a:hover {
+	color: var(--accent-strong);
 }
 
 .notes-preview h1,

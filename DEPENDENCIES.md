@@ -6,9 +6,9 @@ future licence). Spec: `runbooks-commercial-model.md`; governance:
 `runbooks-governance.md`.
 
 - Date: 2026-10-01
-- Scope: what actually ships — the Go binary, the vendored browser JS, the
-  self-hosted fonts, and the container base. Build/test-only tooling is recorded
-  too, because it affects CI and reproducibility.
+- Scope: what actually ships — the Go binary, the vendored browser JS and
+  icons, the self-hosted fonts, and the container base. Build/test-only tooling
+  is recorded too, because it affects CI and reproducibility.
 - Posture: FSL is source-available, not OSI-open — it carries a two-year
   competing-use restriction, then converts to MIT. **Copyleft dependencies cannot
   be combined with it** (their terms forbid adding that further restriction), so
@@ -25,6 +25,7 @@ or rewriting.
 |---|---|---|
 | Distributed Go modules (linked into the binary) | 28 | MIT, BSD-2/3-Clause, Apache-2.0, ISC, **MPL-2.0 (1)**, dual MIT OR Apache (1) |
 | Vendored browser JS | 3 | BSD-3-Clause, MIT, MIT-or-GPLv3 (elect MIT) |
+| Vendored icons | 1 | ISC (Feather-derived subset MIT) |
 | Self-hosted fonts | 2 | OFL-1.1 |
 | Build/test-only Go modules | 45 | MIT, BSD-2/3-Clause, Apache-2.0, ISC, MPL-2.0 (1, not linked) |
 | Build tooling (non-Go) | — | MIT, Apache-2.0 |
@@ -98,7 +99,19 @@ Checked in and served as-is; not bundled.
 | `marked.min.js` | 15.0.12 | MIT | — |
 | `jszip.min.js` | 3.10.1 | MIT **or** GPLv3 | **MIT** (bundled pako is MIT) |
 
-## 3. Fonts (`public/fonts/`)
+## 3. Vendored icons (`views/`)
+
+Server-rendered inline SVG — a subset of [Lucide](https://lucide.dev) 1.49.0,
+ISC-licensed, with some icons derived from Feather (MIT). The path data is
+compiled into the binary via `views/icons.go`; the licence text is
+`public/js/vendor/lucide.LICENSE` and ships in `THIRD_PARTY_NOTICES.md`. No icon
+runtime is distributed.
+
+| Icons | Version | Licence |
+|---|---|---|
+| bold, italic, code, link, image, list, list-ordered, heading, quote, circle-help, ellipsis | 1.49.0 | ISC (Feather subset MIT) |
+
+## 4. Fonts (`public/fonts/`)
 
 | File | Font | Licence |
 |---|---|---|
@@ -108,7 +121,7 @@ Checked in and served as-is; not bundled.
 Both are © Braille Institute of America, licensed under the SIL Open Font
 License 1.1. The OFL text must accompany the fonts — see `NOTICE`.
 
-## 4. Build/test-only Go modules
+## 5. Build/test-only Go modules
 
 Present in `go.mod` (direct or indirect) but **not linked into the shipped
 binary**. Recorded for CI and reproducibility; all are permissive except
@@ -162,7 +175,7 @@ binary**. Recorded for CI and reproducibility; all are permissive except
 | `modernc.org/strutil` | v1.2.1 | BSD-3-Clause |
 | `modernc.org/token` | v1.1.0 | BSD-3-Clause |
 
-## 5. Build tooling (non-Go)
+## 6. Build tooling (non-Go)
 
 Not distributed, but part of the build/CI story.
 
@@ -173,7 +186,7 @@ Not distributed, but part of the build/CI story.
 | stylelint / Prettier (npm) | MIT | CSS lint / format |
 | playwright-core (npm, `e2e/`) | Apache-2.0 | browser E2E |
 
-## 6. Container
+## 7. Container
 
 The runtime image is `alpine:3` plus `git`, `openssh-client` and
 `ca-certificates` from Alpine's package index. Alpine packages carry their own

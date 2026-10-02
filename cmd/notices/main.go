@@ -144,8 +144,9 @@ func writeModules(b *bytes.Buffer, mods []module) error {
 	return nil
 }
 
-// writeVendors emits the browser JS and the fonts. These carry no Go module
-// metadata, so their licence texts are checked into the tree beside the assets.
+// writeVendors emits the browser JS, the vendored icons and the fonts. These
+// carry no Go module metadata, so their licence texts are checked into the tree
+// beside the assets.
 func writeVendors(b *bytes.Buffer) error {
 	fmt.Fprint(b, "\n## Vendored browser JS\n")
 	js := []struct{ name, file string }{
@@ -158,6 +159,11 @@ func writeVendors(b *bytes.Buffer) error {
 		if err := writeBlock(b, "### "+e.name, e.file); err != nil {
 			return err
 		}
+	}
+
+	fmt.Fprint(b, "\n## Vendored icons\n")
+	if err := writeBlock(b, "### Lucide 1.49.0 (icon subset) — ISC", "public/js/vendor/lucide.LICENSE"); err != nil {
+		return err
 	}
 
 	fmt.Fprint(b, "\n## Fonts\n")

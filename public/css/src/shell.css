@@ -2,10 +2,23 @@
 
 body {
 	display: grid;
-	grid-template-columns: var(--size-app-sidebar) 1fr 460px;
+	grid-template-columns: var(--size-app-sidebar) 1fr var(--notes-width, 460px);
 	grid-template-areas: "sidebar main notes";
 	height: 100vh;
 	overflow: hidden;
+}
+
+/* The notes column slides rather than snapping: the panel keeps its grid area on a
+   collapsing third track and translates out. Motion uses the styleguide's base
+   duration + ease. A drag disables the track transition so it tracks the cursor. */
+@media (min-width: 1200px) {
+	body {
+		transition: grid-template-columns var(--duration-base) var(--ease);
+	}
+
+	body.resizing-notes {
+		transition: none;
+	}
 }
 
 /* Index and admin pages have no notes panel — let main span the full width. */
@@ -121,13 +134,24 @@ nav a.active {
 	right: var(--space-6);
 }
 
+.notes-toggle-glyph {
+	font-family: var(--font-mono);
+	font-weight: var(--mono-weight);
+	color: var(--muted);
+}
+
 body.notes-hidden {
-	grid-template-columns: var(--size-app-sidebar) 1fr;
-	grid-template-areas: "sidebar main";
+	grid-template-columns: var(--size-app-sidebar) 1fr 0px;
 }
 
 body.notes-hidden .notes-panel {
-	display: none;
+	transform: translateX(100%);
+	opacity: 0;
+	visibility: hidden;
+	transition:
+		transform var(--duration-base) var(--ease),
+		opacity var(--duration-base) var(--ease),
+		visibility 0s linear var(--duration-base);
 }
 
 .main-header h1 {

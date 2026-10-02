@@ -13,28 +13,75 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 			@AppearanceControl()
 			@SessionActions(cfg.IsAdmin, cfg.IdentityEnabled)
 		</aside>
-		<aside class="notes-panel">
+		<aside class="notes-panel" data-mode="edit">
 			<div class="notes-resize" aria-hidden="true"></div>
+			<p class="notes-dismiss-hint" aria-hidden="true">Release to hide notes</p>
 			<div class="notes-header">
-				<div class="notes-tabs">
-					<button class="notes-tab active" data-mode="edit" type="button">Edit</button>
-					<button class="notes-tab" data-mode="preview" type="button">Preview</button>
+				<div class="notes-row">
+					<div class="notes-tabs">
+						<button class="notes-tab active" data-mode="edit" type="button">Edit</button>
+						<button class="notes-tab" data-mode="preview" type="button">Preview</button>
+					</div>
+					<div class="notes-row-end">
+						<div class="notes-overflow">
+							<button class="notes-tool" type="button" data-notes-menu aria-haspopup="menu" aria-expanded="false" aria-label="More actions" title="More actions">
+								@templ.Raw(lucideIcon("ellipsis"))
+							</button>
+							<div class="notes-menu" role="menu" hidden>
+								<button class="notes-export" type="button" role="menuitem" title="Download this record as a ZIP — no repo credential needed">Export · ZIP</button>
+								<button class="notes-print" type="button" role="menuitem">Print</button>
+								<div class="notes-menu-sep"></div>
+								<button class="notes-clear notes-menu-danger" type="button" role="menuitem">Clear…</button>
+								if cfg.GitSyncEnabled {
+									<div class="notes-menu-sep"></div>
+									<button class="notes-sync" type="button" role="menuitem">Sync</button>
+								}
+							</div>
+						</div>
+						<button class="drawer-close notes-close" type="button" data-drawer-close aria-label="Close">✕</button>
+					</div>
 				</div>
-				<label class="notes-record" title="Append completed steps to the notes as a timestamped timeline">
-					<input class="notes-record-check" type="checkbox" checked/>
-					Record timeline
-				</label>
-				<div class="notes-actions">
-					<button class="notes-export" type="button" title="Download this record as a ZIP — no repo credential needed">Export</button>
-					<button class="notes-print" type="button">Print</button>
-					<button class="notes-clear" type="button">Clear</button>
-					if cfg.GitSyncEnabled {
-						<button class="notes-sync" type="button">Sync</button>
-					}
+				<div class="notes-row">
+					<div class="notes-compose">
+						@notesTool("bold", "bold", "Bold")
+						@notesTool("italic", "italic", "Italic")
+						@notesTool("code", "code", "Inline code")
+						@notesTool("link", "link", "Link")
+						@notesTool("image", "image", "Add screenshot — or paste with Ctrl/⌘ V")
+						<span class="notes-tool-sep" aria-hidden="true"></span>
+						@notesTool("ul", "list", "Bulleted list")
+						@notesTool("ol", "list-ordered", "Numbered list")
+						@notesTool("heading", "heading", "Heading")
+						@notesTool("quote", "quote", "Quote")
+						<span class="notes-tool-sep" aria-hidden="true"></span>
+						<button class="notes-tool notes-tool--help" type="button" data-notes-help aria-expanded="false" aria-label="Markdown help" title="Markdown help">
+							@templ.Raw(lucideIcon("circle-help"))
+						</button>
+					</div>
+					<label class="notes-record" title="Append completed steps to the notes as a timestamped timeline">
+						<input class="notes-record-check" type="checkbox" checked/>
+						Record timeline
+					</label>
 				</div>
-				<button class="drawer-close notes-close" type="button" data-drawer-close aria-label="Close">✕</button>
+				<div class="notes-cheatsheet" data-notes-cheatsheet hidden>
+					<p class="notes-cheatsheet-label">Markdown</p>
+					<dl class="notes-cheatsheet-list">
+						<dt>**bold**</dt><dd>strong emphasis</dd>
+						<dt>*italic*</dt><dd>emphasis</dd>
+						<dt>`code`</dt><dd>inline token</dd>
+						<dt>[text](url)</dt><dd>link — opens in a new tab</dd>
+						<dt>![alt](url)</dt><dd>image</dd>
+						<dt>- item</dt><dd>bulleted list</dd>
+						<dt>1. item</dt><dd>numbered list</dd>
+						<dt>## heading</dt><dd>section heading</dd>
+						<dt>&gt; note</dt><dd>quote</dd>
+						<dt>``` fence ```</dt><dd>code block</dd>
+						<dt>| a | b |</dt><dd>table</dd>
+					</dl>
+					<p class="notes-cheatsheet-tip">Paste a screenshot with Ctrl/⌘ V, or use the image button.</p>
+				</div>
 			</div>
-			<textarea class="notes-textarea" spellcheck="false" placeholder="Markdown supported — paste screenshots too"></textarea>
+			<textarea class="notes-textarea" spellcheck="false" placeholder="Markdown supported — paste a screenshot with Ctrl/⌘ V, or use the image button"></textarea>
 			<div class="notes-preview" hidden></div>
 			<div class="notes-sync-toast" hidden role="status">
 				<span class="notes-sync-toast-msg"></span>
@@ -70,7 +117,7 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 				<button type="button" data-zen-action="exit">Exit zen</button>
 			</div>
 			<div class="main-header">
-				<button class="btn btn-ghost notes-toggle" type="button" data-notes-toggle aria-pressed="true">Hide notes</button>
+				<button class="btn btn-ghost notes-toggle" type="button" data-notes-toggle aria-pressed="true" aria-label="Hide notes">Notes <span class="notes-toggle-glyph" aria-hidden="true">▸</span></button>
 				<div class="runbook-tags">
 					<span class="badge">{ rb.GroupTitle }</span>
 					if rb.CategoryTitle != "" {
@@ -142,6 +189,12 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 			</div>
 		</div>
 	}
+}
+
+templ notesTool(key, icon, label string) {
+	<button class="notes-tool" data-notes-tool={ key } type="button" title={ label } aria-label={ label }>
+		@templ.Raw(lucideIcon(icon))
+	</button>
 }
 
 templ stepCard(n int, step parser.Step, rollback bool) {

@@ -167,3 +167,14 @@
 		break-inside: avoid;
 	}
 }
+
+/* Motion respects the user's preference: state changes become instant. */
+@media (prefers-reduced-motion: reduce) {
+	body,
+	.notes-panel,
+	body.notes-hidden .notes-panel,
+	.notes-dismiss-hint,
+	.notes-panel::before {
+		transition: none;
+	}
+}

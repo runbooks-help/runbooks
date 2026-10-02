@@ -234,28 +234,50 @@ function expandNoteImgs(md) {
 	});
 }
 
+// Insert text through execCommand so the browser's native undo stack still
+// reverses toolbar and paste edits.
+function insertNotesText(text, start, end) {
+	notesArea.focus();
+	notesArea.setSelectionRange(start, end);
+	document.execCommand('insertText', false, text);
+}
+
+// Store an image as an img-N token and drop its markdown reference at the
+// caret. Shared by clipboard paste and the Screenshot button.
+function insertNoteImage(file) {
+	const reader = new FileReader();
+	reader.onload = ev => {
+		const imgs = JSON.parse(localStorage.getItem(notesImgKey) || '{}');
+		const n = Object.keys(imgs).filter(k => k.startsWith('img-')).length + 1;
+		const id = `img-${n}`;
+		imgs[id] = ev.target.result;
+		localStorage.setItem(notesImgKey, JSON.stringify(imgs));
+		const md = `\n![screenshot][${id}]\n`;
+		const start = notesArea.selectionStart;
+		insertNotesText(md, start, notesArea.selectionEnd);
+		notesArea.setSelectionRange(start + md.length, start + md.length);
+	};
+	reader.readAsDataURL(file);
+}
+
 if (notesArea) {
 	notesArea.value = localStorage.getItem(notesKey) || '';
 	notesArea.addEventListener('input', () => localStorage.setItem(notesKey, notesArea.value));
 
 	notesArea.addEventListener('paste', e => {
+		// A URL pasted over a selection becomes a link around that selection.
+		const text = (e.clipboardData?.getData('text/plain') || '').trim();
+		const selStart = notesArea.selectionStart;
+		const selEnd = notesArea.selectionEnd;
+		if (selEnd > selStart && /^https?:\/\/\S+$/i.test(text)) {
+			e.preventDefault();
+			insertNotesText(`[${notesArea.value.slice(selStart, selEnd)}](${text})`, selStart, selEnd);
+			return;
+		}
 		const imgItem = Array.from(e.clipboardData?.items || []).find(i => i.type.startsWith('image/'));
 		if (!imgItem) return;
 		e.preventDefault();
-		const reader = new FileReader();
-		reader.onload = ev => {
-			const imgs = JSON.parse(localStorage.getItem(notesImgKey) || '{}');
-			const n = Object.keys(imgs).filter(k => k.startsWith('img-')).length + 1;
-			const id = `img-${n}`;
-			imgs[id] = ev.target.result;
-			localStorage.setItem(notesImgKey, JSON.stringify(imgs));
-			const md = `\n![screenshot][${id}]\n`;
-			const start = notesArea.selectionStart;
-			notesArea.value = notesArea.value.slice(0, start) + md + notesArea.value.slice(notesArea.selectionEnd);
-			notesArea.selectionStart = notesArea.selectionEnd = start + md.length;
-			localStorage.setItem(notesKey, notesArea.value);
-		};
-		reader.readAsDataURL(imgItem.getAsFile());
+		insertNoteImage(imgItem.getAsFile());
 	});
 }
 
@@ -316,14 +338,25 @@ function recordTimeline(entry) {
 	localStorage.setItem(notesKey, next);
 
 	if (notesPreview && !notesPreview.hidden) {
-		notesPreview.innerHTML = window.marked.parse(expandNoteImgs(next));
+		renderNotesPreview(next);
 	}
+}
+
+// Render the notes markdown, making external links open in a new tab so
+// following a reference does not navigate away from an in-progress run.
+function renderNotesPreview(md) {
+	notesPreview.innerHTML = window.marked.parse(expandNoteImgs(md));
+	notesPreview.querySelectorAll('a[href]').forEach(a => {
+		a.target = '_blank';
+		a.rel = 'noopener noreferrer';
+	});
 }
 
 function setNotesMode(mode) {
 	notesTabs.forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+	document.querySelector('.notes-panel')?.setAttribute('data-mode', mode);
 	if (mode === 'preview') {
-		notesPreview.innerHTML = window.marked.parse(expandNoteImgs(notesArea.value || ''));
+		renderNotesPreview(notesArea.value || '');
 		notesPreview.hidden = false;
 		notesArea.hidden = true;
 	} else {
@@ -334,6 +367,139 @@ function setNotesMode(mode) {
 }
 
 notesTabs.forEach(btn => btn.addEventListener('click', () => setNotesMode(btn.dataset.mode)));
+
+// Composer toolbar: inline buttons wrap the selection, block buttons prefix its
+// lines. A second press removes the marker.
+function notesWrap(before, after, placeholder) {
+	const start = notesArea.selectionStart;
+	const end = notesArea.selectionEnd;
+	const value = notesArea.value;
+	const selected = value.slice(start, end);
+	// Markers sitting just outside the selection (the post-wrap state).
+	if (value.slice(start - before.length, start) === before && value.slice(end, end + after.length) === after) {
+		insertNotesText(selected, start - before.length, end + after.length);
+		notesArea.setSelectionRange(start - before.length, end - before.length);
+		return;
+	}
+	if (selected.startsWith(before) && selected.endsWith(after) && selected.length >= before.length + after.length) {
+		const stripped = selected.slice(before.length, selected.length - after.length);
+		insertNotesText(stripped, start, end);
+		notesArea.setSelectionRange(start, start + stripped.length);
+		return;
+	}
+	const body = selected || placeholder;
+	insertNotesText(before + body + after, start, end);
+	notesArea.setSelectionRange(start + before.length, start + before.length + body.length);
+}
+
+function notesLink() {
+	const start = notesArea.selectionStart;
+	const end = notesArea.selectionEnd;
+	const body = notesArea.value.slice(start, end) || 'text';
+	insertNotesText(`[${body}](url)`, start, end);
+	const urlStart = start + body.length + 3;
+	notesArea.setSelectionRange(urlStart, urlStart + 3);
+}
+
+function notesPrefix(prefix) {
+	const value = notesArea.value;
+	const start = notesArea.selectionStart;
+	const end = notesArea.selectionEnd;
+	const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+	let lineEnd = value.indexOf('\n', end);
+	if (lineEnd === -1) lineEnd = value.length;
+	const lines = value.slice(lineStart, lineEnd).split('\n');
+	const all = lines.every(line => line.startsWith(prefix));
+	const next = lines.map(line => (all ? line.slice(prefix.length) : prefix + line)).join('\n');
+	insertNotesText(next, lineStart, lineEnd);
+	notesArea.setSelectionRange(lineStart, lineStart + next.length);
+}
+
+document.querySelectorAll('[data-notes-tool]').forEach(btn => {
+	btn.addEventListener('click', () => {
+		switch (btn.dataset.notesTool) {
+			case 'bold':
+				notesWrap('**', '**', 'bold');
+				break;
+			case 'italic':
+				notesWrap('*', '*', 'italic');
+				break;
+			case 'code':
+				notesWrap('`', '`', 'code');
+				break;
+			case 'link':
+				notesLink();
+				break;
+			case 'ul':
+				notesPrefix('- ');
+				break;
+			case 'ol':
+				notesPrefix('1. ');
+				break;
+			case 'heading':
+				notesPrefix('## ');
+				break;
+			case 'quote':
+				notesPrefix('> ');
+				break;
+		}
+	});
+});
+
+// Screenshot button: the file-picker twin of the paste handler.
+const notesImageInput = document.createElement('input');
+notesImageInput.type = 'file';
+notesImageInput.accept = 'image/*';
+notesImageInput.hidden = true;
+document.body.appendChild(notesImageInput);
+document.querySelector('[data-notes-tool="image"]')?.addEventListener('click', () => notesImageInput.click());
+notesImageInput.addEventListener('change', () => {
+	const file = notesImageInput.files[0];
+	if (file) insertNoteImage(file);
+	notesImageInput.value = '';
+});
+
+// Overflow menu and the syntax cheatsheet: non-modal, closed by outside click
+// or Esc, anchored in the notes header.
+const notesMenuBtn = document.querySelector('[data-notes-menu]');
+const notesMenu = document.querySelector('.notes-menu');
+const notesHelpBtn = document.querySelector('[data-notes-help]');
+const notesCheatsheet = document.querySelector('[data-notes-cheatsheet]');
+
+function setNotesMenu(open) {
+	if (!notesMenu) return;
+	notesMenu.hidden = !open;
+	notesMenuBtn.setAttribute('aria-expanded', String(open));
+}
+
+function setNotesHelp(open) {
+	if (!notesCheatsheet) return;
+	notesCheatsheet.hidden = !open;
+	notesHelpBtn.setAttribute('aria-expanded', String(open));
+}
+
+notesMenuBtn?.addEventListener('click', e => {
+	e.stopPropagation();
+	setNotesHelp(false);
+	setNotesMenu(notesMenu.hidden);
+});
+notesHelpBtn?.addEventListener('click', e => {
+	e.stopPropagation();
+	setNotesMenu(false);
+	setNotesHelp(notesCheatsheet.hidden);
+});
+notesMenu?.addEventListener('click', () => setNotesMenu(false));
+document.addEventListener('click', e => {
+	if (notesMenu && !notesMenu.hidden && !notesMenu.contains(e.target) && e.target !== notesMenuBtn) setNotesMenu(false);
+	if (notesCheatsheet && !notesCheatsheet.hidden && !notesCheatsheet.contains(e.target) && e.target !== notesHelpBtn)
+		setNotesHelp(false);
+});
+document.addEventListener('keydown', e => {
+	if (e.key === 'Escape') {
+		setNotesMenu(false);
+		setNotesHelp(false);
+	}
+});
 
 if (notesClear) {
 	notesClear.addEventListener('click', async () => {
@@ -408,23 +574,65 @@ if (notesExport) {
 	});
 }
 
-// Notes panel drag-to-resize
+// Notes visibility is shared by the header toggle, the narrow drawer and the
+// drag-to-resize handler below. setNotesGlyph swaps the button state; setNotesShown
+// also drives the wide-layout column.
+function setNotesGlyph(shown) {
+	const t = document.querySelector('[data-notes-toggle]');
+	if (!t) return;
+	t.setAttribute('aria-pressed', String(shown));
+	t.setAttribute('aria-label', shown ? 'Hide notes' : 'Show notes');
+	const g = t.querySelector('.notes-toggle-glyph');
+	if (g) g.textContent = shown ? '▸' : '◂';
+}
+
+function setNotesShown(shown) {
+	document.body.classList.toggle('notes-hidden', !shown);
+	setNotesGlyph(shown);
+}
+
+// Notes panel drag-to-resize. The width is state (a custom property) rather
+// than a hard-coded grid: hiding the panel must drop the column entirely, and
+// an inline grid-template-columns would outlive the hidden class. Dragging the
+// edge in past the usable minimum dismisses the panel instead of clipping its
+// wrapped toolbar.
 const notesHandle = document.querySelector('.notes-resize');
+const notesWidthKey = 'runbooks-notes-width';
+const notesResizeMin = 340;
+const notesResizeMax = 640;
+const clampNotesWidth = w => Math.min(notesResizeMax, Math.max(notesResizeMin, Math.round(w)));
+const savedNotesWidth = parseInt(localStorage.getItem(notesWidthKey) || '', 10);
+if (savedNotesWidth >= notesResizeMin) document.body.style.setProperty('--notes-width', clampNotesWidth(savedNotesWidth) + 'px');
 if (notesHandle) {
 	notesHandle.addEventListener('mousedown', e => {
 		const startX = e.clientX;
 		const startW = document.querySelector('.notes-panel').offsetWidth;
 		document.body.classList.add('resizing-notes');
 
-		const onMove = e => {
-			const w = Math.max(180, Math.min(640, startW + (startX - e.clientX)));
-			document.body.style.gridTemplateColumns =
-				`var(--size-app-sidebar) 1fr ${w}px`;
+		const onMove = ev => {
+			const w = startW + (startX - ev.clientX);
+			if (w >= notesResizeMin) {
+				// Inside the usable range the panel follows the cursor.
+				document.body.classList.remove('notes-dismiss-armed');
+				document.body.style.setProperty('--notes-width', clampNotesWidth(w) + 'px');
+				return;
+			}
+			// Past the floor it pins at the minimum and arms the dismissal.
+			document.body.style.setProperty('--notes-width', notesResizeMin + 'px');
+			document.body.classList.add('notes-dismiss-armed');
 		};
 		const onUp = () => {
-			document.body.classList.remove('resizing-notes');
+			const dismiss = document.body.classList.contains('notes-dismiss-armed');
+			document.body.classList.remove('resizing-notes', 'notes-dismiss-armed');
 			document.removeEventListener('mousemove', onMove);
 			document.removeEventListener('mouseup', onUp);
+			if (dismiss) {
+				setNotesShown(false);
+				localStorage.setItem('runbooks-notes', 'off');
+				return;
+			}
+			localStorage.setItem('runbooks-notes', 'on');
+			localStorage.setItem(notesWidthKey, String(Math.round(document.querySelector('.notes-panel').offsetWidth)));
 		};
 		document.addEventListener('mousemove', onMove);
 		document.addEventListener('mouseup', onUp);
@@ -714,6 +922,7 @@ function setDrawer(name) {
 	if (name) document.body.dataset.drawer = name;
 	else delete document.body.dataset.drawer;
 	document.querySelector('[data-rail-menu]')?.setAttribute('aria-expanded', String(name === 'sidebar'));
+	if (narrowShell.matches) setNotesGlyph(name === 'notes');
 }
 
 document.querySelector('[data-rail-menu]')?.addEventListener('click', () => {
@@ -727,18 +936,14 @@ document.addEventListener('keydown', e => {
 
 const notesToggle = document.querySelector('[data-notes-toggle]');
 if (notesToggle) {
-	const applyNotes = (shown) => {
-		document.body.classList.toggle('notes-hidden', !shown);
-		notesToggle.setAttribute('aria-pressed', String(shown));
-		notesToggle.textContent = shown ? 'Hide notes' : 'Show notes';
-	};
+	const applyNotes = setNotesShown;
 	// Wide: the persisted preference governs the notes column. Narrow: notes is a
 	// closed drawer, opened on demand.
 	if (!narrowShell.matches) applyNotes(localStorage.getItem('runbooks-notes') !== 'off');
 	notesToggle.addEventListener('click', () => {
 		if (narrowShell.matches) {
 			setDrawer(document.body.dataset.drawer === 'notes' ? null : 'notes');
-			notesToggle.textContent = document.body.dataset.drawer === 'notes' ? 'Hide notes' : 'Show notes';
+			setNotesGlyph(document.body.dataset.drawer === 'notes');
 			return;
 		}
 		const show = document.body.classList.contains('notes-hidden');
