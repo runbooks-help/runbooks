@@ -1,20 +1,25 @@
 package views
 
+import (
+	"runbooks/parser"
+	"runbooks/views/components"
+)
+
 // StyleGuidePage renders the design system inside the app shell, organised by
 // atomicity — Foundations, Layout primitives, Atoms, Molecules, Patterns — from
 // the real tokens and templ components, so it cannot drift. The sidebar carries
 // the styleguide's own section navigation. Dev-gated; see styleguide.go and
 // STYLEGUIDE_ENABLED. Machine-readable mirror: /styleguide/llms.
 templ StyleGuidePage(isAdmin, identityEnabled bool) {
-	@Shell("Styleguide") {
-		@Rail()
+	@components.Shell("Styleguide") {
+		@components.Rail()
 		<aside class="sidebar">
-			@SidebarHeader()
+			@components.SidebarHeader()
 			@styleGuideNav()
 			<div class="sidebar-appearance">
-				@AppearanceTrigger(true)
+				@components.AppearanceTrigger(true)
 			</div>
-			@SessionActions(isAdmin, identityEnabled)
+			@components.SessionActions(isAdmin, identityEnabled)
 		</aside>
 		<div class="main main--full">
 			<div class="main-header">
@@ -259,10 +264,10 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 						<h3>Notice <span class="sg-atom">atom</span></h3>
 						<p>Info, warn and danger, plus the banner used for a destructive runbook.</p>
 						<div class="sg-stack">
-							@Notice("info", "Use the primary node for reads while the replica catches up.")
-							@Notice("warn", "This step briefly stops writes — check the drain is complete first.")
-							@Notice("danger", "READ EVERY STEP BEFORE DOING ANYTHING. This recovery drops and rebuilds the replica.")
-							@FrontmatterNotice("A frontmatter `notice:` renders this banner above the steps.")
+							@components.Notice("info", "Use the primary node for reads while the replica catches up.")
+							@components.Notice("warn", "This step briefly stops writes — check the drain is complete first.")
+							@components.Notice("danger", "READ EVERY STEP BEFORE DOING ANYTHING. This recovery drops and rebuilds the replica.")
+							@components.FrontmatterNotice("A frontmatter `notice:` renders this banner above the steps.")
 						</div>
 					</section>
 
@@ -291,12 +296,12 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 							blocking condition. A notice is a prose callout; an alert is state.
 						</p>
 						<div class="sg-stack">
-							@Alert("panel", "danger", "Could not join", "Your browser cancelled or timed out the passkey request.")
-							@Alert("panel", "warn", "Passkey created, email not set", "You can add an email later from the admin table.")
-							@Alert("panel", "info", "Waiting for your passkey", "Approve the request in your browser or password manager.")
-							@Alert("panel", "success", "Invite created", "Share the link; it can be used once and expires in 24 hours.")
-							@Alert("inline", "danger", "", "Enter a valid email address, for example you@example.com.")
-							@Alert("banner", "danger", "Invite not valid", "This invite has already been used or has expired. Ask an admin for a new link.")
+							@components.Alert("panel", "danger", "Could not join", "Your browser cancelled or timed out the passkey request.")
+							@components.Alert("panel", "warn", "Passkey created, email not set", "You can add an email later from the admin table.")
+							@components.Alert("panel", "info", "Waiting for your passkey", "Approve the request in your browser or password manager.")
+							@components.Alert("panel", "success", "Invite created", "Share the link; it can be used once and expires in 24 hours.")
+							@components.Alert("inline", "danger", "", "Enter a valid email address, for example you@example.com.")
+							@components.Alert("banner", "danger", "Invite not valid", "This invite has already been used or has expired. Ask an admin for a new link.")
 						</div>
 					</section>
 
@@ -304,8 +309,8 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 						<h3>Code block <span class="sg-atom">molecule</span></h3>
 						<p>A language and an optional bracketed label; the label renders as an inline header on the block — an accent ▸, the label, and a per-block done checkbox. Code stays dark in both themes.</p>
 						<div class="stack">
-							@CodeBlock("Promote the replica", "export HOST=\"db-2.prod.internal\"\nmysql -h \"$HOST\" -e \"STOP SLAVE; RESET SLAVE ALL;\"", "bash")
-							@CodeBlock("", "SELECT id, state FROM information_schema.processlist;", "sql")
+							@components.CodeBlock("Promote the replica", "export HOST=\"db-2.prod.internal\"\nmysql -h \"$HOST\" -e \"STOP SLAVE; RESET SLAVE ALL;\"", "bash")
+							@components.CodeBlock("", "SELECT id, state FROM information_schema.processlist;", "sql")
 						</div>
 					</section>
 
@@ -313,12 +318,12 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 						<h3>Step <span class="sg-atom">molecule</span></h3>
 						<p>A numbered card. The header toggles it open or closed; collapsed, it shows the preview line in place of the body.</p>
 						<div class="steps">
-							@Step(1, "Confirm the lag", "Check the replica's lag and last error.") {
+							@components.Step(1, "Confirm the lag", "Check the replica's lag and last error.") {
 								<p>Prose inside a step body. Notice the numbered header, the done checkbox and the collapse chevron.</p>
 							}
-							@Step(2, "Stop the SQL thread", "Stop the thread before you clear the deadlock.") {
+							@components.Step(2, "Stop the SQL thread", "Stop the thread before you clear the deadlock.") {
 								<p>The replica no longer applies transactions while you resolve the deadlock.</p>
-								@Notice("warn", "Writes on the primary keep coming until the next step finishes.")
+								@components.Notice("warn", "Writes on the primary keep coming until the next step finishes.")
 							}
 							<div class="step-card collapsed">
 								<div class="step-header">
@@ -332,7 +337,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 								</div>
 								<p class="step-preview">The preview line shown in place of the body while collapsed.</p>
 							</div>
-							@RollbackStep("Roll back the promotion") {
+							@components.RollbackStep("Roll back the promotion") {
 								<p>Rollback steps render in the danger styling, without a number.</p>
 							}
 						</div>
@@ -340,8 +345,8 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 
 					<section class="sg-section" id="table">
 						<h3>List &amp; table <span class="sg-atom">molecule</span></h3>
-						@ListBlock([]string{"First item — plain text", "Second item with `inline code` and **bold**", "Third item, long enough to wrap onto a second line"})
-						@TableBlock([]string{"Column", "Meaning", "Example"}, [][]string{
+						@components.ListBlock([]string{"First item — plain text", "Second item with `inline code` and **bold**", "Third item, long enough to wrap onto a second line"})
+						@components.TableBlock([]string{"Column", "Meaning", "Example"}, [][]string{
 							{"`HOST`", "Target host", "`db-2.prod.internal`"},
 							{"`PROCESSLIST_ID`", "Blocked worker", "`4123`"},
 							{"Status", "Whether a step is done", "`done` / `pending`"},
@@ -372,7 +377,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 							collapse and counts the matches. Shown in a sidebar-width frame.
 						</p>
 						<div class="sg-sidebar">
-							@SidebarNav(sgSidebarGroups(), "replication-lag-bulk-import")
+							@components.SidebarNav(sgSidebarGroups(), "replication-lag-bulk-import")
 						</div>
 					</section>
 
@@ -380,7 +385,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 						<h3>Appearance <span class="sg-atom">pattern</span></h3>
 						<p>Theme, code weight, text size and steps, applied before first paint and persisted in <code>runbooks-*</code>. One floating panel, summoned from a cogwheel in the rail (always visible) or the strip at the foot of the summoned sidebar; the anchor position beside the summoner is drawer state, not component CSS. Shown here open, as it appears in the app.</p>
 						<div class="sg-sidebar">
-							@AppearanceTrigger(true)
+							@components.AppearanceTrigger(true)
 						</div>
 						<div class="appearance">
 							<p class="appearance-title">Appearance</p>
@@ -421,7 +426,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 						<h3>Session actions <span class="sg-atom">pattern</span></h3>
 						<p>The sidebar footer account row: the Admin link (admins) and Sign out (identity on).</p>
 						<div class="sg-sidebar">
-							@SessionActions(true, true)
+							@components.SessionActions(true, true)
 						</div>
 					</section>
 
@@ -502,4 +507,43 @@ templ sgSwatch(token, label string) {
 		<div class="chip" style={ "background: var(" + token + ")" }></div>
 		<div class="meta"><code>{ token }</code> · { label }</div>
 	</div>
+}
+
+// sgSidebarGroups is the sample tree the styleguide renders the sidebar-nav
+// pattern from — it must not depend on the content tree, which is empty in a
+// fresh checkout. The values are invented, not drawn from real content.
+func sgSidebarGroups() []parser.SystemGroup {
+	return []parser.SystemGroup{
+		{
+			Name: "MySQL",
+			Categories: []parser.CategoryGroup{
+				{
+					Name: "Replication",
+					Runbooks: []parser.RunbookMeta{
+						{
+							Title:       "Replication Lag After a Bulk Import",
+							Slug:        "replication-lag-bulk-import",
+							Description: "Replica workers fall behind while the primary finishes a large load.",
+							Symptoms:    []string{"replication lag", "replica behind"},
+						},
+						{Title: "Replica Stops With a Duplicate Key", Slug: "replica-duplicate-key"},
+						{Title: "Rebuild a Replica From a Snapshot", Slug: "rebuild-replica-snapshot"},
+					},
+				},
+				{
+					Name:     "Failover",
+					Runbooks: []parser.RunbookMeta{{Title: "Promote a Replica During an Outage", Slug: "promote-replica-outage"}},
+				},
+			},
+		},
+		{
+			Name: "Kubernetes",
+			Categories: []parser.CategoryGroup{
+				{
+					Name:     "Cluster",
+					Runbooks: []parser.RunbookMeta{{Title: "Node NotReady After a Reboot", Slug: "node-notready-after-reboot"}},
+				},
+			},
+		},
+	}
 }

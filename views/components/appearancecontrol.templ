@@ -1,0 +1,42 @@
+package components
+
+// AppearanceControl is the floating panel of reading preferences — theme,
+// code weight, reading size and steps. All are applied before first paint (see
+// themeScript) and persisted client-side. It is summoned from the rail cog (or
+// the sidebar footer strip) and anchored beside whichever summoned it; that
+// anchoring is contextual chrome owned by the drawer state, not the component.
+templ AppearanceControl() {
+	<section class="appearance" data-appearance-panel role="dialog" aria-label="Appearance settings" hidden>
+		<p class="appearance-title">Appearance</p>
+		<div>
+			<p class="appearance-label">Theme</p>
+			<div class="theme-row">
+				<button class="theme-btn" data-theme="light" type="button">Light</button>
+				<button class="theme-btn" data-theme="system" type="button">System</button>
+				<button class="theme-btn" data-theme="dark" type="button">Dark</button>
+			</div>
+		</div>
+		<div>
+			<p class="appearance-label">Code weight</p>
+			<div class="weight-row">
+				<button class="weight-btn" data-weight="regular" type="button">Regular</button>
+				<button class="weight-btn" data-weight="bold" type="button">Bold</button>
+			</div>
+		</div>
+		<div>
+			<p class="appearance-label">Text size</p>
+			<div class="size-row">
+				<button class="size-btn" data-size="small" type="button" title="Small">S</button>
+				<button class="size-btn" data-size="medium" type="button" title="Medium">M</button>
+				<button class="size-btn" data-size="large" type="button" title="Large">L</button>
+			</div>
+		</div>
+		<div>
+			<p class="appearance-label">Steps</p>
+			<div class="steps-row">
+				<button class="steps-btn" data-steps="first" type="button" title="Open the first step, collapse the rest">First open</button>
+				<button class="steps-btn" data-steps="all" type="button" title="Open every step">All open</button>
+			</div>
+		</div>
+	</section>
+}

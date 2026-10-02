@@ -103,7 +103,7 @@ Checked in and served as-is; not bundled.
 
 Server-rendered inline SVG — a subset of [Lucide](https://lucide.dev) 1.49.0,
 ISC-licensed, with some icons derived from Feather (MIT). The path data is
-compiled into the binary via `views/icons.go`; the licence text is
+compiled into the binary via `views/icons/icons.go`; the licence text is
 `public/js/vendor/lucide.LICENSE` and ships in `THIRD_PARTY_NOTICES.md`. No icon
 runtime is distributed.
 

@@ -1,0 +1,15 @@
+package components
+
+import "runbooks/views/icons"
+
+// AppearanceTrigger opens the appearance panel. The rail carries a cog-only
+// icon button; the sidebar footer spreads the same control into a labelled
+// strip, replacing the four-row footer the settings used to spend.
+templ AppearanceTrigger(labelled bool) {
+	<button class="rail-cog" type="button" data-appearance-toggle aria-haspopup="dialog" aria-expanded="false" aria-label="Appearance settings">
+		@templ.Raw(icons.Lucide("settings"))
+		if labelled {
+			<span class="rail-cog-label">Appearance</span>
+		}
+	</button>
+}

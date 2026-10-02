@@ -1,0 +1,36 @@
+package components
+
+import "regexp"
+
+var varRe = regexp.MustCompile(`\{\{([A-Z_]+)\}\}`)
+
+// CodeBlock renders a terminal-style code block with variable substitution and copy button.
+// Labelled blocks are wrapped in a .code-group so the label + block can be ticked off together.
+templ CodeBlock(label, tpl, lang string) {
+	if label != "" {
+		<div class="code-group">
+			<div class="code-label-row">
+				<span class="code-label-tick" aria-hidden="true">▸</span>
+				<span class="code-label">{ label }</span>
+				<button class="block-check" type="button" aria-label="Mark done">✓</button>
+			</div>
+			<div class="code-block" data-template={ tpl } data-lang={ lang }>
+				<pre><code>{ toInitialDisplay(tpl) }</code></pre>
+				<button class="copy-btn" type="button">Copy</button>
+			</div>
+		</div>
+	} else {
+		<div class="code-block" data-template={ tpl } data-lang={ lang }>
+			<pre><code>{ toInitialDisplay(tpl) }</code></pre>
+			<button class="copy-btn" type="button">Copy</button>
+		</div>
+	}
+}
+
+// toInitialDisplay replaces {{VAR_NAME}} tokens with <VAR_NAME> for the initial
+// render before any variable values are entered.
+func toInitialDisplay(tmpl string) string {
+	return varRe.ReplaceAllStringFunc(tmpl, func(m string) string {
+		return "<" + m[2:len(m)-2] + ">"
+	})
+}

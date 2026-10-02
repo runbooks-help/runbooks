@@ -1,14 +1,16 @@
 package views
 
+import "runbooks/views/components"
+
 // LoginPage is the passkey sign-in page.
 templ LoginPage() {
-	@Shell("Sign in") {
+	@components.Shell("Sign in") {
 		<div class="auth-main">
 			<div class="auth-card">
 				<h1 class="auth-title">Sign in</h1>
 				<p class="auth-lede">Use a passkey to open the runbooks.</p>
 				<button class="btn btn-primary" type="button" data-auth="login">Sign in with a passkey</button>
-				@liveAlert()
+				@components.LiveAlert()
 				<p class="auth-status" data-auth-status hidden></p>
 			</div>
 		</div>
@@ -17,7 +19,7 @@ templ LoginPage() {
 
 // SetupPage bootstraps the first admin with the bootstrap token.
 templ SetupPage() {
-	@Shell("Set up") {
+	@components.Shell("Set up") {
 		<div class="auth-main">
 			<div class="auth-card">
 				<h1 class="auth-title">Set up this instance</h1>
@@ -40,7 +42,7 @@ templ SetupPage() {
 					</div>
 					<button class="btn btn-primary" type="submit">Create passkey</button>
 				</form>
-				@liveAlert()
+				@components.LiveAlert()
 				<p class="auth-status" data-auth-status hidden></p>
 			</div>
 		</div>
@@ -50,7 +52,7 @@ templ SetupPage() {
 // InvitePage accepts a single-use enrolment invite. For a re-enrolment bound to
 // an existing user there is no name to choose, so those fields are hidden.
 templ InvitePage(token string, reenrol bool) {
-	@Shell("Join") {
+	@components.Shell("Join") {
 		<div class="auth-main">
 			<div class="auth-card">
 				<h1 class="auth-title">You've been invited</h1>
@@ -68,7 +70,7 @@ templ InvitePage(token string, reenrol bool) {
 					}
 					<button class="btn btn-primary" type="submit">Create passkey</button>
 				</form>
-				@liveAlert()
+				@components.LiveAlert()
 				<p class="auth-status" data-auth-status hidden></p>
 			</div>
 		</div>
@@ -78,10 +80,10 @@ templ InvitePage(token string, reenrol bool) {
 // InviteInvalidPage is shown when an invite link is missing, already used or
 // expired. The blocking condition is the page, so it carries the banner weight.
 templ InviteInvalidPage() {
-	@Shell("Invite") {
+	@components.Shell("Invite") {
 		<div class="auth-main">
 			<div class="auth-card">
-				@Alert("banner", "danger", "Invite not valid", "This invite has already been used or has expired. Ask an admin for a new link.")
+				@components.Alert("banner", "danger", "Invite not valid", "This invite has already been used or has expired. Ask an admin for a new link.")
 				<p class="auth-lede">Enrolment is blocked until you have a fresh link.</p>
 			</div>
 		</div>

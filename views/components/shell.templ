@@ -1,0 +1,37 @@
+package components
+
+// Shell wraps the full HTML document. Children are rendered inside <body>.
+templ Shell(title string) {
+	<!DOCTYPE html>
+	<html lang="en" data-theme="light">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ pageTitle(title) }</title>
+			<link rel="icon" href="/public/favicon.svg" type="image/svg+xml"/>
+			<link rel="stylesheet" href="/public/css/bundle.css"/>
+			@templ.Raw("<script>" + themeScript + "</script>")
+		</head>
+		<body>
+			{ children... }
+			@AppearanceControl()
+			<div class="drawer-scrim" data-drawer-scrim></div>
+			<script src="/public/js/vendor/jszip.min.js"></script>
+			<script src="/public/js/vendor/marked.min.js"></script>
+			<script src="/public/js/vendor/highlight.min.js"></script>
+			<script src="/public/js/bundle.js"></script>
+		</body>
+	</html>
+}
+
+// pageTitle builds the <title> text; an empty title (the index page) is just the
+// site name.
+func pageTitle(title string) string {
+	if title == "" {
+		return "Runbooks"
+	}
+	return title + " — Runbooks"
+}
+
+// themeScript is inlined before first paint to prevent flash of wrong theme.
+const themeScript = `(function(){var r=document.documentElement;var p=localStorage.getItem('runbooks-theme')||'dark';var d=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);r.dataset.theme=d?'dark':'light';r.dataset.codeWeight=localStorage.getItem('runbooks-code-weight')||'regular';r.dataset.textSize=localStorage.getItem('runbooks-text-size')||'medium';})()`

@@ -3,20 +3,21 @@ package views
 import (
 	"runbooks/parser"
 	"runbooks/stores"
+	"runbooks/views/components"
 )
 
 // AdminPage manages people — inside the app shell, so it reads as part of the
 // runbooks application rather than a standalone card.
 templ AdminPage(groups []parser.SystemGroup, users []stores.User, isAdmin, identityEnabled bool) {
-	@Shell("Admin") {
-		@Rail()
+	@components.Shell("Admin") {
+		@components.Rail()
 		<aside class="sidebar">
-			@SidebarHeader()
-			@SidebarNav(groups, "admin")
+			@components.SidebarHeader()
+			@components.SidebarNav(groups, "admin")
 			<div class="sidebar-appearance">
-				@AppearanceTrigger(true)
+				@components.AppearanceTrigger(true)
 			</div>
-			@SessionActions(isAdmin, identityEnabled)
+			@components.SessionActions(isAdmin, identityEnabled)
 		</aside>
 		<div class="main main--full">
 			<div class="main-header">
@@ -29,7 +30,7 @@ templ AdminPage(groups []parser.SystemGroup, users []stores.User, isAdmin, ident
 						<input class="admin-url" type="text" readonly data-admin-url aria-label="Invite link"/>
 						<button class="btn btn-ghost" type="button" data-admin-copy>Copy</button>
 					</div>
-					@liveAlert()
+					@components.LiveAlert()
 					<p class="auth-status" data-admin-status hidden></p>
 
 					<section class="admin-card">

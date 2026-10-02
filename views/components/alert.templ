@@ -1,0 +1,47 @@
+package components
+
+// Alert is interactive feedback. intent is danger|warn|info|success; weight is
+// inline|panel|banner, where panel is the default and carries no modifier.
+templ Alert(weight, intent, title, msg string) {
+	<div class={ alertClass(weight, intent) } role="alert">
+		<span class="alert-icon" aria-hidden="true">{ alertIcon(intent) }</span>
+		<div class="alert-body">
+			if title != "" {
+				<p class="alert-title">{ title }</p>
+			}
+			<p class="alert-message">{ msg }</p>
+		</div>
+	</div>
+}
+
+func alertClass(weight, intent string) string {
+	class := "alert"
+	switch intent {
+	case "warn":
+		class += " alert-warn"
+	case "info":
+		class += " alert-info"
+	case "success":
+		class += " alert-success"
+	default:
+		class += " alert-danger"
+	}
+	switch weight {
+	case "inline":
+		class += " alert-inline"
+	case "banner":
+		class += " alert-banner"
+	}
+	return class
+}
+
+func alertIcon(intent string) string {
+	switch intent {
+	case "info":
+		return "ⓘ"
+	case "success":
+		return "✓"
+	default:
+		return "⚠"
+	}
+}

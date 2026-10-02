@@ -1,0 +1,72 @@
+package components
+
+import (
+	"strings"
+
+	"runbooks/views/markup"
+)
+
+templ Notice(variant, msg string) {
+	<div class={ "notice " + noticeClass(variant) }>@templ.Raw(noticeHTML(msg))</div>
+}
+
+func noticeClass(v string) string {
+	switch v {
+	case "warn":
+		return "notice-warn"
+	case "danger":
+		return "notice-danger"
+	default:
+		return ""
+	}
+}
+
+// noticeHTML renders notice body text as HTML, supporting paragraphs and lists.
+func noticeHTML(msg string) string {
+	var buf strings.Builder
+	var listItems []string
+	var paraLines []string
+
+	flushPara := func() {
+		text := strings.TrimSpace(strings.Join(paraLines, " "))
+		if text != "" {
+			buf.WriteString("<p>")
+			buf.WriteString(markup.Prose(text))
+			buf.WriteString("</p>")
+		}
+		paraLines = nil
+	}
+	flushList := func() {
+		if len(listItems) == 0 {
+			return
+		}
+		buf.WriteString("<ul>")
+		for _, item := range listItems {
+			buf.WriteString("<li>")
+			buf.WriteString(markup.Prose(item))
+			buf.WriteString("</li>")
+		}
+		buf.WriteString("</ul>")
+		listItems = nil
+	}
+
+	for line := range strings.SplitSeq(msg, "\n") {
+		if strings.TrimSpace(line) == "" {
+			flushPara()
+			flushList()
+			continue
+		}
+		if strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "* ") {
+			flushPara()
+			listItems = append(listItems, line[2:])
+			continue
+		}
+		if len(listItems) > 0 {
+			flushList()
+		}
+		paraLines = append(paraLines, line)
+	}
+	flushPara()
+	flushList()
+	return buf.String()
+}

@@ -1,0 +1,27 @@
+package components
+
+import "runbooks/parser"
+
+// navLinks renders one category's runbook links, carrying the haystack the filter
+// matches against — the same helper the index filter uses.
+templ navLinks(runbooks []parser.RunbookMeta, active, system, category string) {
+	<nav class="nav-links">
+		for _, rb := range runbooks {
+			<a
+				href={ templ.SafeURL("/" + rb.Slug) }
+				class={ navClass(active, rb.Slug) }
+				data-search={ rb.SearchText(system, category) }
+				if rb.Slug == active {
+					aria-current="page"
+				}
+			>{ rb.Title }</a>
+		}
+	</nav>
+}
+
+func navClass(active, route string) string {
+	if active == route {
+		return "active"
+	}
+	return ""
+}

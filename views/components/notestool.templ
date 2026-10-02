@@ -1,0 +1,9 @@
+package components
+
+import "runbooks/views/icons"
+
+templ notesTool(key, icon, label string) {
+	<button class="notes-tool" data-notes-tool={ key } type="button" title={ label } aria-label={ label }>
+		@templ.Raw(icons.Lucide(icon))
+	</button>
+}

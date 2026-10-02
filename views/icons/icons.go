@@ -1,11 +1,11 @@
-package views
-
-// Lucide icon subset — server-rendered inline SVG.
+// Package icons renders the vendored Lucide icon subset as inline SVG.
 //
 // Icons are from Lucide 1.49.0 (https://lucide.dev), ISC-licensed; some are
 // derived from Feather (MIT). The licence and attribution ship in
-// views/lucide.LICENSE and THIRD_PARTY_NOTICES.md. Only the icons the UI uses
-// are vendored, as path data, so no icon runtime is shipped.
+// public/js/vendor/lucide.LICENSE and THIRD_PARTY_NOTICES.md. Only the icons the
+// UI uses are vendored, as path data, so no icon runtime is shipped.
+package icons
+
 var lucideIcons = map[string]string{
 	"bold":         `<path d="M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"/>`,
 	"italic":       `<line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/>`,
@@ -22,9 +22,9 @@ var lucideIcons = map[string]string{
 	"settings":     `<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>`,
 }
 
-// lucideIcon renders one Lucide icon as an inline SVG. The wrapper carries the
+// Lucide renders one Lucide icon as an inline SVG. The wrapper carries the
 // shared Lucide defaults; callers pass the icon name only.
-func lucideIcon(name string) string {
+func Lucide(name string) string {
 	inner, ok := lucideIcons[name]
 	if !ok {
 		return ""

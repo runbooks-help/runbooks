@@ -1,0 +1,30 @@
+package components
+
+import (
+	"strings"
+
+	"runbooks/views/markup"
+)
+
+// BranchBlock renders a [!branch] decision callout.
+templ BranchBlock(body string) {
+	<div class="notice notice-branch">
+		@templ.Raw(branchHTML(body))
+	</div>
+}
+
+// branchHTML converts a branch block body (markdown list lines) to an HTML list.
+func branchHTML(body string) string {
+	var buf strings.Builder
+	buf.WriteString("<ul>")
+	for _, line := range strings.Split(body, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "- ") {
+			buf.WriteString("<li>")
+			buf.WriteString(markup.Prose(line[2:]))
+			buf.WriteString("</li>")
+		}
+	}
+	buf.WriteString("</ul>")
+	return buf.String()
+}

@@ -1,0 +1,11 @@
+package components
+
+import "runbooks/views/markup"
+
+templ ListBlock(items []string) {
+	<ul class="prose-list">
+		for _, item := range items {
+			<li>@templ.Raw(markup.Prose(item))</li>
+		}
+	</ul>
+}

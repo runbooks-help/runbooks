@@ -1,0 +1,14 @@
+package components
+
+// LiveAlert is the client-populated panel alert. Rendered empty and hidden;
+// app.js fills the title, message and detail and unhides it.
+templ LiveAlert() {
+	<div class="alert alert-danger" role="alert" data-live-alert hidden>
+		<span class="alert-icon" aria-hidden="true">⚠</span>
+		<div class="alert-body">
+			<p class="alert-title"></p>
+			<p class="alert-message"></p>
+			<p class="alert-detail" hidden></p>
+		</div>
+	</div>
+}

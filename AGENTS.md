@@ -73,13 +73,15 @@ styleguide.go        dev-gated /styleguide + /styleguide/llms
 identity/            identity service: WebAuthn ceremonies, sessions, invites (no HTTP)
 stores/              identity persistence: Store contract + sqlite/ mysql/ postgres/ + storetest/
 parser/parser.go     frontmatter + body parser; content discovery; sidebar grouping/ordering
-views/base.templ     Shell + shared components (SidebarNav, VarsPanel, CodeBlock, Step, Notice, AppearanceControl, SessionActions, …)
+views/components/    shared components, one per file (Shell, Rail, SidebarNav, VarsPanel, CodeBlock, Step, Notice, Alert, NotesPanel, …)
+views/markup/        inline text → HTML (Prose) and step-title → anchor (Slug)
+views/icons/         vendored Lucide icon subset (Lucide)
 views/index.templ    welcome page at / (search + common-issue shortcuts + card catalogue)
-views/runbook.templ  runbook page (steps, vars panel, notes panel)
+views/runbook.templ  runbook page (steps, vars panel, notes panel) + its private stepCard/renderBlock
 views/admin.templ    /admin — invite form + users table
 views/styleguide.templ  the design system at /styleguide
 views/auth.templ     /login, /setup, /invite/<token>, /recovery
-views/helpers.go     inline-markdown → HTML helpers, slugify, JSON embedding, PageConfig, theme script
+views/pageconfig.go  PageConfig — the runtime config embedded for the client
 content/<system>/<category>/<file>.md   the runbooks themselves
 public/css/src/      source CSS (bundled → public/css/bundle.css, generated)
 public/fonts/        self-hosted Atkinson Hyperlegible Next + Mono (variable, latin)
@@ -204,8 +206,8 @@ Authoring conventions that have bitten us:
   `.nav-system` heading lives in `shell.css`.
 - **JS**: `public/js/src/app.js` → `public/js/bundle.js` (IIFE, generated,
   gitignored).
-  The no-flash theme script is inlined in `views/base.templ` from the
-  `themeScript` const in `views/helpers.go`. Vanilla JS, no framework.
+  The no-flash theme script is inlined in `views/components/shell.templ` from
+  that file's `themeScript` const. Vanilla JS, no framework.
   Client behaviour: var substitution + copy, step/block completion persisted in the
   URL hash, the notes completion timeline, hint popovers, notes panel (localStorage,
   image paste, ZIP export, sync), notes resize, theme switcher.
@@ -281,5 +283,5 @@ Authoring conventions that have bitten us:
 - **Do not commit or push without explicit human approval.** Never force-push
   `main`; never merge PRs.
 - Keep changes to the app small and unabstracted: plain functions in `parser` and
-  `views/helpers.go`, no new layers. `views` owns presentation; `parser` owns the
-  content contract.
+  `views/`, no new layers. `views/` and `views/components/` own presentation;
+  `parser` owns the content contract.

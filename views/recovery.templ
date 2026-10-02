@@ -1,9 +1,11 @@
 package views
 
+import "runbooks/views/components"
+
 // RecoveryPage re-enrols a passkey for the instance's sole admin using the
 // break-glass recovery token.
 templ RecoveryPage() {
-	@Shell("Recover") {
+	@components.Shell("Recover") {
 		<div class="auth-main">
 			<div class="auth-card">
 				<h1 class="auth-title">Recover access</h1>
@@ -18,7 +20,7 @@ templ RecoveryPage() {
 					</div>
 					<button class="btn btn-primary" type="submit">Add a passkey</button>
 				</form>
-				@liveAlert()
+				@components.LiveAlert()
 				<p class="auth-status" data-auth-status hidden></p>
 			</div>
 		</div>

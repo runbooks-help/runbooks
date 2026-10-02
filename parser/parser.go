@@ -136,6 +136,15 @@ func CommonIssues(groups []SystemGroup) []CommonIssue {
 	return out
 }
 
+// SearchText is the lowercased haystack the index and sidebar filters match
+// against: title, description, symptoms, and any extra context (the system and
+// category names).
+func (rb RunbookMeta) SearchText(extra ...string) string {
+	parts := append([]string{rb.Title, rb.Description}, rb.Symptoms...)
+	parts = append(parts, extra...)
+	return strings.ToLower(strings.Join(parts, " "))
+}
+
 // defaultDirOrder is where an unlisted directory sorts. A lower value pulls it
 // towards the front of its level.
 const defaultDirOrder = 100

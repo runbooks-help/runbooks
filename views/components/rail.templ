@@ -1,0 +1,15 @@
+package components
+
+// Rail is the persistent thin left strip: the brand mark plus a full-height hit
+// area that summons the sidebar. Any click that is not the brand opens it. The
+// cogwheel at its foot summons the appearance panel, so the reading preferences
+// stay reachable without opening the sidebar.
+templ Rail() {
+	<aside class="rail">
+		<button class="rail-hit" type="button" data-rail-menu aria-label="Open runbook menu" aria-expanded="false">›</button>
+		<a class="rail-brand" href="/" aria-label="Runbooks">r</a>
+		<div class="rail-appearance">
+			@AppearanceTrigger(false)
+		</div>
+	</aside>
+}

@@ -1,0 +1,27 @@
+package components
+
+import (
+	"strconv"
+
+	"runbooks/views/markup"
+)
+
+// Step renders a numbered step card. preview is shown in place of the body
+// while the step is collapsed (the card's initial state is set client-side from
+// the reading preference).
+templ Step(n int, title, preview string) {
+	<div class="step-card" id={ markup.Slug(title) }>
+		<div class="step-header">
+			<span class="step-num">{ strconv.Itoa(n) }</span>
+			<h2 class="step-title">{ title }</h2>
+			<button class="step-check" type="button" aria-label="Mark step done">✓</button>
+			<button class="step-toggle" type="button" aria-expanded="true" aria-label="Toggle step">▾</button>
+		</div>
+		<div class="step-body">
+			{ children... }
+		</div>
+		if preview != "" {
+			<p class="step-preview">{ preview }</p>
+		}
+	</div>
+}

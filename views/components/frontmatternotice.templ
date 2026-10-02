@@ -1,0 +1,10 @@
+package components
+
+import "runbooks/views/markup"
+
+templ FrontmatterNotice(msg string) {
+	<div class="runbook-notice">
+		<span class="runbook-notice-icon" aria-hidden="true">⚠</span>
+		<p>@templ.Raw(markup.Prose(msg))</p>
+	</div>
+}

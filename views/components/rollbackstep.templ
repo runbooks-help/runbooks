@@ -1,0 +1,16 @@
+package components
+
+import "runbooks/views/markup"
+
+// RollbackStep renders a step card in danger styling.
+templ RollbackStep(title string) {
+	<div class="step-card rollback-card" id={ markup.Slug(title) }>
+		<div class="step-header">
+			<span class="step-num">↩</span>
+			<h2 class="step-title">{ title }</h2>
+		</div>
+		<div class="step-body">
+			{ children... }
+		</div>
+	</div>
+}

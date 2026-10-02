@@ -1,0 +1,40 @@
+package components
+
+import "runbooks/parser"
+
+// VarsPanel renders the sidebar variables section for a runbook page.
+templ VarsPanel(fields []parser.VarField) {
+	<div class="vars-panel">
+		<p class="vars-heading">Variables</p>
+		for _, f := range fields {
+			<div class="var-field">
+				<div class="var-label-row">
+					<label class="var-label" for={ f.ID }>{ f.Label }</label>
+					if f.Hint != "" {
+						<button class="hint-btn" data-hint={ f.Hint } type="button" aria-label="How to find this value">?</button>
+					}
+				</div>
+				if f.Secret {
+					<input
+						id={ f.ID }
+						class="var-input"
+						type="password"
+						autocomplete="off"
+						spellcheck="false"
+						data-var={ f.VarName }
+					/>
+				} else {
+					<input
+						id={ f.ID }
+						class="var-input"
+						type="text"
+						autocomplete="off"
+						spellcheck="false"
+						data-var={ f.VarName }
+						placeholder={ f.Placeholder }
+					/>
+				}
+			</div>
+		}
+	</div>
+}

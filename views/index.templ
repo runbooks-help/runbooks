@@ -1,19 +1,24 @@
 package views
 
-import "runbooks/parser"
+import (
+	"runbooks/parser"
+	"runbooks/views/components"
+	"runbooks/views/icons"
+	"runbooks/views/markup"
+)
 
 // IndexPage is the welcome / navigation page: a filter box, the symptom-first
 // shortcuts declared in runbook frontmatter, then the full catalogue as cards.
 templ IndexPage(systems []parser.SystemGroup, isAdmin, identityEnabled bool) {
-	@Shell("") {
-		@Rail()
+	@components.Shell("") {
+		@components.Rail()
 		<aside class="sidebar">
-			@SidebarHeader()
-			@SidebarNav(systems, "")
+			@components.SidebarHeader()
+			@components.SidebarNav(systems, "")
 			<div class="sidebar-appearance">
-				@AppearanceTrigger(true)
+				@components.AppearanceTrigger(true)
 			</div>
-			@SessionActions(isAdmin, identityEnabled)
+			@components.SessionActions(isAdmin, identityEnabled)
 		</aside>
 		<div class="main index-main">
 			<div class="main-header">
@@ -42,7 +47,7 @@ templ IndexPage(systems []parser.SystemGroup, isAdmin, identityEnabled bool) {
 							<p class="search-hub-sub">Describe the symptom and we'll find the runbook.</p>
 							<div class="search-field">
 								<span class="search-icon">
-									@templ.Raw(lucideIcon("search"))
+									@templ.Raw(icons.Lucide("search"))
 								</span>
 								<input
 									class="index-search"
@@ -54,13 +59,13 @@ templ IndexPage(systems []parser.SystemGroup, isAdmin, identityEnabled bool) {
 									autofocus
 								/>
 								<span class="search-key" data-search-key aria-hidden="true">/</span>
-									<button
-										class="search-key search-clear"
-										type="button"
-										data-search-clear
-										aria-label="Clear search"
-										hidden
-									>✕</button>
+								<button
+									class="search-key search-clear"
+									type="button"
+									data-search-clear
+									aria-label="Clear search"
+									hidden
+								>✕</button>
 							</div>
 							@commonSymptoms(parser.CommonIssues(systems))
 						</section>
@@ -81,11 +86,11 @@ templ IndexPage(systems []parser.SystemGroup, isAdmin, identityEnabled bool) {
 												<a
 													href={ templ.SafeURL("/" + rb.Slug) }
 													class="runbook-card"
-													data-search={ runbookSearchText(rb, system.Name, group.Name) }
+													data-search={ rb.SearchText(system.Name, group.Name) }
 												>
 													<span class="card-title">{ rb.Title }</span>
 													if rb.Description != "" {
-														<span class="card-desc">@templ.Raw(proseHTML(rb.Description))</span>
+														<span class="card-desc">@templ.Raw(markup.Prose(rb.Description))</span>
 													}
 												</a>
 											}
