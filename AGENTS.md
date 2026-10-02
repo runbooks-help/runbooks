@@ -7,7 +7,8 @@ CMS**. One page per runbook, served by slug.
 - **Repo:** `github.com/ladydascalie/runbooks` (private), local `~/Code/Personal/runbooks`.
 - **Licence:** FSL-1.1-MIT (source-available, no competing use, converts to MIT after
   2y). Governance, positioning and the commercial model live in the spec library:
-  `~/openspec/plans/specs/runbooks-governance.md`, `…/runbooks-commercial-model.md`.
+  `~/openspec/plans/specs/runbooks/governance/README.md`,
+  `…/runbooks/commercial-model/README.md`.
 - This file layers on the global `~/.pi/agent/AGENTS.md` (DB naming, API versioning, no
   foreign keys, memory/spec stores). There is no workspace parent above it.
 
@@ -38,7 +39,7 @@ default `8090`; the container listens on `8090`.
 
 ## Design system
 
-The app has its own visual identity — see `~/openspec/plans/specs/runbooks-design-system.md`.
+The app has its own visual identity — see `~/openspec/plans/specs/runbooks/design-system/README.md`.
 The living reference is `/styleguide` (dev-gated by `STYLEGUIDE_ENABLED`, set in
 `mise.toml` `[env]`), organised by atomicity; `/styleguide/llms` is the agent mirror
 (embedded from `styleguide.llms.txt`).
@@ -261,7 +262,7 @@ Authoring conventions that have bitten us:
 - `LICENSE` is the FSL-1.1-MIT text; `DEPENDENCIES.md` inventories every distributed
   dependency and its licence; `NOTICE` embeds the OFL text for the fonts and the
   MPL-2.0 notice for `go-sql-driver/mysql` (compatible via MPL §3.3 Larger Work —
-  see `specs/runbooks-commercial-model.md`).
+  see `specs/runbooks/commercial-model/README.md`).
 - `THIRD_PARTY_NOTICES.md` is **generated** (`mise run notices`, `cmd/notices`) —
   never hand-edit it; CI fails on drift. The JS and font licence texts are committed
   beside the assets.

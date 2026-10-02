@@ -8,7 +8,7 @@ node = "latest"
 
 [env]
 PORT = "8091"
-# Git sync dev config (see ~/openspec/plans/specs/runbook-notes-git-sync.md).
+# Git sync dev config (see ~/openspec/plans/specs/runbooks/notes-git-sync/README.md).
 # Uses the SSH key rather than a token so no secret lives in this tracked file;
 # GITSYNC_API_TOKEN is a local-dev shared secret the browser prompts for on Sync.
 GITSYNC_REPO = "git@github.com:ladydascalie/runbooks-sync-test.git"
@@ -19,7 +19,7 @@ GITSYNC_AUTHOR_EMAIL = "cable.benjamin@protonmail.com"
 GITSYNC_SSH_KEY = "~/.ssh/personal"
 GITSYNC_API_TOKEN = "dev-local-bearer"
 
-# Identity dev config (see ~/openspec/plans/specs/runbooks-identity.md).
+# Identity dev config (see ~/openspec/plans/specs/runbooks/identity/README.md).
 # An empty driver leaves the app PUBLIC (no passkeys, no gating) — used to share
 # the dev UI for feedback. To exercise passkeys again, set the driver to sqlite and
 # uncomment the rest: open http://localhost:8091/setup and paste the bootstrap token.
@@ -30,7 +30,7 @@ IDENTITY_DB_DRIVER = ""
 # IDENTITY_BOOTSTRAP_TOKEN = "dev-bootstrap-token"
 # IDENTITY_SECURE_COOKIES = "false"
 
-# The design-system styleguide is a dev-only surface (see specs/runbooks-design-system.md).
+# The design-system styleguide is a dev-only surface (see specs/runbooks/design-system/README.md).
 STYLEGUIDE_ENABLED = "true"
 
 [tasks.generate]
