@@ -426,10 +426,14 @@ nav a.active {
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
-	/* Keep the reading column centred at every width, not only in zen: on an
-	   ultrawide, auto margins split the dead space either side of the column
-	   instead of piling it all on the right. Zen gets the same centring for
-	   free — its grid leaves .main as the only item in a 1fr track. */
+	/* Keep the reading column centred at every width, not only in zen: the width
+	   fills the track and auto margins split the dead space either side of the
+	   column instead of piling it all on the right. Zen gets the same centring
+	   for free — its grid leaves .main as the only item in a 1fr track. The
+	   explicit width matters: auto margins alone stop a grid item stretching, so
+	   it would shrink-wrap its content and narrow the page once the index
+	   catalogue filters down to nothing. */
+	width: 100%;
 	max-width: 1440px;
 	margin-inline: auto;
 }

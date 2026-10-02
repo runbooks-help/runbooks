@@ -986,7 +986,9 @@ if (indexSearch) {
 	const cards = [...document.querySelectorAll('.runbook-card')];
 	const categories = [...document.querySelectorAll('.index-category')];
 	const groups = [...document.querySelectorAll('.index-group')];
-	const commonSection = document.querySelector('.common-issues');
+	const symptomLinks = document.querySelector('.search-chips');
+	const searchKey = document.querySelector('[data-search-key]');
+	const searchClear = document.querySelector('[data-search-clear]');
 	const emptyState = document.querySelector('.index-empty');
 
 	// Phrase match first; fall back to "every word appears" so word order and
@@ -1007,11 +1009,20 @@ if (indexSearch) {
 		groups.forEach(group => {
 			group.hidden = [...group.querySelectorAll('.index-category')].every(c => c.hidden);
 		});
-		if (commonSection) commonSection.hidden = q.length > 0;
+		if (symptomLinks) symptomLinks.hidden = q.length > 0;
+		if (searchKey) searchKey.hidden = q.length > 0;
+		if (searchClear) searchClear.hidden = q.length === 0;
 		if (emptyState) emptyState.hidden = visible > 0 || q.length === 0;
 	};
 
 	indexSearch.addEventListener('input', applyFilter);
+	if (searchClear) {
+		searchClear.addEventListener('click', () => {
+			indexSearch.value = '';
+			applyFilter();
+			indexSearch.focus();
+		});
+	}
 }
 
 // Sidebar — filter and disclosure over the runbook tree
@@ -1081,13 +1092,16 @@ if (navFilter && navTree) {
 			btn.setAttribute('aria-expanded', String(open));
 		});
 	});
-	// `/` focuses the filter, unless a field already has focus.
+	// `/` focuses a filter, unless a field already has focus. On the index page the
+	// search hub is the primary field, so it wins — unless the sidebar drawer is
+	// open, where the nav filter keeps it.
 	document.addEventListener('keydown', e => {
 		if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
 		const el = document.activeElement;
 		if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return;
 		e.preventDefault();
-		navFilter.focus();
+		if (indexSearch && document.body.dataset.drawer !== 'sidebar') indexSearch.focus();
+		else navFilter.focus();
 	});
 }
 

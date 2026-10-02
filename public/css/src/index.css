@@ -3,14 +3,58 @@
 	margin: 0 auto;
 }
 
+/* The search hub: the index filter heads a raised panel that also carries the
+   common symptoms as plain links, so the page opens on one "start here"
+   surface rather than a bare input above a separate list. */
+.search-hub {
+	margin-top: var(--space-6);
+	padding: var(--space-5);
+	background: var(--surface);
+	border: 1px solid var(--border-strong);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-md);
+}
+
+.search-hub-title {
+	font-size: var(--text-lg);
+	font-weight: 700;
+	line-height: var(--leading-tight);
+}
+
+.search-hub-sub {
+	margin-top: var(--space-1);
+	font-size: var(--text-sm);
+	color: var(--muted);
+}
+
+.search-field {
+	position: relative;
+	display: flex;
+	align-items: center;
+	margin-top: var(--space-4);
+}
+
+.search-icon {
+	position: absolute;
+	left: var(--space-4);
+	display: flex;
+	color: var(--muted);
+	pointer-events: none;
+}
+
+.search-icon svg {
+	width: 20px;
+	height: 20px;
+}
+
 .index-search {
 	width: 100%;
-	padding: var(--space-3) var(--space-4);
-	font-size: var(--text-base);
-	font-family: inherit;
+	padding: var(--space-3) var(--space-7) var(--space-3) calc(var(--space-4) + var(--space-6));
+	font: inherit;
+	font-size: var(--text-md);
 	color: var(--text);
-	background: var(--surface);
-	border: 1px solid var(--border);
+	background: var(--bg);
+	border: 1px solid var(--border-strong);
 	border-radius: var(--radius-md);
 	outline: none;
 	transition:
@@ -19,51 +63,72 @@
 }
 
 .index-search::placeholder {
-	color: var(--nav-muted);
+	color: var(--muted);
 }
 
 .index-search:focus {
 	border-color: var(--accent-strong);
-	box-shadow: 0 0 0 3px rgba(106, 168, 141, 0.18);
+	box-shadow: 0 0 0 3px var(--accent-lt);
 }
 
-.ci-list {
-	list-style: none;
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-hair);
+/* We render our own clear affordance, so drop the engine's. */
+.index-search::-webkit-search-cancel-button {
+	display: none;
 }
 
-.ci-list a {
-	display: flex;
-	align-items: baseline;
-	gap: var(--space-2);
-	padding: var(--space-2) var(--space-3);
+.search-key {
+	position: absolute;
+	right: var(--space-4);
+	padding: 0 var(--space-1);
+	border: 1px solid var(--border-strong);
 	border-radius: var(--radius-sm);
+	font-family: var(--font-mono);
+	font-weight: var(--mono-weight);
 	font-size: var(--text-xs);
-	color: var(--text);
-	text-decoration: none;
-	transition: background var(--duration-fast);
-}
-
-.ci-list a:hover {
-	background: var(--nav-hover);
-}
-
-.ci-label {
-	font-weight: 600;
-	flex-shrink: 0;
-}
-
-.ci-dots {
-	flex: 1;
-	border-bottom: 1px dotted var(--border);
-	transform: translateY(-3px);
-}
-
-.ci-title {
 	color: var(--muted);
-	flex-shrink: 0;
+	pointer-events: none;
+}
+
+.search-clear {
+	pointer-events: auto;
+	background: transparent;
+	cursor: pointer;
+}
+
+.search-clear:hover {
+	border-color: var(--border-strong);
+	color: var(--text);
+}
+
+.search-chips {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-2);
+	margin-top: var(--space-4);
+	padding-top: var(--space-4);
+	border-top: 1px solid var(--border);
+}
+
+.search-chips-label {
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--muted);
+	margin-right: var(--space-1);
+}
+
+.search-chip {
+	font-size: var(--text-xs);
+	color: var(--link);
+	text-decoration: none;
+	border-bottom: 1px dotted var(--border-strong);
+}
+
+.search-chip:hover {
+	color: var(--accent-strong);
+	border-bottom-color: var(--accent-strong);
 }
 
 .index-system {
@@ -122,7 +187,7 @@
 .runbook-card[hidden],
 .index-group[hidden],
 .index-category[hidden],
-.common-issues[hidden],
+.search-chips[hidden],
 .index-empty[hidden] {
 	display: none;
 }

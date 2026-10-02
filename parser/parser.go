@@ -112,7 +112,6 @@ func GroupBySystem(defs []RunbookDef) []SystemGroup {
 // are search keywords on every runbook, independent of this shortlist.
 type CommonIssue struct {
 	Label string
-	Title string
 	Slug  string
 }
 
@@ -130,7 +129,7 @@ func CommonIssues(groups []SystemGroup) []CommonIssue {
 				if len(rb.Symptoms) > 0 {
 					label = rb.Symptoms[0]
 				}
-				out = append(out, CommonIssue{Label: label, Title: rb.Title, Slug: rb.Slug})
+				out = append(out, CommonIssue{Label: label, Slug: rb.Slug})
 			}
 		}
 	}

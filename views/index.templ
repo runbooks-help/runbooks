@@ -37,16 +37,33 @@ templ IndexPage(systems []parser.SystemGroup, isAdmin, identityEnabled bool) {
 							</p>
 						</div>
 					} else {
-						<input
-							class="index-search"
-							type="search"
-							placeholder="What's wrong? e.g. replication lag, primary down"
-							aria-label="Filter runbooks"
-							autocomplete="off"
-							spellcheck="false"
-							autofocus
-						/>
-						@commonIssues(parser.CommonIssues(systems))
+						<section class="search-hub">
+							<h2 class="search-hub-title">What's wrong?</h2>
+							<p class="search-hub-sub">Describe the symptom and we'll find the runbook.</p>
+							<div class="search-field">
+								<span class="search-icon">
+									@templ.Raw(lucideIcon("search"))
+								</span>
+								<input
+									class="index-search"
+									type="search"
+									placeholder="e.g. replication lag, primary down, 502 from kubectl logs"
+									aria-label="Filter runbooks"
+									autocomplete="off"
+									spellcheck="false"
+									autofocus
+								/>
+								<span class="search-key" data-search-key aria-hidden="true">/</span>
+									<button
+										class="search-key search-clear"
+										type="button"
+										data-search-clear
+										aria-label="Clear search"
+										hidden
+									>✕</button>
+							</div>
+							@commonSymptoms(parser.CommonIssues(systems))
+						</section>
 						<p class="section-label index-catalogue-label">All runbooks</p>
 						<div class="index-empty" hidden>
 							<p>No runbooks match that. Try another word, or clear the search.</p>
@@ -84,23 +101,15 @@ templ IndexPage(systems []parser.SystemGroup, isAdmin, identityEnabled bool) {
 	}
 }
 
-// commonIssues renders the symptom-first shortcut list. Each entry is the first
-// `symptoms:` phrase of a runbook that declares any.
-templ commonIssues(issues []parser.CommonIssue) {
+// commonSymptoms renders the symptom-first shortcuts inside the search hub: the
+// first `symptoms:` phrase of each runbook that opts in with `common: true`.
+templ commonSymptoms(issues []parser.CommonIssue) {
 	if len(issues) > 0 {
-		<section class="common-issues">
-			<p class="section-label">Common issues</p>
-			<ul class="ci-list">
-				for _, ci := range issues {
-					<li>
-						<a href={ templ.SafeURL("/" + ci.Slug) }>
-							<span class="ci-label">{ ci.Label }</span>
-							<span class="ci-dots" aria-hidden="true"></span>
-							<span class="ci-title">{ ci.Title }</span>
-						</a>
-					</li>
-				}
-			</ul>
-		</section>
+		<div class="search-chips">
+			<span class="search-chips-label">Common</span>
+			for _, ci := range issues {
+				<a class="search-chip" href={ templ.SafeURL("/" + ci.Slug) }>{ ci.Label }</a>
+			}
+		</div>
 	}
 }
