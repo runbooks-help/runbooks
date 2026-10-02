@@ -102,19 +102,24 @@ The **filesystem is the taxonomy**. `content/<system>/<category>/<file>.md`:
 - `<system>` → top-level sidebar group (directory name, title-cased).
 - `<category>` → subheading under the system.
 - `content/<system>/<file>.md` (one level) → under the system, no subheading.
+- Discovery is **recursive**: a runbook's system and category are the two directories
+  directly above it, so a leading wrapper is ignored — `content/testdata/mysql/backup/
+  x.md` groups as MySQL › Backup just like `content/mysql/backup/x.md`.
 - The **slug comes from frontmatter**, not the filename; the URL is `/<slug>`.
 
-Directory names map to display names in `parser/parser.go`:
+A directory's **display name and sidebar order** come from an optional
+`_meta.yaml` beside its content:
 
-- `systemLabels` — casing overrides (`mysql` → `MySQL`). Add here when title-case is wrong.
-- `systemOrder` / `categoryOrder` — explicit sidebar order, **not alphabetical**.
-  `categoryOrder` is keyed per system. Anything unlisted sorts after listed names,
-  alphabetically.
-- Within a category, runbooks sort by the optional frontmatter `order:` (lower
-  first; absent = `defaultRunbookOrder` = 100), then title.
+```yaml
+# content/mysql/_meta.yaml
+title: MySQL   # else the directory name is title-cased (disaster-recovery → Disaster Recovery)
+order: 1       # lower first; absent sorts after ordered names, alphabetically
+```
 
-When you add a system or category and its position matters, update those slices in
-the same change. Adding content files alone never requires a code edit.
+Both the system and the category may carry one. Nothing about naming or ordering
+lives in Go — adding or reordering a system/category is a content edit only.
+Within a category, runbooks sort by the optional frontmatter `order:` (lower first;
+absent = `defaultRunbookOrder` = 100), then title.
 
 The index page (`views.IndexPage`, route `/`) is data-driven too: `common: true`
 pins a runbook into the "Common issues" shortlist (label = first symptom, via

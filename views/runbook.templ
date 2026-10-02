@@ -72,9 +72,9 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 			<div class="main-header">
 				<button class="btn btn-ghost notes-toggle" type="button" data-notes-toggle aria-pressed="true">Hide notes</button>
 				<div class="runbook-tags">
-					<span class="badge">{ parser.SystemName(rb.Group) }</span>
-					if rb.Category != "" {
-						<span class="badge">{ parser.CategoryName(rb.Category) }</span>
+					<span class="badge">{ rb.GroupTitle }</span>
+					if rb.CategoryTitle != "" {
+						<span class="badge">{ rb.CategoryTitle }</span>
 					}
 					if rb.Acknowledge != "" {
 						<span class="badge badge-warn" data-ack-badge hidden title="You acknowledged this runbook this session">acknowledged</span>

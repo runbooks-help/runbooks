@@ -1,7 +1,9 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -59,6 +61,13 @@ type RunbookMeta struct {
 	Order       int      `yaml:"order"`  // optional: lower sorts first within its category
 	Group       string   `yaml:"-"`      // top-level system, set from directory name
 	Category    string   `yaml:"-"`      // subcategory, set from directory name
+
+	// Resolved from the directory's _meta.yaml at load: the sidebar display name
+	// (title or title-cased directory) and its sort order.
+	GroupTitle    string `yaml:"-"`
+	GroupOrder    int    `yaml:"-"`
+	CategoryTitle string `yaml:"-"`
+	CategoryOrder int    `yaml:"-"`
 }
 
 // CategoryGroup groups runbooks under a display heading within a system.
@@ -83,14 +92,14 @@ func GroupBySystem(defs []RunbookDef) []SystemGroup {
 		si, ok := sysIdx[def.Group]
 		if !ok {
 			si = len(groups)
-			groups = append(groups, SystemGroup{Name: systemDisplayName(def.Group)})
+			groups = append(groups, SystemGroup{Name: def.GroupTitle})
 			sysIdx[def.Group] = si
 		}
 		key := def.Group + "\x00" + def.Category
 		ci, ok := catIdx[key]
 		if !ok {
 			ci = len(groups[si].Categories)
-			groups[si].Categories = append(groups[si].Categories, CategoryGroup{Name: categoryDisplayName(def.Category)})
+			groups[si].Categories = append(groups[si].Categories, CategoryGroup{Name: def.CategoryTitle})
 			catIdx[key] = ci
 		}
 		groups[si].Categories[ci].Runbooks = append(groups[si].Categories[ci].Runbooks, def.RunbookMeta)
@@ -128,33 +137,54 @@ func CommonIssues(groups []SystemGroup) []CommonIssue {
 	return out
 }
 
-// systemOrder and categoryOrder give explicit sidebar orderings for names whose
-// operational priority is not alphabetical. Names not listed sort after the
-// listed ones, alphabetically; categories are ordered per system.
-var (
-	systemOrder   = []string{"mysql", "kubernetes", "backend"}
-	categoryOrder = map[string][]string{
-		"mysql": {"replication", "failover", "backup", "maintenance", "disaster-recovery"},
-	}
-)
+// defaultDirOrder is where a directory without a _meta.yaml order sorts. A lower
+// value pulls it towards the front of its level.
+const defaultDirOrder = 100
 
-func rank(name string, order []string) int {
-	for i, n := range order {
-		if n == name {
-			return i
-		}
-	}
-	return len(order)
+// DirMeta is a content directory's presentation, read from an optional _meta.yaml
+// in that directory. The content declares its own taxonomy; the parser stays
+// generic.
+type DirMeta struct {
+	Title string `yaml:"title"`
+	Order int    `yaml:"order"`
 }
 
-// lessOrdered sorts by position in order, then alphabetically for names that
-// share a rank (e.g. every name absent from the list).
-func lessOrdered(a, b string, order []string) bool {
-	ra, rb := rank(a, order), rank(b, order)
-	if ra != rb {
-		return ra < rb
+const dirMetaFile = "_meta.yaml"
+
+// loadDirMeta reads a directory's _meta.yaml. A missing file yields a zero
+// DirMeta (title-case the name, sort alphabetically); a malformed one is an error,
+// so a content typo cannot silently misorder the sidebar.
+func loadDirMeta(dir string) (DirMeta, error) {
+	data, err := os.ReadFile(filepath.Join(dir, dirMetaFile))
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return DirMeta{}, nil
+		}
+		return DirMeta{}, err
 	}
-	return a < b
+	var m DirMeta
+	if err := yaml.Unmarshal(data, &m); err != nil {
+		return DirMeta{}, fmt.Errorf("%s: %w", filepath.Join(dir, dirMetaFile), err)
+	}
+	return m, nil
+}
+
+// displayName resolves a directory's sidebar label: its _meta.yaml title, else the
+// title-cased directory name. The empty key is a runbook directly under content/.
+func displayName(dir string, meta DirMeta) string {
+	if meta.Title != "" {
+		return meta.Title
+	}
+	if dir == "" {
+		return "Playbooks"
+	}
+	words := strings.Split(dir, "-")
+	for i, w := range words {
+		if len(w) > 0 {
+			words[i] = strings.ToUpper(w[:1]) + w[1:]
+		}
+	}
+	return strings.Join(words, " ")
 }
 
 // defaultRunbookOrder is where a runbook without an explicit `order:` sorts.
@@ -175,43 +205,31 @@ func lessRunbook(a, b RunbookMeta) bool {
 	return a.Title < b.Title
 }
 
-// systemLabels overrides the generated casing for directory names whose proper
-// spelling is not plain title case.
-var systemLabels = map[string]string{
-	"mysql": "MySQL",
+// dirKey identifies a directory for ordering: its key, resolved display name and
+// _meta.yaml order (0 = unset).
+type dirKey struct {
+	key   string
+	title string
+	order int
 }
 
-func systemDisplayName(dir string) string {
-	if dir == "" {
-		return "Playbooks"
+// lessDir orders directories by _meta.yaml order (unset last), then by display
+// name, then by key so the result is deterministic.
+func lessDir(a, b dirKey) bool {
+	ao, bo := a.order, b.order
+	if ao == 0 {
+		ao = defaultDirOrder
 	}
-	if label, ok := systemLabels[dir]; ok {
-		return label
+	if bo == 0 {
+		bo = defaultDirOrder
 	}
-	return categoryDisplayName(dir)
-}
-
-// SystemName returns the display name for a system directory, for callers
-// outside this package (e.g. a page label).
-func SystemName(dir string) string { return systemDisplayName(dir) }
-
-// CategoryName returns the display name for a category directory; empty when
-// the runbook sits directly under its system.
-func CategoryName(dir string) string { return categoryDisplayName(dir) }
-
-// categoryDisplayName title-cases a hyphenated directory name. An empty name
-// means the runbook sits directly under its system, with no subheading.
-func categoryDisplayName(dir string) string {
-	if dir == "" {
-		return ""
+	if ao != bo {
+		return ao < bo
 	}
-	words := strings.Split(dir, "-")
-	for i, w := range words {
-		if len(w) > 0 {
-			words[i] = strings.ToUpper(w[:1]) + w[1:]
-		}
+	if a.title != b.title {
+		return a.title < b.title
 	}
-	return strings.Join(words, " ")
+	return a.key < b.key
 }
 
 type RunbookDef struct {
@@ -259,90 +277,101 @@ func isTableSeparator(cells []string) bool {
 	return true
 }
 
-// LoadDir reads *.md files in dir and up to two levels of subdirectories.
-// content/<system>/<category>/<file>.md sets Group to the system and Category
-// to the category; content/<system>/<file>.md sets Group only. Results are
-// sorted by the explicit systemOrder/categoryOrder, then by runbook order and
-// title.
+// LoadDir reads every *.md under dir, at any depth. A runbook's system and
+// category are the two directory levels directly above it: content/mysql/
+// replication/x.md is MySQL › Replication, and a leading wrapper is ignored
+// (content/testdata/mysql/replication/x.md groups the same way). A file directly
+// in a top-level directory has a system and no category; a file directly in dir
+// has neither.
+//
+// Each directory may carry an optional _meta.yaml giving its display title and
+// sort order (see DirMeta). Results are sorted by system (order, title), then
+// category (order, title), then runbook order and title.
 func LoadDir(dir string) ([]RunbookDef, error) {
-	entries, err := os.ReadDir(dir)
+	metas := map[string]DirMeta{}
+	dirMeta := func(path string) (DirMeta, error) {
+		if m, ok := metas[path]; ok {
+			return m, nil
+		}
+		m, err := loadDirMeta(path)
+		if err != nil {
+			return DirMeta{}, err
+		}
+		metas[path] = m
+		return m, nil
+	}
+
+	var defs []RunbookDef
+	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || !strings.HasSuffix(d.Name(), ".md") {
+			return nil
+		}
+		rel, err := filepath.Rel(dir, path)
+		if err != nil {
+			return err
+		}
+		parts := strings.Split(filepath.ToSlash(rel), "/")
+		parts = parts[:len(parts)-1] // drop the file name
+
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		def, err := Parse(data)
+		if err != nil {
+			return fmt.Errorf("%s: %w", filepath.ToSlash(rel), err)
+		}
+		switch {
+		case len(parts) == 1:
+			m, err := dirMeta(filepath.Join(dir, parts[0]))
+			if err != nil {
+				return err
+			}
+			def.Group = parts[0]
+			def.GroupTitle = displayName(parts[0], m)
+			def.GroupOrder = m.Order
+		case len(parts) >= 2:
+			sysKey, catKey := parts[len(parts)-2], parts[len(parts)-1]
+			sm, err := dirMeta(filepath.Join(dir, filepath.Join(parts[:len(parts)-1]...)))
+			if err != nil {
+				return err
+			}
+			cm, err := dirMeta(filepath.Join(dir, filepath.Join(parts...)))
+			if err != nil {
+				return err
+			}
+			def.Group = sysKey
+			def.GroupTitle = displayName(sysKey, sm)
+			def.GroupOrder = sm.Order
+			def.Category = catKey
+			def.CategoryTitle = displayName(catKey, cm)
+			def.CategoryOrder = cm.Order
+		}
+		defs = append(defs, def)
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	var defs []RunbookDef
-	for _, e := range entries {
-		if !e.IsDir() {
-			if !strings.HasSuffix(e.Name(), ".md") {
-				continue
-			}
-			data, err := os.ReadFile(filepath.Join(dir, e.Name()))
-			if err != nil {
-				return nil, fmt.Errorf("%s: %w", e.Name(), err)
-			}
-			def, err := Parse(data)
-			if err != nil {
-				return nil, fmt.Errorf("%s: %w", e.Name(), err)
-			}
-			defs = append(defs, def)
-			continue
-		}
-		system := e.Name()
-		systemDir := filepath.Join(dir, system)
-		systemEntries, err := os.ReadDir(systemDir)
-		if err != nil {
-			return nil, err
-		}
-		for _, se := range systemEntries {
-			if se.IsDir() {
-				category := se.Name()
-				categoryDir := filepath.Join(systemDir, category)
-				categoryEntries, err := os.ReadDir(categoryDir)
-				if err != nil {
-					return nil, err
-				}
-				for _, ce := range categoryEntries {
-					if ce.IsDir() || !strings.HasSuffix(ce.Name(), ".md") {
-						continue
-					}
-					data, err := os.ReadFile(filepath.Join(categoryDir, ce.Name()))
-					if err != nil {
-						return nil, fmt.Errorf("%s/%s/%s: %w", system, category, ce.Name(), err)
-					}
-					def, err := Parse(data)
-					if err != nil {
-						return nil, fmt.Errorf("%s/%s/%s: %w", system, category, ce.Name(), err)
-					}
-					def.Group = system
-					def.Category = category
-					defs = append(defs, def)
-				}
-				continue
-			}
-			if !strings.HasSuffix(se.Name(), ".md") {
-				continue
-			}
-			data, err := os.ReadFile(filepath.Join(systemDir, se.Name()))
-			if err != nil {
-				return nil, fmt.Errorf("%s/%s: %w", system, se.Name(), err)
-			}
-			def, err := Parse(data)
-			if err != nil {
-				return nil, fmt.Errorf("%s/%s: %w", system, se.Name(), err)
-			}
-			def.Group = system
-			defs = append(defs, def)
-		}
-	}
+
 	sort.Slice(defs, func(i, j int) bool {
-		gi, gj := defs[i].Group, defs[j].Group
-		if gi != gj {
-			return lessOrdered(gi, gj, systemOrder)
+		a, b := defs[i], defs[j]
+		if a.Group != b.Group {
+			return lessDir(
+				dirKey{a.Group, a.GroupTitle, a.GroupOrder},
+				dirKey{b.Group, b.GroupTitle, b.GroupOrder},
+			)
 		}
-		ci, cj := defs[i].Category, defs[j].Category
-		if ci != cj {
-			return lessOrdered(ci, cj, categoryOrder[gi])
+		if a.Category != b.Category {
+			return lessDir(
+				dirKey{a.Category, a.CategoryTitle, a.CategoryOrder},
+				dirKey{b.Category, b.CategoryTitle, b.CategoryOrder},
+			)
 		}
-		return lessRunbook(defs[i].RunbookMeta, defs[j].RunbookMeta)
+		return lessRunbook(a.RunbookMeta, b.RunbookMeta)
 	})
 	return defs, nil
 }
