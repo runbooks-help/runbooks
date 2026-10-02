@@ -1,6 +1,10 @@
 package views
 
-import "runbooks/parser"
+import (
+	"strconv"
+
+	"runbooks/parser"
+)
 
 // Shell wraps the full HTML document. Children are rendered inside <body>.
 templ Shell(title string) {
@@ -41,20 +45,90 @@ templ Rail() {
 	</aside>
 }
 
+// SidebarNav renders the runbook tree: a filter field over collapsible systems
+// and categories. The branch owning the active runbook is open on load; a filter
+// query overrides collapse. `active` is the current runbook slug ("" on the
+// index). The whole tree is rendered and collapse is a class, so the filter can
+// reach every runbook; the styleguide keeps the flat .nav-system/.nav-section nav.
 templ SidebarNav(groups []parser.SystemGroup, active string) {
-	for _, system := range groups {
-		<p class="nav-system">{ system.Name }</p>
-		for _, group := range system.Categories {
-			if group.Name != "" {
-				<p class="nav-section">{ group.Name }</p>
+	if len(groups) > 0 {
+		{{ sysActive, catActive := navActive(groups, active) }}
+		<div class="nav-filter">
+			<input
+				class="nav-filter-input"
+				type="search"
+				placeholder="Filter runbooks…"
+				aria-label="Filter runbooks"
+				autocomplete="off"
+				spellcheck="false"
+			/>
+			<span class="nav-filter-key" data-nav-filter-key aria-hidden="true">/</span>
+			<button class="nav-filter-key nav-filter-clear" type="button" data-nav-filter-clear hidden aria-label="Clear filter">✕</button>
+		</div>
+		<p class="nav-results" data-nav-results hidden></p>
+		<div class="nav-tree" data-nav-tree>
+			for i, system := range groups {
+				<section class={ navOpenClass("nav-sys", system.Name == sysActive) } data-nav-sys>
+					<button
+						class="nav-row"
+						type="button"
+						aria-expanded={ strconv.FormatBool(system.Name == sysActive) }
+						aria-controls={ "nav-sys-" + strconv.Itoa(i) }
+						data-nav-toggle
+					>
+						<span class="nav-chev" aria-hidden="true">▸</span>
+						<span class="nav-sys-name">{ system.Name }</span>
+						<span class="nav-count" data-nav-count data-total={ strconv.Itoa(systemRunbookCount(system)) }>
+							{ strconv.Itoa(systemRunbookCount(system)) }
+						</span>
+					</button>
+					<div class="nav-sys-body" id={ "nav-sys-" + strconv.Itoa(i) }>
+						for j, group := range system.Categories {
+							if group.Name == "" {
+								@navLinks(group.Runbooks, active, system.Name, group.Name)
+							} else {
+								<section class={ navOpenClass("nav-cat", group.Name == catActive) } data-nav-cat>
+									<button
+										class="nav-row"
+										type="button"
+										aria-expanded={ strconv.FormatBool(group.Name == catActive) }
+										aria-controls={ "nav-cat-" + strconv.Itoa(i) + "-" + strconv.Itoa(j) }
+										data-nav-toggle
+									>
+										<span class="nav-chev" aria-hidden="true">▸</span>
+										<span class="nav-cat-name">{ group.Name }</span>
+										<span class="nav-count" data-nav-count data-total={ strconv.Itoa(len(group.Runbooks)) }>
+											{ strconv.Itoa(len(group.Runbooks)) }
+										</span>
+									</button>
+									<div class="nav-cat-body" id={ "nav-cat-" + strconv.Itoa(i) + "-" + strconv.Itoa(j) }>
+										@navLinks(group.Runbooks, active, system.Name, group.Name)
+									</div>
+								</section>
+							}
+						}
+					</div>
+				</section>
 			}
-			<nav>
-				for _, rb := range group.Runbooks {
-					<a href={ templ.SafeURL("/" + rb.Slug) } class={ navClass(active, rb.Slug) }>{ rb.Title }</a>
-				}
-			</nav>
-		}
+		</div>
 	}
+}
+
+// navLinks renders one category's runbook links, carrying the haystack the filter
+// matches against — the same helper the index filter uses.
+templ navLinks(runbooks []parser.RunbookMeta, active, system, category string) {
+	<nav class="nav-links">
+		for _, rb := range runbooks {
+			<a
+				href={ templ.SafeURL("/" + rb.Slug) }
+				class={ navClass(active, rb.Slug) }
+				data-search={ runbookSearchText(rb, system, category) }
+				if rb.Slug == active {
+					aria-current="page"
+				}
+			>{ rb.Title }</a>
+		}
+	</nav>
 }
 
 // AppearanceControl is the sidebar footer: theme, code-weight and reading-size

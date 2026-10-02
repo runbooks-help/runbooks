@@ -992,6 +992,83 @@ if (indexSearch) {
 	indexSearch.addEventListener('input', applyFilter);
 }
 
+// Sidebar — filter and disclosure over the runbook tree
+const navFilter = document.querySelector('.nav-filter-input');
+const navTree = document.querySelector('[data-nav-tree]');
+if (navFilter && navTree) {
+	const norm = s => (s || '').toLowerCase();
+	// Same rule as the index filter, over the same runbook search text: phrase
+	// match first, then "every word appears".
+	const matches = (hay, q) => !q || hay.includes(q) || q.split(/\s+/).every(t => hay.includes(t));
+	const links = [...navTree.querySelectorAll('.nav-links a')];
+	const sections = [...navTree.querySelectorAll('[data-nav-sys], [data-nav-cat]')];
+	const navResults = document.querySelector('[data-nav-results]');
+	const navClear = document.querySelector('[data-nav-filter-clear]');
+	const navKey = document.querySelector('[data-nav-filter-key]');
+	// The branch the server opened for the active runbook, restored on clear.
+	const openAtLoad = new Set(sections.filter(s => s.classList.contains('open')));
+
+	const applyNavFilter = () => {
+		const q = norm(navFilter.value.trim());
+		let visible = 0;
+		links.forEach(a => {
+			const hit = matches(norm(a.dataset.search), q);
+			a.hidden = !hit;
+			if (hit) visible++;
+		});
+		sections.forEach(section => {
+			const hits = [...section.querySelectorAll('.nav-links a')].filter(a => !a.hidden).length;
+			const open = q ? hits > 0 : openAtLoad.has(section);
+			section.hidden = q.length > 0 && hits === 0;
+			section.classList.toggle('open', open);
+			const toggle = section.querySelector('[data-nav-toggle]');
+			if (toggle) toggle.setAttribute('aria-expanded', String(open));
+			const count = section.querySelector('[data-nav-count]');
+			if (count) count.textContent = q ? String(hits) : count.dataset.total;
+		});
+		if (navResults) {
+			navResults.hidden = !q;
+			navResults.textContent = visible === 1 ? '1 runbook matches' : `${visible} runbooks match`;
+		}
+		if (navClear) navClear.hidden = !q;
+		if (navKey) navKey.hidden = !!q;
+	};
+
+	const clearNavFilter = () => {
+		navFilter.value = '';
+		applyNavFilter();
+	};
+
+	navFilter.addEventListener('input', applyNavFilter);
+	navFilter.addEventListener('keydown', e => {
+		if (e.key === 'Escape') {
+			clearNavFilter();
+			navFilter.blur();
+		}
+	});
+	if (navClear) {
+		navClear.addEventListener('click', () => {
+			clearNavFilter();
+			navFilter.focus();
+		});
+	}
+	navTree.querySelectorAll('[data-nav-toggle]').forEach(btn => {
+		btn.addEventListener('click', () => {
+			const section = btn.closest('[data-nav-sys], [data-nav-cat]');
+			const open = section.classList.toggle('open');
+			btn.setAttribute('aria-expanded', String(open));
+		});
+	});
+	// `/` focuses the filter, unless a field already has focus.
+	document.addEventListener('keydown', e => {
+		if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+		const el = document.activeElement;
+		if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return;
+		e.preventDefault();
+		navFilter.focus();
+	});
+}
+
 // Git Sync button — only active when rendered by server (GitSyncEnabled = true)
 const notesSync = document.querySelector('.notes-sync');
 const syncToastEl = document.querySelector('.notes-sync-toast');

@@ -117,6 +117,81 @@ func navClass(active, route string) string {
 	return ""
 }
 
+// navActive locates the active runbook's system and category so the sidebar can
+// open exactly that branch on load. Both are empty when no branch owns the slug
+// (the index page, or an unknown slug).
+func navActive(groups []parser.SystemGroup, slug string) (system, category string) {
+	if slug == "" {
+		return "", ""
+	}
+	for _, s := range groups {
+		for _, c := range s.Categories {
+			for _, rb := range c.Runbooks {
+				if rb.Slug == slug {
+					return s.Name, c.Name
+				}
+			}
+		}
+	}
+	return "", ""
+}
+
+// navOpenClass appends the open-state marker the sidebar tree toggles.
+func navOpenClass(base string, open bool) string {
+	if open {
+		return base + " open"
+	}
+	return base
+}
+
+// systemRunbookCount is a system's total runbook count for the sidebar badge.
+func systemRunbookCount(system parser.SystemGroup) int {
+	n := 0
+	for _, c := range system.Categories {
+		n += len(c.Runbooks)
+	}
+	return n
+}
+
+// sgSidebarGroups is the sample tree the styleguide renders the sidebar-nav
+// pattern from — it must not depend on the content tree, which is empty in a
+// fresh checkout. The values are invented, not drawn from real content.
+func sgSidebarGroups() []parser.SystemGroup {
+	return []parser.SystemGroup{
+		{
+			Name: "MySQL",
+			Categories: []parser.CategoryGroup{
+				{
+					Name: "Replication",
+					Runbooks: []parser.RunbookMeta{
+						{
+							Title:       "Replication Lag After a Bulk Import",
+							Slug:        "replication-lag-bulk-import",
+							Description: "Replica workers fall behind while the primary finishes a large load.",
+							Symptoms:    []string{"replication lag", "replica behind"},
+						},
+						{Title: "Replica Stops With a Duplicate Key", Slug: "replica-duplicate-key"},
+						{Title: "Rebuild a Replica From a Snapshot", Slug: "rebuild-replica-snapshot"},
+					},
+				},
+				{
+					Name:     "Failover",
+					Runbooks: []parser.RunbookMeta{{Title: "Promote a Replica During an Outage", Slug: "promote-replica-outage"}},
+				},
+			},
+		},
+		{
+			Name: "Kubernetes",
+			Categories: []parser.CategoryGroup{
+				{
+					Name:     "Cluster",
+					Runbooks: []parser.RunbookMeta{{Title: "Node NotReady After a Reboot", Slug: "node-notready-after-reboot"}},
+				},
+			},
+		},
+	}
+}
+
 // pageTitle builds the <title> text; an empty title (the index page) is just the
 // site name.
 func pageTitle(title string) string {

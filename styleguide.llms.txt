@@ -120,6 +120,13 @@ styleguide) without carrying a border that only makes sense in one host.
 
 ## Patterns
 
+  sidebar nav      .nav-filter + .nav-tree: a filter field over collapsible
+                   system/category rows (.nav-row with aria-expanded, bracketed
+                   .nav-count). The branch owning the active runbook is open on
+                   load; a query overrides collapse and counts the matches; `/`
+                   focuses the filter and Esc clears it. The flat
+                   .nav-system/.nav-section headings are the styleguide's own
+                   section nav, not the runbook tree.                    shell.css
   appearance       theme, code weight, reading size, steps and contents; the
                    sidebar footer. Playwright targets .theme-btn / .weight-btn /
                    .size-btn / .steps-btn.

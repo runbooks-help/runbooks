@@ -173,3 +173,94 @@ test("a destructive runbook gates the page behind an acknowledgement", async (t)
 		throw err;
 	}
 });
+
+test("the sidebar nav: the active branch opens, a query narrows, disclosure toggles", async (t) => {
+	const app = await startApp();
+	t.after(() => app.stop());
+	const b = await startBrowser();
+	t.after(() => b.stop());
+	const page = b.page;
+	try {
+		await bootAdmin(page, app.base);
+		await page.goto(app.base + "/gallery");
+
+		// The tree is a plain server-rendered structure, so drive it through the DOM
+		// rather than locator auto-waiting (which retries against detached elements).
+		const nav = () =>
+			page.evaluate(() => {
+				const visible = el => !!el && el.offsetParent !== null;
+				const activeLink = document.querySelector("[data-nav-tree] .nav-links a.active");
+				const system = activeLink && activeLink.closest(".nav-sys");
+				const category = activeLink && activeLink.closest(".nav-cat");
+				const toggle = system && system.querySelector("[data-nav-toggle]");
+				const results = document.querySelector("[data-nav-results]");
+				return {
+					activeLinks: document.querySelectorAll("[data-nav-tree] .nav-links a.active").length,
+					activeInOpenSystem: !!system && system.classList.contains("open"),
+					activeInClosedCategory: !!category && !category.classList.contains("open"),
+					activeVisible: visible(activeLink),
+					expanded: toggle ? toggle.getAttribute("aria-expanded") : null,
+					visibleLinks: [...document.querySelectorAll("[data-nav-tree] .nav-links a")].filter(visible).length,
+					resultsHidden: results.hidden,
+					resultsText: results.textContent,
+					filterValue: document.querySelector(".nav-filter-input").value,
+					focused: document.activeElement === document.querySelector(".nav-filter-input"),
+				};
+			});
+		const click = sel => page.evaluate(s => document.querySelector(s).click(), sel);
+		const filter = value =>
+			page.evaluate(v => {
+				const input = document.querySelector(".nav-filter-input");
+				input.value = v;
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+			}, value);
+
+		// The branch owning the active runbook is open, and its link is marked.
+		let state = await nav();
+		assert.equal(state.activeLinks, 1, "one active link");
+		assert.equal(state.activeInOpenSystem, true, "it sits in the open system");
+		assert.equal(state.activeInClosedCategory, false, "never in a collapsed category");
+		assert.equal(state.expanded, "true", "the active system starts open");
+		assert.equal(state.activeVisible, true, "its links are visible");
+
+		// Disclosure: the active system's row collapses and reopens.
+		await page.evaluate(() => {
+			const toggle = document.querySelector("[data-nav-tree] .nav-links a.active").closest(".nav-sys").querySelector("[data-nav-toggle]");
+			toggle.click();
+		});
+		state = await nav();
+		assert.equal(state.expanded, "false", "the row collapses");
+		assert.equal(state.activeVisible, false, "its links hide");
+		await page.evaluate(() => {
+			const toggle = document.querySelector("[data-nav-tree] .nav-links a.active").closest(".nav-sys").querySelector("[data-nav-toggle]");
+			toggle.click();
+		});
+		state = await nav();
+		assert.equal(state.activeVisible, true, "reopening restores them");
+
+		// A query overrides collapse across the whole tree, and counts matches.
+		await filter("gallery");
+		state = await nav();
+		assert.equal(state.visibleLinks, 1, "only the match is listed");
+		assert.equal(state.resultsHidden, false, "a match line is shown");
+		await filter("zzz-no-such-runbook");
+		state = await nav();
+		assert.equal(state.visibleLinks, 0, "no link survives a miss");
+		assert.match(state.resultsText, /^0 /, "the count reports the miss");
+
+		// The clear affordance restores the server's default branch.
+		await click("[data-nav-filter-clear]");
+		state = await nav();
+		assert.equal(state.filterValue, "", "clear empties the field");
+		assert.equal(state.resultsHidden, true, "the match line hides again");
+		assert.equal(state.activeInOpenSystem, true, "the active branch is back");
+
+		// `/` focuses the filter when no field has focus.
+		await page.evaluate(() => document.activeElement.blur());
+		await page.keyboard.press("/");
+		assert.equal((await nav()).focused, true, "`/` focuses the filter");
+	} catch (err) {
+		await reportFailure(page, app.logs());
+		throw err;
+	}
+});

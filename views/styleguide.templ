@@ -362,6 +362,18 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 
 					<h2 class="sg-heading">Patterns</h2>
 
+					<section class="sg-section" id="sidebar-nav">
+						<h3>Sidebar navigation <span class="sg-atom">pattern</span></h3>
+						<p>
+							The runbook tree: a filter field over collapsible systems and categories.
+							The branch owning the active runbook is open on load; a query overrides
+							collapse and counts the matches. Shown in a sidebar-width frame.
+						</p>
+						<div class="sg-sidebar">
+							@SidebarNav(sgSidebarGroups(), "replication-lag-bulk-import")
+						</div>
+					</section>
+
 					<section class="sg-section" id="appearance">
 						<h3>Appearance <span class="sg-atom">pattern</span></h3>
 						<p>Theme, code weight and text size, applied before first paint and persisted in <code>runbooks-*</code>. A sidebar component — shown here in a sidebar-width frame, as it appears in the app.</p>
@@ -443,6 +455,7 @@ templ styleGuideNav() {
 	</nav>
 	<p class="nav-section">Patterns</p>
 	<nav>
+		<a href="#sidebar-nav">Sidebar navigation</a>
 		<a href="#appearance">Appearance</a>
 		<a href="#session">Session actions</a>
 		<a href="#admin">Admin form</a>
