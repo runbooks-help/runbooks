@@ -152,6 +152,16 @@ test("the notes composer: toolbar, help, links, and the hidden-column fix", asyn
 		assert.equal(await link.getAttribute("rel"), "noopener noreferrer", "preview links carry noopener");
 		await b.page.locator('.notes-tab[data-mode="edit"]').click();
 
+		// A pasted note is untrusted: script and event handlers must not survive
+		// the preview render, while safe markdown still does.
+		await area.fill('<img src=x onerror="window.__pwned=1"><script>window.__pwned=2</script>**safe**');
+		await b.page.locator('.notes-tab[data-mode="preview"]').click();
+		assert.equal(await b.page.evaluate(() => window.__pwned), undefined, "a malicious note does not execute");
+		assert.equal(await b.page.locator(".notes-preview script").count(), 0, "script tags are stripped");
+		assert.equal(await b.page.locator(".notes-preview img[onerror]").count(), 0, "event handlers are stripped");
+		assert.equal(await b.page.locator(".notes-preview strong").innerText(), "safe", "safe markdown still renders");
+		await b.page.locator('.notes-tab[data-mode="edit"]').click();
+
 		// The cheatsheet is non-modal and closes on Esc.
 		const sheet = b.page.locator("[data-notes-cheatsheet]");
 		await b.page.locator("[data-notes-help]").click();

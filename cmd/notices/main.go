@@ -152,6 +152,7 @@ func writeVendors(b *bytes.Buffer) error {
 	js := []struct{ name, file string }{
 		{"highlight.js 11.11.1 — BSD-3-Clause", "public/js/vendor/highlight.LICENSE"},
 		{"marked 15.0.12 — MIT", "public/js/vendor/marked.LICENSE"},
+		{"DOMPurify 3.2.4 — Apache-2.0 (elected)", "public/js/vendor/purify.LICENSE"},
 		{"JSZip 3.10.1 — MIT (elected)", "public/js/vendor/jszip.LICENSE"},
 		{"pako (bundled by JSZip) — MIT", "public/js/vendor/pako.LICENSE"},
 	}

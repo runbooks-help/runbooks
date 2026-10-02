@@ -24,7 +24,7 @@ or rewriting.
 | Class | Count | Licences |
 |---|---|---|
 | Distributed Go modules (linked into the binary) | 28 | MIT, BSD-2/3-Clause, Apache-2.0, ISC, **MPL-2.0 (1)**, dual MIT OR Apache (1) |
-| Vendored browser JS | 3 | BSD-3-Clause, MIT, MIT-or-GPLv3 (elect MIT) |
+| Vendored browser JS | 4 | BSD-3-Clause, MIT, MIT-or-GPLv3 (elect MIT), Apache-2.0 (DOMPurify) |
 | Vendored icons | 1 | ISC (Feather-derived subset MIT) |
 | Self-hosted fonts | 2 | OFL-1.1 |
 | Build/test-only Go modules | 45 | MIT, BSD-2/3-Clause, Apache-2.0, ISC, MPL-2.0 (1, not linked) |
@@ -97,6 +97,7 @@ Checked in and served as-is; not bundled.
 |---|---|---|---|
 | `highlight.min.js` | 11.11.1 | BSD-3-Clause | — |
 | `marked.min.js` | 15.0.12 | MIT | — |
+| `purify.min.js` | 3.2.4 | Apache-2.0 **or** MPL-2.0 | **Apache-2.0** |
 | `jszip.min.js` | 3.10.1 | MIT **or** GPLv3 | **MIT** (bundled pako is MIT) |
 
 ## 3. Vendored icons (`views/`)

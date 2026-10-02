@@ -343,9 +343,11 @@ function recordTimeline(entry) {
 }
 
 // Render the notes markdown, making external links open in a new tab so
-// following a reference does not navigate away from an in-progress run.
+// following a reference does not navigate away from an in-progress run. The
+// rendered HTML is untrusted (notes are pasted and shared), so it is sanitized
+// to a strict allowlist before it becomes DOM.
 function renderNotesPreview(md) {
-	notesPreview.innerHTML = window.marked.parse(expandNoteImgs(md));
+	notesPreview.innerHTML = window.DOMPurify.sanitize(window.marked.parse(expandNoteImgs(md)));
 	notesPreview.querySelectorAll('a[href]').forEach(a => {
 		a.target = '_blank';
 		a.rel = 'noopener noreferrer';

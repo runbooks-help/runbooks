@@ -228,7 +228,7 @@ func main() {
 	mux.Handle("/api/runbooks/v1/search", search)
 
 	log.Printf("runbooks listening on :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, mux))
+	log.Fatal(http.ListenAndServe(":"+port, securityHeaders(mux)))
 }
 
 // openIdentityStore opens the configured identity database.
