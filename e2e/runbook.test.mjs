@@ -58,7 +58,7 @@ test("the runbook page: step roll-up, the clear dialog, and light mode", async (
 		await b.page.reload();
 		await b.page.locator(".code-group").first().scrollIntoViewIfNeeded();
 		await snap(b.page, "runbook-light-code");
-		await b.page.locator(".rollback-card").scrollIntoViewIfNeeded();
+		await b.page.locator(".rollback-card").first().scrollIntoViewIfNeeded();
 		await snap(b.page, "runbook-light-rollback");
 		await holdIfAsked();
 	} catch (err) {
@@ -90,6 +90,30 @@ test("the index: body search returns snippets and restores the catalogue", async
 		await b.page.fill(".index-search", "");
 		await b.page.locator(".index-catalogue").waitFor({ state: "visible", timeout: uiTimeout });
 		assert.equal(await b.page.locator(".search-result").count(), 0, "clearing restores the catalogue");
+		await holdIfAsked();
+	} catch (err) {
+		await reportFailure(b.page, app.logs());
+		throw err;
+	}
+});
+
+test("consecutive rollback steps keep the step gap", async (t) => {
+	const app = await startApp();
+	t.after(() => app.stop());
+	const b = await startBrowser();
+	t.after(() => b.stop());
+	try {
+		await bootAdmin(b.page, app.base);
+		await b.page.goto(app.base + "/gallery");
+		const cards = b.page.locator(".rollback-card");
+		await cards.first().waitFor({ timeout: uiTimeout });
+		assert.equal(await cards.count(), 2, "the gallery carries two rollback steps");
+		const first = await cards.nth(0).boundingBox();
+		const second = await cards.nth(1).boundingBox();
+		assert.ok(
+			second.y >= first.y + first.height + 8,
+			`rollback steps are spaced, got a ${second.y - (first.y + first.height)}px gap`,
+		);
 		await holdIfAsked();
 	} catch (err) {
 		await reportFailure(b.page, app.logs());

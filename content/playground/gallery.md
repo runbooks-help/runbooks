@@ -94,3 +94,7 @@ Rollback steps render after `---rollback`, in the danger styling and without a n
 ```bash [Demote the node]
 mysql -h "{{HOST}}" -e "SET GLOBAL read_only = ON;"
 ```
+
+## Confirm the rollback held
+
+A second rollback step, so the spacing between consecutive danger cards is rendered and reviewable.

@@ -341,6 +341,12 @@ body.zen .zen-bar {
 	color: var(--danger);
 }
 
+/* Consecutive rollback steps sit inside #rollback, which is not the flex column
+   that spaces the numbered steps, so give them the same gap explicitly. */
+#rollback .step-card + .step-card {
+	margin-top: var(--space-4);
+}
+
 .runbook-tags {
 	display: flex;
 	flex-wrap: wrap;
