@@ -426,6 +426,12 @@ nav a.active {
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
+	/* Keep the reading column centred at every width, not only in zen: on an
+	   ultrawide, auto margins split the dead space either side of the column
+	   instead of piling it all on the right. Zen gets the same centring for
+	   free — its grid leaves .main as the only item in a 1fr track. */
+	max-width: 1440px;
+	margin-inline: auto;
 }
 
 .main-header {

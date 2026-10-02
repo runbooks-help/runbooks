@@ -1,5 +1,6 @@
 .admin-inner {
 	max-width: 1160px;
+	margin-inline: auto;
 }
 
 .admin-card {

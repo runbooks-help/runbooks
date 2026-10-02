@@ -172,6 +172,7 @@ body.zen {
 	grid-template-areas: "main";
 }
 
+body.zen .rail,
 body.zen .sidebar,
 body.zen .notes-panel,
 body.zen .main-header,
@@ -183,14 +184,6 @@ body.zen #rollback {
 
 body.zen .zen-bar {
 	display: flex;
-}
-
-/* With the side columns gone, centre the reading column instead of letting it
-   sit left with dead space on the right. */
-body.zen .main {
-	width: 100%;
-	max-width: 1440px;
-	margin-inline: auto;
 }
 
 .steps {

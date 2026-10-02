@@ -3,6 +3,7 @@
 
 .sg-inner {
 	max-width: 1160px;
+	margin-inline: auto;
 }
 
 .sg-heading {

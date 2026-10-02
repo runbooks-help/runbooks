@@ -18,7 +18,10 @@ width, driven by `data-drawer="sidebar"` on `<body>` and closed on the scrim, Es
 
 A page with no notes column marks its main `.main--full`, collapsing the grid to
 `rail | main`. `body.notes-hidden` does the same for the reading preference, and
-`body.zen` drops to a single centred column.
+`body.zen` drops to a single column. `.main` always centres itself with
+`max-width: 1440px; margin-inline: auto` — at every width, zen or not — so an
+ultrawide splits the dead space either side of the reading column instead of
+piling it all on the right.
 
 Below **1200px** (`responsive.css`) the notes panel becomes an off-canvas drawer
 too — a 460px column starves main on a portrait monitor or in a split window. It is
