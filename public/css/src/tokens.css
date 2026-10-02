@@ -69,7 +69,8 @@
 
 	/* Structural sizes */
 	--size-app-header: 56px;
-	--size-app-sidebar: 220px;
+	--size-app-rail: 56px; /* the persistent thin left strip */
+	--size-app-sidebar: 220px; /* the summoned sidebar drawer */
 	--size-detail-min: 380px;
 	--size-detail-max: 480px;
 

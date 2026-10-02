@@ -1,9 +1,10 @@
-/* App shell — sidebar + main content grid */
+/* App shell — rail + main content grid. The sidebar is a summoned overlay, not a
+   column, so main keeps its width at every viewport. */
 
 body {
 	display: grid;
-	grid-template-columns: var(--size-app-sidebar) 1fr var(--notes-width, 460px);
-	grid-template-areas: "sidebar main notes";
+	grid-template-columns: var(--size-app-rail) 1fr var(--notes-width, 460px);
+	grid-template-areas: "rail main notes";
 	height: 100vh;
 	overflow: hidden;
 }
@@ -24,18 +25,131 @@ body {
 /* Index and admin pages have no notes panel — let main span the full width. */
 body:has(.index-main),
 body:has(.main--full) {
-	grid-template-columns: var(--size-app-sidebar) 1fr;
-	grid-template-areas: "sidebar main";
+	grid-template-columns: var(--size-app-rail) 1fr;
+	grid-template-areas: "rail main";
 }
 
+/* The rail is the persistent left chrome: the brand mark plus a full-height hit
+   area. The sidebar is only ever summoned, so the strip answers every click that
+   is not the brand. */
+.rail {
+	grid-area: rail;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-3) 0;
+	background: var(--nav-bg);
+	border-right: 1px solid var(--nav-border);
+	transition: background var(--duration-fast) var(--ease);
+}
+
+.rail:hover {
+	background: var(--nav-hover);
+}
+
+/* Fills the strip so a click anywhere on it summons the sidebar; the chevron is
+   the affordance. Sits under the brand link, which keeps its own meaning. */
+.rail-hit {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: none;
+	background: transparent;
+	color: var(--nav-muted);
+	font: inherit;
+	font-size: var(--text-lg);
+	line-height: 1;
+	cursor: pointer;
+	transition: color var(--duration-fast) var(--ease);
+}
+
+.rail:hover .rail-hit,
+.rail-hit:focus-visible {
+	color: var(--nav-text);
+}
+
+.rail-hit:focus-visible {
+	outline: 2px solid var(--accent-strong);
+	outline-offset: -2px;
+}
+
+.rail-brand {
+	position: relative;
+	z-index: 1;
+	color: var(--accent-strong);
+	font-weight: 700;
+	font-size: var(--text-md);
+	line-height: 1;
+	text-decoration: none;
+}
+
+/* The sidebar overlays the rail and main when summoned, dismissed by the scrim,
+   Esc, ✕ or navigation. */
 .sidebar {
-	grid-area: sidebar;
+	position: fixed;
+	inset-block: 0;
+	left: 0;
+	width: var(--size-app-sidebar);
+	max-width: 92vw;
+	z-index: 40;
+	transform: translateX(-100%);
+	transition: transform var(--duration-base) var(--ease);
 	background: var(--nav-bg);
 	border-right: 1px solid var(--nav-border);
 	display: flex;
 	flex-direction: column;
 	overflow-y: auto;
 	padding: var(--space-5) 0 var(--space-5);
+	box-shadow: var(--shadow-lg);
+}
+
+body[data-drawer="sidebar"] .sidebar {
+	transform: none;
+}
+
+.drawer-scrim {
+	display: none;
+	position: fixed;
+	inset: 0;
+	z-index: 30;
+	background: rgba(0, 0, 0, 0.5);
+}
+
+body[data-drawer] .drawer-scrim {
+	display: block;
+}
+
+.drawer-close {
+	display: none;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border: none;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--muted);
+	font-size: var(--text-sm);
+	cursor: pointer;
+}
+
+.drawer-close:hover {
+	background: var(--nav-hover);
+	color: var(--text);
+}
+
+.sidebar .drawer-close {
+	display: inline-flex;
+}
+
+.sidebar-close {
+	position: absolute;
+	top: var(--space-3);
+	right: var(--space-3);
 }
 
 .sidebar-logo {
@@ -335,7 +449,7 @@ nav a.active {
 }
 
 body.notes-hidden {
-	grid-template-columns: var(--size-app-sidebar) 1fr 0px;
+	grid-template-columns: var(--size-app-rail) 1fr 0px;
 }
 
 body.notes-hidden .notes-panel {

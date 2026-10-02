@@ -1,15 +1,37 @@
+/* Appearance — the floating panel of reading preferences (theme, code weight,
+   reading size, steps). One component: box, title, four preference rows. It is
+   summoned from a cogwheel — in the rail (always visible) or the sidebar
+   footer — and anchored beside whichever summoned it; that anchoring is
+   contextual chrome owned by the drawer state, not the component. */
 .appearance {
+	position: fixed;
+	left: calc(var(--size-app-rail) + var(--space-3));
+	bottom: var(--space-3);
+	width: 236px;
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-3);
 	padding: var(--space-4);
-	margin-top: auto;
+	background: var(--surface);
+	border: 1px solid var(--border-strong);
+	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-lg);
+	z-index: 60;
 }
 
-/* The footer divider belongs to the sidebar, not the component — so the
-   component can be shown elsewhere (the styleguide) without doubling a frame. */
-.sidebar .appearance {
-	border-top: 1px solid var(--nav-border);
+.appearance[hidden] {
+	display: none;
+}
+
+.appearance-title {
+	margin: 0 0 var(--space-hair);
+	padding-bottom: var(--space-2);
+	border-bottom: 1px solid var(--nav-border);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--muted);
 }
 
 .appearance-label {
@@ -18,7 +40,7 @@
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.06em;
-	color: var(--nav-muted);
+	color: var(--muted);
 }
 
 .theme-row,
@@ -62,4 +84,72 @@
 	color: var(--nav-text);
 	font-weight: 500;
 	box-shadow: var(--shadow-sm);
+}
+
+/* Anchoring: the rail cog summons the panel beside the rail; the sidebar strip
+   summons it beside the summoned sidebar. Anchor position is drawer state, not
+   component CSS. */
+body[data-drawer="sidebar"] .appearance {
+	left: calc(var(--size-app-sidebar) + var(--space-3));
+}
+
+.rail-appearance {
+	position: absolute;
+	bottom: var(--space-3);
+	left: 0;
+	right: 0;
+	display: flex;
+	justify-content: center;
+	z-index: 1;
+}
+
+.rail-cog {
+	width: 30px;
+	height: 30px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-3);
+	border: none;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--nav-muted);
+	cursor: pointer;
+	transition:
+		background var(--duration-fast) var(--ease),
+		color var(--duration-fast) var(--ease);
+}
+
+.rail-cog:hover,
+.rail-cog[aria-expanded="true"] {
+	background: var(--nav-hover);
+	color: var(--nav-text);
+}
+
+.rail-cog:focus-visible {
+	outline: 2px solid var(--accent-strong);
+	outline-offset: -2px;
+}
+
+.rail-cog-icon {
+	display: block;
+	flex-shrink: 0;
+}
+
+/* The labelled strip at the foot of the summoned sidebar: the old four-row
+   footer shrinks to one line. The divider is the sidebar's chrome, not the
+   component's. */
+.sidebar-appearance {
+	margin-top: auto;
+	border-top: 1px solid var(--nav-border);
+	padding: var(--space-2);
+}
+
+.sidebar-appearance .rail-cog {
+	width: 100%;
+	justify-content: flex-start;
+	padding: var(--space-2) var(--space-3);
+	font: inherit;
+	font-size: var(--text-2xs);
+	color: var(--nav-text);
 }

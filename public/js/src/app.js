@@ -167,14 +167,14 @@ function openHint(btn) {
 
 	hintPre.textContent = btn.dataset.hint;
 
-	// Position popup to the right of the sidebar, vertically near the button.
+	// Position popup to the right of the rail, vertically near the button.
 	// Popup uses visibility:hidden so offsetHeight is always valid.
-	const sidebarWidth = document.querySelector('.sidebar').offsetWidth;
+	const railWidth = document.querySelector('.rail').offsetWidth;
 	const r = btn.getBoundingClientRect();
 	const popupH = hintPopup.offsetHeight;
 	const top = Math.max(8, Math.min(r.top, window.innerHeight - popupH - 8));
 
-	hintPopup.style.left = (sidebarWidth + 8) + 'px';
+	hintPopup.style.left = (railWidth + 8) + 'px';
 	hintPopup.style.top = top + 'px';
 	hintPopup.classList.add('open');
 }
@@ -912,10 +912,9 @@ if (ackDialog) {
 	}
 }
 
-// Notes panel: hide it or bring it back, remembered across runbooks. Runs before
-// first paint, so a hidden panel does not flash in.
-// Off-canvas drawers for the narrow layout: the rail's menu, the notes panel and
-// the scrim. Below 1200px both panels are drawers; above, notes is a column.
+// Off-canvas drawers: the rail summons the sidebar at every width, while the
+// notes panel is a drawer only below 1200px (above, it is a column). The scrim,
+// Esc and ✕ close whichever is open.
 const narrowShell = window.matchMedia('(max-width: 1199.98px)');
 
 function setDrawer(name) {
@@ -933,6 +932,29 @@ document.querySelectorAll('[data-drawer-close]').forEach(btn => btn.addEventList
 document.addEventListener('keydown', e => {
 	if (e.key === 'Escape' && document.body.dataset.drawer) setDrawer(null);
 });
+
+// Appearance popover: the rail cog and the sidebar strip toggle the single
+// floating panel (hidden by default). Clicks outside the panel or Esc close it;
+// the drawer handlers' outside-click sits above this in the file order, so a
+// click that lands on the panel does not dismiss the sidebar underneath.
+const appearancePanel = document.querySelector('[data-appearance-panel]');
+if (appearancePanel) {
+	const appearanceToggles = [...document.querySelectorAll('[data-appearance-toggle]')];
+	const setAppearance = (open) => {
+		appearancePanel.hidden = !open;
+		appearanceToggles.forEach(btn => btn.setAttribute('aria-expanded', String(open)));
+	};
+	appearanceToggles.forEach(btn => btn.addEventListener('click', () =>
+		setAppearance(appearancePanel.hidden)));
+	document.addEventListener('click', e => {
+		if (!appearancePanel.hidden && !e.target.closest('[data-appearance-panel], [data-appearance-toggle]')) {
+			setAppearance(false);
+		}
+	});
+	document.addEventListener('keydown', e => {
+		if (e.key === 'Escape' && !appearancePanel.hidden) setAppearance(false);
+	});
+}
 
 const notesToggle = document.querySelector('[data-notes-toggle]');
 if (notesToggle) {

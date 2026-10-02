@@ -59,9 +59,10 @@ The living reference is `/styleguide` (dev-gated by `STYLEGUIDE_ENABLED`, set in
   `typography`, `layouts`, `button`, `badge`, `alert`, `forms`, `dialog`, `shell`,
   `vars`, `tooltip`, `notes`, `tabs`, `toast`, `appearance`, `runbook`, `code`,
   `notice`, `table`, `card`, `index`, `auth`, `admin`, `responsive`, `styleguide`.
-  `shell.css` is the chrome grid + sidebar/nav/main; `runbook.css` is the runbook
-  page; `responsive.css` holds the below-1200px rail/drawers and the print block, and
-  imports last so its overrides land after the components they target.
+  `shell.css` is the chrome grid (rail + summoned sidebar overlay) + nav/main;
+  `runbook.css` is the runbook page; `responsive.css` holds the below-1200px notes
+  drawer and the print block, and imports last so its overrides land after the
+  components they target.
 
 ## Layout
 
@@ -239,7 +240,7 @@ Authoring conventions that have bitten us:
   names the backup flags `defaultBackupEligibility` / `defaultBackupState`; the
   `hasBackup*` spellings are silently ignored (so BE never gets set). `e2e/passkey.test.mjs`
   relies on the `default*` names to present a synced-passkey (BE=1) shape.
-- **Below 1200px the shell reflows** (thin rail + off-canvas drawers, driven by `data-drawer` on `<body>`; see `responsive.css`): the 196px sidebar would otherwise starve the main column on portrait/thin screens. `app.js` drives the rail menu, notes toggle, scrim and Esc.
+- **The thin rail is the default shell at every width** (`--size-app-rail`): the 220px sidebar is never a column, only a summoned overlay (`data-drawer="sidebar"` on `<body>`, driven by `app.js`), so main keeps its width everywhere. Below 1200px the 460px notes column becomes a drawer too (`responsive.css`) rather than starving main on portrait/thin screens. `app.js` drives the rail hit area, notes toggle, scrim and Esc.
 - The runbook page's right-hand notes panel is hideable; the toggle (`data-notes-toggle`)
   sits in the `.main-header` and persists `runbooks-notes` (on|off, default on),
   applied before paint in `app.js`.

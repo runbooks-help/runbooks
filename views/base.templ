@@ -20,6 +20,7 @@ templ Shell(title string) {
 		</head>
 		<body>
 			{ children... }
+			@AppearanceControl()
 			<div class="drawer-scrim" data-drawer-scrim></div>
 			<script src="/public/js/vendor/jszip.min.js"></script>
 			<script src="/public/js/vendor/marked.min.js"></script>
@@ -36,12 +37,17 @@ templ SidebarHeader() {
 	<button class="drawer-close sidebar-close" type="button" data-drawer-close aria-label="Close">✕</button>
 }
 
-// Rail is the thin left strip in the narrow layout: the brand mark and a menu
-// button that opens the sidebar drawer. Hidden while the window is wide.
+// Rail is the persistent thin left strip: the brand mark plus a full-height hit
+// area that summons the sidebar. Any click that is not the brand opens it. The
+// cogwheel at its foot summons the appearance panel, so the reading preferences
+// stay reachable without opening the sidebar.
 templ Rail() {
 	<aside class="rail">
+		<button class="rail-hit" type="button" data-rail-menu aria-label="Open runbook menu" aria-expanded="false">›</button>
 		<a class="rail-brand" href="/" aria-label="Runbooks">r</a>
-		<button class="rail-btn" type="button" data-rail-menu aria-label="Menu" aria-expanded="false">☰</button>
+		<div class="rail-appearance">
+			@AppearanceTrigger(false)
+		</div>
 	</aside>
 }
 
@@ -131,11 +137,26 @@ templ navLinks(runbooks []parser.RunbookMeta, active, system, category string) {
 	</nav>
 }
 
-// AppearanceControl is the sidebar footer: theme, code-weight and reading-size
-// preferences. All are applied before first paint (see themeScript) and
-// persisted client-side.
+// AppearanceTrigger opens the appearance panel. The rail carries a cog-only
+// icon button; the sidebar footer spreads the same control into a labelled
+// strip, replacing the four-row footer the settings used to spend.
+templ AppearanceTrigger(labelled bool) {
+	<button class="rail-cog" type="button" data-appearance-toggle aria-haspopup="dialog" aria-expanded="false" aria-label="Appearance settings">
+		@templ.Raw(lucideIcon("settings"))
+		if labelled {
+			<span class="rail-cog-label">Appearance</span>
+		}
+	</button>
+}
+
+// AppearanceControl is the floating panel of reading preferences — theme,
+// code weight, reading size and steps. All are applied before first paint (see
+// themeScript) and persisted client-side. It is summoned from the rail cog (or
+// the sidebar footer strip) and anchored beside whichever summoned it; that
+// anchoring is contextual chrome owned by the drawer state, not the component.
 templ AppearanceControl() {
-	<div class="appearance">
+	<section class="appearance" data-appearance-panel role="dialog" aria-label="Appearance settings" hidden>
+		<p class="appearance-title">Appearance</p>
 		<div>
 			<p class="appearance-label">Theme</p>
 			<div class="theme-row">
@@ -166,7 +187,7 @@ templ AppearanceControl() {
 				<button class="steps-btn" data-steps="all" type="button" title="Open every step">All open</button>
 			</div>
 		</div>
-	</div>
+	</section>
 }
 
 // SessionActions is the sidebar footer account section: the Admin page link

@@ -10,7 +10,9 @@ templ IndexPage(systems []parser.SystemGroup, isAdmin, identityEnabled bool) {
 		<aside class="sidebar">
 			@SidebarHeader()
 			@SidebarNav(systems, "")
-			@AppearanceControl()
+			<div class="sidebar-appearance">
+				@AppearanceTrigger(true)
+			</div>
 			@SessionActions(isAdmin, identityEnabled)
 		</aside>
 		<div class="main index-main">

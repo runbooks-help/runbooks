@@ -165,9 +165,14 @@ export async function bootAdmin(page, base) {
 
 export async function logout(page, base) {
 	// Prefer the sidebar's Sign out button; fall back to the endpoint if the
-	// session actions are not rendered.
+	// session actions are not rendered. The sidebar is a summoned overlay, so
+	// open it before reaching the footer button.
 	const button = page.locator('[data-auth="logout"]');
 	if (await button.count()) {
+		if (!(await page.evaluate(() => document.body.dataset.drawer === "sidebar"))) {
+			await page.click(".rail-hit");
+			await page.waitForSelector('body[data-drawer="sidebar"]', { timeout: uiTimeout });
+		}
 		await button.click();
 	} else {
 		const status = await page.evaluate(() => fetch("/api/auth/v1/logout", { method: "POST" }).then((r) => r.status));

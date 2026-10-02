@@ -264,3 +264,56 @@ test("the sidebar nav: the active branch opens, a query narrows, disclosure togg
 		throw err;
 	}
 });
+
+test("the rail is the default shell and summons the sidebar at every width", async (t) => {
+	const app = await startApp();
+	t.after(() => app.stop());
+	const b = await startBrowser();
+	t.after(() => b.stop());
+	const page = b.page;
+	const shell = () =>
+		page.evaluate(() => ({
+			drawer: document.body.dataset.drawer || null,
+			expanded: document.querySelector("[data-rail-menu]").getAttribute("aria-expanded"),
+			railWidth: document.querySelector(".rail").getBoundingClientRect().width,
+			sidebarX: Math.round(document.querySelector(".sidebar").getBoundingClientRect().x),
+			scrim: getComputedStyle(document.querySelector(".drawer-scrim")).display,
+		}));
+	try {
+		await bootAdmin(page, app.base);
+
+		// The thin rail is the shell at a wide and a narrow viewport alike.
+		for (const width of [1280, 900]) {
+			await page.setViewportSize({ width, height: 800 });
+			await page.goto(app.base + "/gallery");
+
+			let s = await shell();
+			assert.equal(s.railWidth, 56, `the rail is drawn at ${width}px`);
+			assert.equal(s.drawer, null, `no drawer starts open at ${width}px`);
+			assert.ok(s.sidebarX < 0, `the sidebar starts off-canvas at ${width}px (x=${s.sidebarX})`);
+			assert.equal(s.scrim, "none", `no scrim at ${width}px`);
+
+			// Any click on the strip except the brand summons it.
+			await page.click(".rail-hit");
+			await page.waitForSelector('body[data-drawer="sidebar"]', { timeout: uiTimeout });
+			// The drawer slides in (base duration); wait for the transform to settle.
+			await page.waitForFunction(() => document.querySelector(".sidebar").getBoundingClientRect().x === 0, null, { timeout: uiTimeout });
+			s = await shell();
+			assert.equal(s.sidebarX, 0, `the sidebar covers the rail at ${width}px`);
+			assert.equal(s.expanded, "true", "the rail reports expanded");
+			assert.notEqual(s.scrim, "none", "the scrim is shown");
+
+			await page.keyboard.press("Escape");
+			await page.waitForFunction(() => !document.body.dataset.drawer && document.querySelector(".sidebar").getBoundingClientRect().x < 0, null, { timeout: uiTimeout });
+			assert.ok((await shell()).sidebarX < 0, "Esc parks the sidebar again");
+		}
+
+		// The brand keeps its own meaning: it links home, it does not open the drawer.
+		await page.click(".rail-brand");
+		await page.waitForURL((url) => new URL(url).pathname === "/", { timeout: uiTimeout });
+		assert.equal((await shell()).drawer, null, "the brand does not open the drawer");
+	} catch (err) {
+		await reportFailure(page, app.logs());
+		throw err;
+	}
+});

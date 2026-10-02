@@ -11,7 +11,9 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 		<aside class="sidebar">
 			@SidebarHeader()
 			@styleGuideNav()
-			@AppearanceControl()
+			<div class="sidebar-appearance">
+				@AppearanceTrigger(true)
+			</div>
 			@SessionActions(isAdmin, identityEnabled)
 		</aside>
 		<div class="main main--full">
@@ -376,9 +378,42 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 
 					<section class="sg-section" id="appearance">
 						<h3>Appearance <span class="sg-atom">pattern</span></h3>
-						<p>Theme, code weight and text size, applied before first paint and persisted in <code>runbooks-*</code>. A sidebar component — shown here in a sidebar-width frame, as it appears in the app.</p>
+						<p>Theme, code weight, text size and steps, applied before first paint and persisted in <code>runbooks-*</code>. One floating panel, summoned from a cogwheel in the rail (always visible) or the strip at the foot of the summoned sidebar; the anchor position beside the summoner is drawer state, not component CSS. Shown here open, as it appears in the app.</p>
 						<div class="sg-sidebar">
-							@AppearanceControl()
+							@AppearanceTrigger(true)
+						</div>
+						<div class="appearance">
+							<p class="appearance-title">Appearance</p>
+							<div>
+								<p class="appearance-label">Theme</p>
+								<div class="theme-row">
+									<button class="theme-btn" data-theme="light" type="button">Light</button>
+									<button class="theme-btn" data-theme="system" type="button">System</button>
+									<button class="theme-btn active" data-theme="dark" type="button">Dark</button>
+								</div>
+							</div>
+							<div>
+								<p class="appearance-label">Code weight</p>
+								<div class="weight-row">
+									<button class="weight-btn" data-weight="regular" type="button">Regular</button>
+									<button class="weight-btn" data-weight="bold" type="button">Bold</button>
+								</div>
+							</div>
+							<div>
+								<p class="appearance-label">Text size</p>
+								<div class="size-row">
+									<button class="size-btn" data-size="small" type="button" title="Small">S</button>
+									<button class="size-btn" data-size="medium" type="button" title="Medium">M</button>
+									<button class="size-btn" data-size="large" type="button" title="Large">L</button>
+								</div>
+							</div>
+							<div>
+								<p class="appearance-label">Steps</p>
+								<div class="steps-row">
+									<button class="steps-btn" data-steps="first" type="button" title="Open the first step, collapse the rest">First open</button>
+									<button class="steps-btn" data-steps="all" type="button" title="Open every step">All open</button>
+								</div>
+							</div>
 						</div>
 					</section>
 

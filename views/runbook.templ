@@ -10,7 +10,9 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 		<aside class="sidebar">
 			@SidebarHeader()
 			@SidebarNav(groups, rb.Slug)
-			@AppearanceControl()
+			<div class="sidebar-appearance">
+				@AppearanceTrigger(true)
+			</div>
 			@SessionActions(cfg.IsAdmin, cfg.IdentityEnabled)
 		</aside>
 		<aside class="notes-panel" data-mode="edit">

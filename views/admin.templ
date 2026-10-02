@@ -13,7 +13,9 @@ templ AdminPage(groups []parser.SystemGroup, users []stores.User, isAdmin, ident
 		<aside class="sidebar">
 			@SidebarHeader()
 			@SidebarNav(groups, "admin")
-			@AppearanceControl()
+			<div class="sidebar-appearance">
+				@AppearanceTrigger(true)
+			</div>
 			@SessionActions(isAdmin, identityEnabled)
 		</aside>
 		<div class="main main--full">

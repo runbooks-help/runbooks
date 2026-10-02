@@ -55,7 +55,7 @@ instructions are short and imperative. Keep real code and identifier names.
 
   --space-0..7 (0,4,8,12,16,24,32,48)   never raw px for gap/padding
   --space-hair  sub-scale hairline (2px) below space-1
-  --size-app-sidebar / --size-app-header / --size-detail-min|max
+  --size-app-rail / --size-app-sidebar / --size-app-header / --size-detail-min|max
   --ctrl-pad-y   the vertical padding that sets control height (btn, input, select)
   --size-step-num  the step-number badge; the collapsed-step indent derives from it
   --radius-sm|md|lg|pill   --shadow-sm|md|lg   --duration-fast|base   --ease
@@ -64,13 +64,14 @@ instructions are short and imperative. Keep real code and identifier names.
 
 Pages render inside the shell: `<aside class="rail">` + `<aside class="sidebar">` +
 `<div class="main">`, with a `.main-header` and a scrolling `.content` (which sets
-scroll-padding-top so anchored section links don't land flush against the header). A
-page with no notes column marks its main `.main--full`, collapsing the body grid to
-`sidebar | main`.
+scroll-padding-top so anchored section links don't land flush against the header).
+The grid is `rail | main | notes`. The rail is the persistent left chrome: the brand
+mark plus a full-height hit area that summons the sidebar — the sidebar is always an
+overlay, never a column. A page with no notes column marks its main `.main--full`,
+collapsing the grid to `rail | main`.
 
-Below 1200px the shell reflows: the sidebar collapses to a 56px rail and both the
-sidebar and the notes panel become off-canvas drawers (the `data-drawer` attribute
-on `<body>`; closed on scrim/Esc/✕).
+Below 1200px the notes panel becomes a drawer too (the `data-drawer` attribute on
+`<body>`; closed on scrim/Esc/✕).
 
 Layout uses the primitives in layouts.css only — never bespoke flex/grid in a
 component: .stack, .cluster, .row, .inline-icon, .grid[data-cols], .grow,
@@ -114,7 +115,7 @@ styleguide) without carrying a border that only makes sense in one host.
   step      Step(n, title, preview) numbered card; the header toggles it and a
             collapsed card shows the preview line; RollbackStep(title) danger card
   contents  .contents-btn in the step toolbar — reveals the optional .toc list
-  zen       body.zen hides the chrome (.sidebar/.notes-panel/.main-header/.toc/
+  zen       body.zen hides the chrome (.rail/.sidebar/.notes-panel/.main-header/.toc/
             .step-controls/#rollback) and shows one step via .zen-bar; Esc exits
   table     TableBlock(headers, rows)        list   ListBlock(items)
 
@@ -127,8 +128,12 @@ styleguide) without carrying a border that only makes sense in one host.
                    focuses the filter and Esc clears it. The flat
                    .nav-system/.nav-section headings are the styleguide's own
                    section nav, not the runbook tree.                    shell.css
-  appearance       theme, code weight, reading size, steps and contents; the
-                   sidebar footer. Playwright targets .theme-btn / .weight-btn /
+  appearance       theme, code weight, reading size, steps and contents, in one
+                   floating panel summoned from a cogwheel: in the rail (always
+                   visible) or the strip at the foot of the summoned sidebar
+                   (.sidebar-appearance). The panel anchors beside its summoner
+                   — that offset is drawer state (body[data-drawer]), not
+                   component CSS. Playwright targets .theme-btn / .weight-btn /
                    .size-btn / .steps-btn.
   acknowledgement  a destructive runbook's frontmatter `acknowledge:` gates the
                    page behind a non-dismissable danger dialog; the steps are

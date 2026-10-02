@@ -10,14 +10,20 @@ Every page renders inside the shell (`shell.css`): `<aside class="rail">` +
 scrolling `.content`. `.content` sets `scroll-padding-top` so anchored section links
 do not land flush against the header.
 
-A page with no notes column marks its main `.main--full`, which collapses the body
-grid to `sidebar | main`. `body.notes-hidden` does the same for the reading
-preference, and `body.zen` drops to a single centred column.
+The grid is `rail | main | notes`. The rail is the only persistent left chrome
+(`--size-app-rail`): the brand mark plus a full-height hit area that summons the
+sidebar. The sidebar is never a column — it overlays the rail and main at every
+width, driven by `data-drawer="sidebar"` on `<body>` and closed on the scrim, Esc,
+✕ or navigation. The brand keeps its own link home.
 
-Below **1200px** (`responsive.css`) the sidebar becomes a 56px rail and the sidebar
-and notes panel become off-canvas drawers, driven by `data-drawer` on `<body>` and
-closed on the scrim, Esc, ✕ or navigation. `responsive.css` is the override layer:
-it imports last and is the one place allowed to use `!important`.
+A page with no notes column marks its main `.main--full`, collapsing the grid to
+`rail | main`. `body.notes-hidden` does the same for the reading preference, and
+`body.zen` drops to a single centred column.
+
+Below **1200px** (`responsive.css`) the notes panel becomes an off-canvas drawer
+too — a 460px column starves main on a portrait monitor or in a split window. It is
+the same `data-drawer` mechanism; `responsive.css` is the override layer, imports
+last, and is the one place allowed to use `!important`.
 
 ## Primitives
 
@@ -53,8 +59,8 @@ Values live in `tokens.css`; components reference them, never a literal.
 
 - **Spacing** — `--space-0..7` (0, 4, 8, 12, 16, 24, 32, 48) plus `--space-hair`
   (2px) for the sub-scale gaps and hairlines below `--space-1`.
-- **Structural sizes** — `--size-app-sidebar`, `--size-app-header`,
-  `--size-detail-min`/`-max`.
+- **Structural sizes** — `--size-app-rail`, `--size-app-sidebar`,
+  `--size-app-header`, `--size-detail-min`/`-max`.
 - **Component sizing** — `--ctrl-pad-y` sets interactive control height (button,
   input, select); `--size-step-num` is the step-number badge, reused by the
   collapsed-step indent so the two cannot drift.
