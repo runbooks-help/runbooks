@@ -54,28 +54,33 @@ func TestLoadDirNesting(t *testing.T) {
 	}
 }
 
-func writeMeta(t *testing.T, dir, body string) {
+func writeManifest(t *testing.T, dir, body string) {
 	t.Helper()
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(dir, "_meta.yaml"), []byte(body), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "_meta.yml"), []byte(body), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }
 
-// TestLoadDirDirMeta pins the per-directory taxonomy: _meta.yaml supplies the
-// display title and sort order, absent meta falls back to title-case, and the
-// order is system (order, title) then category (order, title).
-func TestLoadDirDirMeta(t *testing.T) {
+// TestLoadDirManifest pins the taxonomy: content/_meta.yml supplies titles and
+// order by list position, absent entries are inert, and unlisted directories fall
+// back to title-case after the listed ones.
+func TestLoadDirManifest(t *testing.T) {
 	dir := t.TempDir()
-	writeMeta(t, filepath.Join(dir, "mysql"), "title: MySQL\norder: 2\n")
-	writeMeta(t, filepath.Join(dir, "mysql", "replication"), "order: 1\n")
-	writeMeta(t, filepath.Join(dir, "kubernetes"), "title: Kubernetes\norder: 1\n")
-
+	writeManifest(t, dir, `
+- mysql:
+    title: MySQL
+    categories:
+      - replication
+      - dr: { title: Disaster Recovery }
+- kubernetes
+- backend
+`)
 	writeDoc(t, filepath.Join(dir, "mysql", "replication", "lag.md"), "Lag", "lag")
+	writeDoc(t, filepath.Join(dir, "mysql", "dr", "restore.md"), "Restore", "restore")
 	writeDoc(t, filepath.Join(dir, "mysql", "backup", "verify.md"), "Verify", "verify")
 	writeDoc(t, filepath.Join(dir, "kubernetes", "cluster", "upgrade.md"), "Upgrade", "upgrade")
+	// Not in the manifest: title-cased, alphabetical, after the listed systems.
+	writeDoc(t, filepath.Join(dir, "zebra", "pen", "x.md"), "X", "x")
 
 	defs, err := LoadDir(dir)
 	if err != nil {
@@ -85,29 +90,33 @@ func TestLoadDirDirMeta(t *testing.T) {
 	for _, d := range defs {
 		order = append(order, d.GroupTitle+" › "+d.CategoryTitle)
 	}
-	// kubernetes (order 1) before mysql (order 2); within mysql, replication
-	// (order 1) before backup (no order → after ordered names).
-	if got, want := strings.Join(order, "|"), "Kubernetes › Cluster|MySQL › Replication|MySQL › Backup"; got != want {
+	want := "MySQL › Replication|MySQL › Disaster Recovery|MySQL › Backup|Kubernetes › Cluster|Zebra › Pen"
+	if got := strings.Join(order, "|"); got != want {
 		t.Errorf("order = %q, want %q", got, want)
 	}
-	if defs[1].GroupTitle != "MySQL" || defs[1].GroupOrder != 2 {
-		t.Errorf("mysql meta = %q/%d, want MySQL/2", defs[1].GroupTitle, defs[1].GroupOrder)
+	if defs[0].GroupTitle != "MySQL" || defs[0].GroupOrder != 1 {
+		t.Errorf("mysql = %q/%d, want MySQL/1", defs[0].GroupTitle, defs[0].GroupOrder)
 	}
-	if defs[1].CategoryTitle != "Replication" || defs[1].CategoryOrder != 1 {
-		t.Errorf("replication meta = %q/%d, want Replication/1", defs[1].CategoryTitle, defs[1].CategoryOrder)
+	// The `dr` map gave a title and position 2.
+	if defs[1].CategoryTitle != "Disaster Recovery" || defs[1].CategoryOrder != 2 {
+		t.Errorf("dr = %q/%d, want Disaster Recovery/2", defs[1].CategoryTitle, defs[1].CategoryOrder)
 	}
-	// A category with no meta is title-cased and sorts after the ordered one.
+	// An unlisted category is title-cased and sorts after the ordered ones.
 	if defs[2].CategoryTitle != "Backup" || defs[2].CategoryOrder != 0 {
-		t.Errorf("backup meta = %q/%d, want Backup/0", defs[2].CategoryTitle, defs[2].CategoryOrder)
+		t.Errorf("backup = %q/%d, want Backup/0", defs[2].CategoryTitle, defs[2].CategoryOrder)
+	}
+	// `backend` has no directory: the entry is inert, not an error.
+	if defs[3].GroupTitle != "Kubernetes" || defs[4].GroupTitle != "Zebra" {
+		t.Errorf("tail = %q, %q, want Kubernetes, Zebra", defs[3].GroupTitle, defs[4].GroupTitle)
 	}
 }
 
-func TestLoadDirMalformedMeta(t *testing.T) {
+func TestLoadDirMalformedManifest(t *testing.T) {
 	dir := t.TempDir()
-	writeMeta(t, filepath.Join(dir, "mysql"), "title: [unclosed\n")
+	writeManifest(t, dir, "- mysql: [unclosed\n")
 	writeDoc(t, filepath.Join(dir, "mysql", "x.md"), "X", "x")
 
 	if _, err := LoadDir(dir); err == nil {
-		t.Error("want an error for a malformed _meta.yaml")
+		t.Error("want an error for a malformed content/_meta.yml")
 	}
 }

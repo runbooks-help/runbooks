@@ -107,19 +107,25 @@ The **filesystem is the taxonomy**. `content/<system>/<category>/<file>.md`:
   x.md` groups as MySQL › Backup just like `content/mysql/backup/x.md`.
 - The **slug comes from frontmatter**, not the filename; the URL is `/<slug>`.
 
-A directory's **display name and sidebar order** come from an optional
-`_meta.yaml` beside its content:
+Display names and sidebar order live in one manifest at the top of the tree,
+`content/_meta.yml` — an ordered list where **position is the order**:
 
 ```yaml
-# content/mysql/_meta.yaml
-title: MySQL   # else the directory name is title-cased (disaster-recovery → Disaster Recovery)
-order: 1       # lower first; absent sorts after ordered names, alphabetically
+- mysql:
+    title: MySQL                                    # optional; else the dir name is title-cased
+    categories: [replication, failover, backup]     # order within the system
+- kubernetes
+- backend
 ```
 
-Both the system and the category may carry one. Nothing about naming or ordering
-lives in Go — adding or reordering a system/category is a content edit only.
-Within a category, runbooks sort by the optional frontmatter `order:` (lower first;
-absent = `defaultRunbookOrder` = 100), then title.
+An item is a bare directory name or `name: {title, categories}`; a category may
+carry a title the same way (`- dr: { title: Disaster Recovery }`). Unlisted
+directories are appended after the listed ones, title-cased, alphabetically. An
+entry whose directory is absent is ignored, so the file may describe a superset
+(e.g. the local, gitignored `content/testdata`). Nothing about naming or ordering
+lives in Go — it is a content edit only. Within a category, runbooks sort by the
+optional frontmatter `order:` (lower first; absent = `defaultRunbookOrder` = 100),
+then title.
 
 The index page (`views.IndexPage`, route `/`) is data-driven too: `common: true`
 pins a runbook into the "Common issues" shortlist (label = first symptom, via

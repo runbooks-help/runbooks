@@ -137,44 +137,95 @@ func CommonIssues(groups []SystemGroup) []CommonIssue {
 	return out
 }
 
-// defaultDirOrder is where a directory without a _meta.yaml order sorts. A lower
-// value pulls it towards the front of its level.
+// defaultDirOrder is where an unlisted directory sorts. A lower value pulls it
+// towards the front of its level.
 const defaultDirOrder = 100
 
-// DirMeta is a content directory's presentation, read from an optional _meta.yaml
-// in that directory. The content declares its own taxonomy; the parser stays
-// generic.
-type DirMeta struct {
-	Title string `yaml:"title"`
-	Order int    `yaml:"order"`
+// manifestFile is the content taxonomy at the top of the content directory: an
+// ordered list of systems, and under each, categories. List position sets the
+// sidebar order; a title overrides the title-cased directory name.
+const manifestFile = "_meta.yml"
+
+// manifestEntry is one manifest item: a bare directory name, or a single-key map
+// name -> {title, categories}.
+type manifestEntry struct {
+	Name       string
+	Title      string
+	Categories []manifestEntry
 }
 
-const dirMetaFile = "_meta.yaml"
+// UnmarshalYAML accepts either form, so `- backend` and
+// `- mysql: {title: MySQL, categories: [...]}` both work.
+func (e *manifestEntry) UnmarshalYAML(node *yaml.Node) error {
+	switch node.Kind {
+	case yaml.ScalarNode:
+		e.Name = node.Value
+		return nil
+	case yaml.MappingNode:
+		if len(node.Content) != 2 {
+			return fmt.Errorf("line %d: expected a single name: entry", node.Line)
+		}
+		e.Name = node.Content[0].Value
+		var body struct {
+			Title      string          `yaml:"title"`
+			Categories []manifestEntry `yaml:"categories"`
+		}
+		if err := node.Content[1].Decode(&body); err != nil {
+			return err
+		}
+		e.Title = body.Title
+		e.Categories = body.Categories
+		return nil
+	default:
+		return fmt.Errorf("line %d: expected a directory name or name: {…}", node.Line)
+	}
+}
 
-// loadDirMeta reads a directory's _meta.yaml. A missing file yields a zero
-// DirMeta (title-case the name, sort alphabetically); a malformed one is an error,
-// so a content typo cannot silently misorder the sidebar.
-func loadDirMeta(dir string) (DirMeta, error) {
-	data, err := os.ReadFile(filepath.Join(dir, dirMetaFile))
+// dirMeta is a resolved directory presentation: the explicit title (empty means
+// title-case the directory name) and its 1-based order (0 means unlisted).
+type dirMeta struct {
+	title string
+	order int
+}
+
+// manifest is the taxonomy as name->meta lookups, so an entry whose directory does
+// not exist is simply never consulted (the file may list a superset).
+type manifest struct {
+	systems    map[string]dirMeta
+	categories map[string]dirMeta
+}
+
+func loadManifest(path string) (manifest, error) {
+	m := manifest{systems: map[string]dirMeta{}, categories: map[string]dirMeta{}}
+	data, err := os.ReadFile(path)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return DirMeta{}, nil
+			return m, nil
 		}
-		return DirMeta{}, err
+		return m, err
 	}
-	var m DirMeta
-	if err := yaml.Unmarshal(data, &m); err != nil {
-		return DirMeta{}, fmt.Errorf("%s: %w", filepath.Join(dir, dirMetaFile), err)
+	var entries []manifestEntry
+	if err := yaml.Unmarshal(data, &entries); err != nil {
+		return m, fmt.Errorf("%s: %w", path, err)
+	}
+	for i, e := range entries {
+		if e.Name == "" {
+			continue
+		}
+		m.systems[e.Name] = dirMeta{title: e.Title, order: i + 1}
+		for j, c := range e.Categories {
+			if c.Name == "" {
+				continue
+			}
+			m.categories[e.Name+"\x00"+c.Name] = dirMeta{title: c.Title, order: j + 1}
+		}
 	}
 	return m, nil
 }
 
-// displayName resolves a directory's sidebar label: its _meta.yaml title, else the
-// title-cased directory name. The empty key is a runbook directly under content/.
-func displayName(dir string, meta DirMeta) string {
-	if meta.Title != "" {
-		return meta.Title
-	}
+// titleCase turns a hyphenated directory name into a display label. The empty name
+// is a runbook directly under content/.
+func titleCase(dir string) string {
 	if dir == "" {
 		return "Playbooks"
 	}
@@ -185,6 +236,15 @@ func displayName(dir string, meta DirMeta) string {
 		}
 	}
 	return strings.Join(words, " ")
+}
+
+// resolveTitle is a directory's display name: the manifest title, else the
+// title-cased directory name.
+func resolveTitle(key string, meta dirMeta) string {
+	if meta.title != "" {
+		return meta.title
+	}
+	return titleCase(key)
 }
 
 // defaultRunbookOrder is where a runbook without an explicit `order:` sorts.
@@ -284,25 +344,17 @@ func isTableSeparator(cells []string) bool {
 // in a top-level directory has a system and no category; a file directly in dir
 // has neither.
 //
-// Each directory may carry an optional _meta.yaml giving its display title and
-// sort order (see DirMeta). Results are sorted by system (order, title), then
-// category (order, title), then runbook order and title.
+// Display names and sidebar order come from an optional content/_meta.yml (see
+// manifestFile). Results are sorted by system (order, title), then category
+// (order, title), then runbook order and title.
 func LoadDir(dir string) ([]RunbookDef, error) {
-	metas := map[string]DirMeta{}
-	dirMeta := func(path string) (DirMeta, error) {
-		if m, ok := metas[path]; ok {
-			return m, nil
-		}
-		m, err := loadDirMeta(path)
-		if err != nil {
-			return DirMeta{}, err
-		}
-		metas[path] = m
-		return m, nil
+	man, err := loadManifest(filepath.Join(dir, manifestFile))
+	if err != nil {
+		return nil, err
 	}
 
 	var defs []RunbookDef
-	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -326,29 +378,22 @@ func LoadDir(dir string) ([]RunbookDef, error) {
 		}
 		switch {
 		case len(parts) == 1:
-			m, err := dirMeta(filepath.Join(dir, parts[0]))
-			if err != nil {
-				return err
-			}
+			sm := man.systems[parts[0]]
 			def.Group = parts[0]
-			def.GroupTitle = displayName(parts[0], m)
-			def.GroupOrder = m.Order
+			def.GroupTitle = resolveTitle(parts[0], sm)
+			def.GroupOrder = sm.order
 		case len(parts) >= 2:
 			sysKey, catKey := parts[len(parts)-2], parts[len(parts)-1]
-			sm, err := dirMeta(filepath.Join(dir, filepath.Join(parts[:len(parts)-1]...)))
-			if err != nil {
-				return err
-			}
-			cm, err := dirMeta(filepath.Join(dir, filepath.Join(parts...)))
-			if err != nil {
-				return err
-			}
+			sm := man.systems[sysKey]
+			cm := man.categories[sysKey+"\x00"+catKey]
 			def.Group = sysKey
-			def.GroupTitle = displayName(sysKey, sm)
-			def.GroupOrder = sm.Order
+			def.GroupTitle = resolveTitle(sysKey, sm)
+			def.GroupOrder = sm.order
 			def.Category = catKey
-			def.CategoryTitle = displayName(catKey, cm)
-			def.CategoryOrder = cm.Order
+			def.CategoryTitle = resolveTitle(catKey, cm)
+			def.CategoryOrder = cm.order
+		default:
+			def.GroupTitle = titleCase("")
 		}
 		defs = append(defs, def)
 		return nil

@@ -1,0 +1,13 @@
+# Sidebar order and display names for the content tree.
+#
+# List position is the order (systems, and categories within a system). An item is
+# a bare directory name, or `name: {title, categories}`. A title overrides the
+# title-cased directory name; categories not listed are appended alphabetically.
+# Entries whose directory is not present are ignored, so this file may describe a
+# superset (e.g. the local, gitignored content/testdata).
+- mysql:
+    title: MySQL
+    categories: [replication, failover, backup, maintenance, disaster-recovery]
+- kubernetes:
+    categories: [cluster, networking]
+- backend
