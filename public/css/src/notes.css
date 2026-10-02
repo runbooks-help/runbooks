@@ -261,8 +261,9 @@ body.notes-dismiss-armed .notes-dismiss-hint {
 	color: var(--muted);
 }
 
-/* The formatting tools do not apply to rendered output. */
-.notes-panel[data-mode="preview"] .notes-compose {
+/* The formatting tools do not apply to rendered output, and the toolbar is the
+   row's only content — hide the row so preview keeps no empty strip. */
+.notes-panel[data-mode="preview"] .notes-row-compose {
 	display: none;
 }
 
@@ -270,7 +271,6 @@ body.notes-dismiss-armed .notes-dismiss-hint {
 	display: flex;
 	align-items: center;
 	gap: var(--space-1);
-	margin-left: auto;
 	font-size: var(--text-2xs);
 	color: var(--nav-muted);
 	cursor: pointer;

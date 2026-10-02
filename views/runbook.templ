@@ -23,6 +23,10 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 						<button class="notes-tab" data-mode="preview" type="button">Preview</button>
 					</div>
 					<div class="notes-row-end">
+						<label class="notes-record" title="Append completed steps to the notes as a timestamped timeline">
+							<input class="notes-record-check" type="checkbox" checked/>
+							Record timeline
+						</label>
 						<div class="notes-overflow">
 							<button class="notes-tool" type="button" data-notes-menu aria-haspopup="menu" aria-expanded="false" aria-label="More actions" title="More actions">
 								@templ.Raw(lucideIcon("ellipsis"))
@@ -41,7 +45,7 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 						<button class="drawer-close notes-close" type="button" data-drawer-close aria-label="Close">✕</button>
 					</div>
 				</div>
-				<div class="notes-row">
+				<div class="notes-row notes-row-compose">
 					<div class="notes-compose">
 						@notesTool("bold", "bold", "Bold")
 						@notesTool("italic", "italic", "Italic")
@@ -58,10 +62,6 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 							@templ.Raw(lucideIcon("circle-help"))
 						</button>
 					</div>
-					<label class="notes-record" title="Append completed steps to the notes as a timestamped timeline">
-						<input class="notes-record-check" type="checkbox" checked/>
-						Record timeline
-					</label>
 				</div>
 				<div class="notes-cheatsheet" data-notes-cheatsheet hidden>
 					<p class="notes-cheatsheet-label">Markdown</p>
