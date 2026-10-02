@@ -23,12 +23,12 @@ GITSYNC_API_TOKEN = "dev-local-bearer"
 # An empty driver leaves the app PUBLIC (no passkeys, no gating) — used to share
 # the dev UI for feedback. To exercise passkeys again, set the driver to sqlite and
 # uncomment the rest: open http://localhost:8091/setup and paste the bootstrap token.
-# IDENTITY_DB_DRIVER = ""
-IDENTITY_DB_DRIVER = "sqlite"
-IDENTITY_DB_DSN = "file:./tmp/identity.db"
-IDENTITY_PUBLIC_URL = "http://localhost:8091"
-IDENTITY_BOOTSTRAP_TOKEN = "dev-bootstrap-token"
-IDENTITY_SECURE_COOKIES = "false"
+IDENTITY_DB_DRIVER = ""
+# IDENTITY_DB_DRIVER = "sqlite"
+# IDENTITY_DB_DSN = "file:./tmp/identity.db"
+# IDENTITY_PUBLIC_URL = "http://localhost:8091"
+# IDENTITY_BOOTSTRAP_TOKEN = "dev-bootstrap-token"
+# IDENTITY_SECURE_COOKIES = "false"
 
 # The design-system styleguide is a dev-only surface (see specs/runbooks-design-system.md).
 STYLEGUIDE_ENABLED = "true"
