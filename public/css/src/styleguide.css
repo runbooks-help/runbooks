@@ -173,6 +173,14 @@
 	overflow: hidden;
 }
 
+/* The appearance panel is a fixed floating overlay in the app; here it is a
+   static specimen so the section does not render an always-open drawer. Its
+   trigger is inert — app.js skips [data-appearance-specimen]. */
+.sg-appearance-panel {
+	position: static;
+	margin-top: var(--space-4);
+}
+
 .sg-tile {
 	padding: var(--space-3) var(--space-4);
 	background: var(--accent-lt);

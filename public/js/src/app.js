@@ -939,7 +939,11 @@ document.addEventListener('keydown', e => {
 // click that lands on the panel does not dismiss the sidebar underneath.
 const appearancePanel = document.querySelector('[data-appearance-panel]');
 if (appearancePanel) {
-	const appearanceToggles = [...document.querySelectorAll('[data-appearance-toggle]')];
+	// The styleguide renders a static specimen of the panel; its trigger must not
+	// open the real one (which would stack a second panel over the example).
+	const appearanceToggles = [...document.querySelectorAll('[data-appearance-toggle]')].filter(
+		btn => !btn.closest('[data-appearance-specimen]'),
+	);
 	const setAppearance = (open) => {
 		appearancePanel.hidden = !open;
 		appearanceToggles.forEach(btn => btn.setAttribute('aria-expanded', String(open)));

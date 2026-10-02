@@ -382,8 +382,10 @@ body[data-drawer] .drawer-scrim {
 	gap: var(--space-hair);
 }
 
-/* The runbook links a category owns — a hairline rail marks the nesting. */
-.sidebar .nav-links {
+/* The runbook links a category owns — a hairline rail marks the nesting. This is
+   the component's own layout, not the sidebar's: the styleguide hosts the same
+   nav in a .sg-sidebar frame, so it must not be keyed to .sidebar. */
+.nav-links {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-hair);
@@ -392,14 +394,16 @@ body[data-drawer] .drawer-scrim {
 	border-left: 1px solid var(--nav-border);
 }
 
-.sidebar nav {
+/* The styleguide's own section nav (the runbook tree is .nav-links, above). */
+.sidebar nav:not(.nav-links) {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-hair);
 	padding: 0 var(--space-2);
 }
 
-.sidebar nav a {
+.nav-links a,
+.sidebar nav:not(.nav-links) a {
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);

@@ -411,10 +411,12 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 					<section class="sg-section" id="appearance">
 						<h3>Appearance <span class="sg-atom">pattern</span></h3>
 						<p>Theme, code weight, text size and steps, applied before first paint and persisted in <code>runbooks-*</code>. One floating panel, summoned from a cogwheel in the rail (always visible) or the strip at the foot of the summoned sidebar; the anchor position beside the summoner is drawer state, not component CSS. Shown here open, as it appears in the app.</p>
-						<div class="sg-sidebar">
-							@components.AppearanceTrigger(true)
+						<div class="sg-sidebar" data-appearance-specimen>
+							<div class="sidebar-appearance">
+								@components.AppearanceTrigger(true)
+							</div>
 						</div>
-						<div class="appearance">
+						<div class="appearance sg-appearance-panel">
 							<p class="appearance-title">Appearance</p>
 							<div>
 								<p class="appearance-label">Theme</p>
