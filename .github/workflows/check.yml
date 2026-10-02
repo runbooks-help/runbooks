@@ -29,8 +29,11 @@ jobs:
           go run ./cmd/css
           go run ./cmd/js
 
-      - name: Verify committed bundles are up to date
-        run: git diff --exit-code -- public/css/bundle.css public/js/bundle.js
+      - name: Verify bundles were generated
+        run: test -s public/css/bundle.css && test -s public/js/bundle.js
+
+      - name: Verify bundles are not committed
+        run: '! git ls-files --error-unmatch public/css/bundle.css public/js/bundle.js'
 
       - name: Verify third-party notices are up to date
         run: |

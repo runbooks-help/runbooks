@@ -81,9 +81,9 @@ views/styleguide.templ  the design system at /styleguide
 views/auth.templ     /login, /setup, /invite/<token>, /recovery
 views/helpers.go     inline-markdown → HTML helpers, slugify, JSON embedding, PageConfig, theme script
 content/<system>/<category>/<file>.md   the runbooks themselves
-public/css/src/      source CSS (bundled → public/css/bundle.css)
+public/css/src/      source CSS (bundled → public/css/bundle.css, generated)
 public/fonts/        self-hosted Atkinson Hyperlegible Next + Mono (variable, latin)
-public/js/src/       source JS (bundled → public/js/bundle.js)
+public/js/src/       source JS (bundled → public/js/bundle.js, generated)
 public/js/vendor/    marked, highlight.js, jszip (checked in, not bundled)
 e2e/                 browser E2E: harness.mjs + passkey/runbook/styleguide suites
 cmd/css, cmd/js      esbuild wrappers (see build pipeline below)
@@ -200,9 +200,10 @@ Authoring conventions that have bitten us:
   `.templ`.
 - **CSS**: `public/css/src/main.css` `@import`s `fonts`, `tokens`, `layouts`,
   `shell`, `runbooks`. esbuild bundles/minifies to `public/css/bundle.css`
-  (committed). Put component styles in the relevant src file; the `.nav-system`
-  heading lives in `shell.css`.
-- **JS**: `public/js/src/app.js` → `public/js/bundle.js` (IIFE, committed).
+  (generated, gitignored). Put component styles in the relevant src file; the
+  `.nav-system` heading lives in `shell.css`.
+- **JS**: `public/js/src/app.js` → `public/js/bundle.js` (IIFE, generated,
+  gitignored).
   The no-flash theme script is inlined in `views/base.templ` from the
   `themeScript` const in `views/helpers.go`. Vanilla JS, no framework.
   Client behaviour: var substitution + copy, step/block completion persisted in the
@@ -218,16 +219,18 @@ Authoring conventions that have bitten us:
   procedures and must not be published. Until the app is separated from this
   content, keep the repo private — the app itself is source-available, the *content*
   is not for release.
-- **CI verifies generated files are committed and current**: `check.yml` fails if
-  `public/css/bundle.css`, `public/js/bundle.js` or `THIRD_PARTY_NOTICES.md` differ
-  from a fresh regeneration. Run the matching task (`mise run build` / `mise run notices`)
-  and commit the result.
-- **Build outputs are gitignored** (`/runbooks`, `/tmp/`). `mise run build`
-  produces the binary, `air` writes `tmp/`. Never commit them.
+- **CI regenerates the asset bundles and verifies `THIRD_PARTY_NOTICES.md` is
+  committed and current**: `check.yml` builds `public/css/bundle.css` /
+  `public/js/bundle.js` from source and fails if `THIRD_PARTY_NOTICES.md` differs
+  from a fresh `mise run notices`. Run that task and commit the result.
+- **Build outputs are gitignored** (`/runbooks`, `/tmp/`, `public/css/bundle.css`,
+  `public/js/bundle.js`). `mise run build` produces the binary and both bundles,
+  `air` writes `tmp/`. Never commit them.
 - **`content/` is empty in a fresh checkout.** That is fine — the index renders a
   welcome page. Add a runbook under `content/<system>/<category>/<file>.md` to populate it.
-- `mise run build` also rewrites `public/css/bundle.css` and `public/js/*.js`.
-  Those are committed on purpose; include them in the same change as their src.
+- `mise run build` regenerates `public/css/bundle.css` and `public/js/*.js`. A bare
+  `go build ./...` / `go run .` embeds whatever bundles are on disk, so run
+  `mise run build` first in a fresh checkout.
 - `/` serves the welcome/index page (`views.IndexPage`), not a redirect;
   unknown paths 404. The index is generated from `parser.CommonIssues` +
   `GroupBySystem`, so it needs no content file of its own.
