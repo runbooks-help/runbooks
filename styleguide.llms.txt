@@ -108,7 +108,9 @@ styleguide) without carrying a border that only makes sense in one host.
             Server-rendered: data-dialog-open="id", data-dialog-close.
             JS confirmations/prompts: showDialog({ title, message, danger, input }).
   notice    Notice(variant, msg) → .notice-info | .notice-warn | .notice-danger
-  code      CodeBlock(label, template, lang) → per-block done checkbox
+  code      CodeBlock(label, template, lang) — a labelled block is one dark surface
+            with an inline header (accent ▸ + label + per-block done checkbox); the
+            copy button sits on the code's own corner.               code.css
   step      Step(n, title, preview) numbered card; the header toggles it and a
             collapsed card shows the preview line; RollbackStep(title) danger card
   contents  .contents-btn in the step toolbar — reveals the optional .toc list

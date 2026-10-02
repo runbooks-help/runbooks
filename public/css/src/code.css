@@ -1,3 +1,18 @@
+.code-group {
+	background: var(--code-bg);
+	border: 1px solid var(--code-border);
+	border-radius: var(--radius-md);
+	overflow: hidden;
+}
+
+/* Inside a labelled group the surface belongs to .code-group, so the header and the
+   code share one frame and the copy button can keep the code's own corner. */
+.code-group .code-block {
+	background: transparent;
+	border: none;
+	border-radius: 0;
+}
+
 .code-block {
 	position: relative;
 	background: var(--code-bg);
@@ -47,16 +62,23 @@
 .code-label-row {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
-	padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-4);
+	border-bottom: 1px solid var(--code-border);
+}
+
+.code-label-tick {
+	color: var(--accent-strong);
+	font-family: var(--font-mono);
+	font-weight: var(--mono-weight);
+	line-height: 1;
 }
 
 .code-label {
-	font-size: 11px;
+	margin-right: auto;
+	font-size: 13px;
 	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-	color: var(--muted);
+	color: var(--code-text);
 }
 
 .block-check {

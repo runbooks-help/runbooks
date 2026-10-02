@@ -153,6 +153,7 @@ templ CodeBlock(label, tpl, lang string) {
 	if label != "" {
 		<div class="code-group">
 			<div class="code-label-row">
+				<span class="code-label-tick" aria-hidden="true">▸</span>
 				<span class="code-label">{ label }</span>
 				<button class="block-check" type="button" aria-label="Mark done">✓</button>
 			</div>
