@@ -69,36 +69,32 @@ templ IndexPage(systems []parser.SystemGroup, isAdmin, identityEnabled bool) {
 							</div>
 							@commonSymptoms(parser.CommonIssues(systems))
 						</section>
-						<p class="section-label index-catalogue-label">All runbooks</p>
-						<div class="index-empty" hidden>
-							<p>No runbooks match that. Try another word, or clear the search.</p>
-						</div>
-						for _, system := range systems {
-							<div class="index-group">
-								<h2 class="index-system">{ system.Name }</h2>
-								for _, group := range system.Categories {
-									<div class="index-category">
-										if group.Name != "" {
-											<p class="index-category-label">{ group.Name }</p>
-										}
-										<div class="card-grid">
-											for _, rb := range group.Runbooks {
-												<a
-													href={ templ.SafeURL("/" + rb.Slug) }
-													class="runbook-card"
-													data-search={ rb.SearchText(system.Name, group.Name) }
-												>
-													<span class="card-title">{ rb.Title }</span>
-													if rb.Description != "" {
-														<span class="card-desc">@templ.Raw(markup.Prose(rb.Description))</span>
-													}
-												</a>
+						<div class="index-results" data-search-results hidden aria-live="polite"></div>
+						<div class="index-catalogue" data-search-catalogue>
+							<p class="section-label index-catalogue-label">All runbooks</p>
+							for _, system := range systems {
+								<div class="index-group">
+									<h2 class="index-system">{ system.Name }</h2>
+									for _, group := range system.Categories {
+										<div class="index-category">
+											if group.Name != "" {
+												<p class="index-category-label">{ group.Name }</p>
 											}
+											<div class="card-grid">
+												for _, rb := range group.Runbooks {
+													<a href={ templ.SafeURL("/" + rb.Slug) } class="runbook-card">
+														<span class="card-title">{ rb.Title }</span>
+														if rb.Description != "" {
+															<span class="card-desc">@templ.Raw(markup.Prose(rb.Description))</span>
+														}
+													</a>
+												}
+											</div>
 										</div>
-									</div>
-								}
-							</div>
-						}
+									}
+								</div>
+							}
+						</div>
 					}
 				</div>
 			</div>

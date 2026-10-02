@@ -67,6 +67,36 @@ test("the runbook page: step roll-up, the clear dialog, and light mode", async (
 	}
 });
 
+test("the index: body search returns snippets and restores the catalogue", async (t) => {
+	const app = await startApp();
+	t.after(() => app.stop());
+	const b = await startBrowser();
+	t.after(() => b.stop());
+	try {
+		await bootAdmin(b.page, app.base);
+		await b.page.goto(app.base + "/");
+		await b.page.locator(".index-catalogue").waitFor({ timeout: uiTimeout });
+
+		// "healthz" only appears in the gallery's body, so a hit proves the search
+		// reaches through the file rather than the frontmatter metadata.
+		await b.page.fill(".index-search", "healthz");
+		const first = b.page.locator(".search-result").first();
+		await first.waitFor({ timeout: uiTimeout });
+		assert.equal(await b.page.locator(".search-result-snippet mark").first().isVisible(), true, "the matched term is marked");
+		const href = await first.locator("a").getAttribute("href");
+		assert.ok(href.startsWith("/gallery"), `result links to the gallery, got ${href}`);
+		assert.equal(await b.page.locator(".index-catalogue").isHidden(), true, "the catalogue is replaced by results");
+
+		await b.page.fill(".index-search", "");
+		await b.page.locator(".index-catalogue").waitFor({ state: "visible", timeout: uiTimeout });
+		assert.equal(await b.page.locator(".search-result").count(), 0, "clearing restores the catalogue");
+		await holdIfAsked();
+	} catch (err) {
+		await reportFailure(b.page, app.logs());
+		throw err;
+	}
+});
+
 test("the notes composer: toolbar, help, links, and the hidden-column fix", async (t) => {
 	const app = await startApp();
 	t.after(() => app.stop());

@@ -128,6 +128,12 @@ styleguide) without carrying a border that only makes sense in one host.
                    focuses the filter and Esc clears it. The flat
                    .nav-system/.nav-section headings are the styleguide's own
                    section nav, not the runbook tree.                    shell.css
+  search results   .index-results + .search-result-list: the index page's
+                   body-search hits, each a .search-result-link carrying a
+                   .search-result-title, a .search-result-meta line (system ›
+                   category · step) and a .search-result-snippet whose matched
+                   terms are <mark>s. The server pre-escapes the snippet, so
+                   the client only ever injects it into the snippet span.  index.css
   appearance       theme, code weight, reading size, steps and contents, in one
                    floating panel summoned from a cogwheel: in the rail (always
                    visible) or the strip at the foot of the summoned sidebar

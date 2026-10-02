@@ -381,6 +381,33 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 						</div>
 					</section>
 
+					<section class="sg-section" id="search-results">
+						<h3>Search results <span class="sg-atom">pattern</span></h3>
+						<p>
+							The index search reads the body of every runbook and lists the hits,
+							with the query terms marked and a link straight to the step the match came from.
+							Shown with invented data.
+						</p>
+						<div class="index-results">
+							<ul class="search-result-list">
+								<li class="search-result">
+									<a class="search-result-link" href="#">
+										<span class="search-result-title">Replication Lag (MTS Deadlock)</span>
+										<span class="search-result-meta">MySQL › Replication · Clear the blocked worker</span>
+										<span class="search-result-snippet">…one or more workers in <mark>waiting for handler commit</mark>, another in Waiting for dependent transaction to commit…</span>
+									</a>
+								</li>
+								<li class="search-result">
+									<a class="search-result-link" href="#">
+										<span class="search-result-title">Replica Stops With a Duplicate Key</span>
+										<span class="search-result-meta">MySQL › Replication</span>
+										<span class="search-result-snippet">…replica behind — <mark>Seconds_Behind_Source</mark> growing…</span>
+									</a>
+								</li>
+							</ul>
+						</div>
+					</section>
+
 					<section class="sg-section" id="appearance">
 						<h3>Appearance <span class="sg-atom">pattern</span></h3>
 						<p>Theme, code weight, text size and steps, applied before first paint and persisted in <code>runbooks-*</code>. One floating panel, summoned from a cogwheel in the rail (always visible) or the strip at the foot of the summoned sidebar; the anchor position beside the summoner is drawer state, not component CSS. Shown here open, as it appears in the app.</p>
@@ -496,6 +523,7 @@ templ styleGuideNav() {
 	<p class="nav-section">Patterns</p>
 	<nav>
 		<a href="#sidebar-nav">Sidebar navigation</a>
+		<a href="#search-results">Search results</a>
 		<a href="#appearance">Appearance</a>
 		<a href="#session">Session actions</a>
 		<a href="#admin">Admin form</a>

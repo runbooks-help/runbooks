@@ -979,47 +979,123 @@ if (notesToggle) {
 	});
 }
 
-// Index page — live filter over the runbook catalogue
+// Index page — server-side body search over the runbook catalogue. The query is
+// debounced to the JSON endpoint; the catalogue is the no-query / fallback state.
 const indexSearch = document.querySelector('.index-search');
 if (indexSearch) {
-	const norm = s => (s || '').toLowerCase();
-	const cards = [...document.querySelectorAll('.runbook-card')];
-	const categories = [...document.querySelectorAll('.index-category')];
-	const groups = [...document.querySelectorAll('.index-group')];
+	const results = document.querySelector('[data-search-results]');
+	const catalogue = document.querySelector('[data-search-catalogue]');
 	const symptomLinks = document.querySelector('.search-chips');
 	const searchKey = document.querySelector('[data-search-key]');
 	const searchClear = document.querySelector('[data-search-clear]');
-	const emptyState = document.querySelector('.index-empty');
+	let timer = null;
+	let controller = null;
 
-	// Phrase match first; fall back to "every word appears" so word order and
-	// plural/possessive differences still find the runbook.
-	const matches = (hay, q) => !q || hay.includes(q) || q.split(/\s+/).every(t => hay.includes(t));
-
-	const applyFilter = () => {
-		const q = norm(indexSearch.value.trim());
-		let visible = 0;
-		cards.forEach(card => {
-			const hit = matches(norm(card.dataset.search), q);
-			card.hidden = !hit;
-			if (hit) visible++;
-		});
-		categories.forEach(cat => {
-			cat.hidden = [...cat.querySelectorAll('.runbook-card')].every(c => c.hidden);
-		});
-		groups.forEach(group => {
-			group.hidden = [...group.querySelectorAll('.index-category')].every(c => c.hidden);
-		});
+	const setChrome = q => {
 		if (symptomLinks) symptomLinks.hidden = q.length > 0;
 		if (searchKey) searchKey.hidden = q.length > 0;
 		if (searchClear) searchClear.hidden = q.length === 0;
-		if (emptyState) emptyState.hidden = visible > 0 || q.length === 0;
 	};
 
-	indexSearch.addEventListener('input', applyFilter);
+	const showCatalogue = () => {
+		if (results) {
+			results.hidden = true;
+			results.replaceChildren();
+		}
+		if (catalogue) catalogue.hidden = false;
+	};
+
+	// A message in the results slot; with keepCatalogue the fallback list stays
+	// visible underneath, so a failed fetch never strands the reader on a blank page.
+	const showMessage = (msg, keepCatalogue) => {
+		if (catalogue) catalogue.hidden = !keepCatalogue;
+		if (!results) return;
+		const p = document.createElement('p');
+		p.className = 'index-results-empty';
+		p.textContent = msg;
+		results.replaceChildren(p);
+		results.hidden = false;
+	};
+
+	const renderResults = data => {
+		if (!results) return;
+		results.replaceChildren();
+		if (!data.results.length) {
+			showMessage('No runbooks match that. Try another word, or clear the search.', false);
+			return;
+		}
+		const list = document.createElement('ul');
+		list.className = 'search-result-list';
+		for (const r of data.results) {
+			const li = document.createElement('li');
+			li.className = 'search-result';
+			const link = document.createElement('a');
+			link.className = 'search-result-link';
+			link.href = '/' + r.slug + (r.stepAnchor ? '#' + r.stepAnchor : '');
+
+			const title = document.createElement('span');
+			title.className = 'search-result-title';
+			title.textContent = r.title;
+			link.append(title);
+
+			const where = [[r.system, r.category].filter(Boolean).join(' › '), r.step]
+				.filter(Boolean)
+				.join(' · ');
+			if (where) {
+				const meta = document.createElement('span');
+				meta.className = 'search-result-meta';
+				meta.textContent = where;
+				link.append(meta);
+			}
+
+			const snippet = document.createElement('span');
+			snippet.className = 'search-result-snippet';
+			// The server escapes and <mark>-wraps the snippet; this is the only HTML
+			// the client ever injects from the response.
+			snippet.innerHTML = r.snippet;
+			link.append(snippet);
+
+			li.append(link);
+			list.append(li);
+		}
+		results.append(list);
+		results.hidden = false;
+		if (catalogue) catalogue.hidden = true;
+	};
+
+	const run = async q => {
+		if (controller) controller.abort();
+		controller = new AbortController();
+		try {
+			const res = await fetch(`/api/runbooks/v1/search?q=${encodeURIComponent(q)}`, {
+				headers: { Accept: 'application/json' },
+				signal: controller.signal,
+			});
+			if (!res.ok) throw new Error(`search ${res.status}`);
+			renderResults(await res.json());
+		} catch (err) {
+			if (err.name === 'AbortError') return;
+			showMessage('Search is unavailable right now — showing all runbooks.', true);
+		}
+	};
+
+	const onInput = () => {
+		const q = indexSearch.value.trim();
+		setChrome(q);
+		clearTimeout(timer);
+		if (!q) {
+			if (controller) controller.abort();
+			showCatalogue();
+			return;
+		}
+		timer = setTimeout(() => run(q), 150);
+	};
+
+	indexSearch.addEventListener('input', onInput);
 	if (searchClear) {
 		searchClear.addEventListener('click', () => {
 			indexSearch.value = '';
-			applyFilter();
+			onInput();
 			indexSearch.focus();
 		});
 	}

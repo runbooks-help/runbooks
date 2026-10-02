@@ -127,6 +127,7 @@ func main() {
 		log.Fatalf("load runbooks: %v", err)
 	}
 	groups := parser.GroupBySystem(runbooks)
+	searchIndex := parser.BuildIndex(runbooks)
 
 	mux := http.NewServeMux()
 	mux.Handle("/public/", http.FileServer(http.FS(static)))
@@ -217,6 +218,14 @@ func main() {
 		gitSync = authn.gateGitSync(gitSync)
 	}
 	mux.Handle("/api/git-sync/v1", gitSync)
+
+	// Body search reads the same content as the pages, so with identity on it sits
+	// behind the same read gate (a 401 JSON, not a login redirect).
+	search := http.HandlerFunc(handleSearch(searchIndex))
+	if authn != nil {
+		search = authn.requireAPI(search)
+	}
+	mux.Handle("/api/runbooks/v1/search", search)
 
 	log.Printf("runbooks listening on :%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, mux))
