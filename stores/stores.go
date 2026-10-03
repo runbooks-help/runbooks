@@ -46,9 +46,10 @@ type CredentialStore interface {
 }
 
 // SessionStore is the session half of the contract. A Get miss is ErrNotFound;
-// Update and Delete are idempotent.
+// List treats empty as OK; Update and Delete are idempotent.
 type SessionStore interface {
 	GetSession(ctx context.Context, id string) (Session, error)
+	ListSessions(ctx context.Context, userID string) ([]Session, error)
 	InsertSession(ctx context.Context, s Session) error
 	UpdateSession(ctx context.Context, s Session) error
 	DeleteSession(ctx context.Context, id string) error

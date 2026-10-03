@@ -1,0 +1,158 @@
+package views
+
+import (
+	"strconv"
+	"strings"
+	"time"
+
+	"runbooks/parser"
+	"runbooks/stores"
+	"runbooks/views/components"
+)
+
+// AccountPage is the signed-in user's self-service surface: profile, passkeys
+// and active sessions. It lives in the app shell like the admin page.
+templ AccountPage(groups []parser.SystemGroup, user stores.User, creds []stores.Credential, sessions []stores.Session, currentSessionID string) {
+	@components.Shell("Account") {
+		@components.Rail()
+		<aside class="sidebar">
+			@components.SidebarHeader()
+			@components.SidebarNav(groups, "account")
+			<div class="sidebar-appearance">
+				@components.AppearanceTrigger(true)
+			</div>
+			@components.SessionActions(user.IsAdmin(), true)
+		</aside>
+		<div class="main main--full">
+			<div class="main-header">
+				<h1>Account</h1>
+				<p>Your profile, passkeys and signed-in devices.</p>
+			</div>
+			<div class="content">
+				<div class="stack account-inner">
+					@components.LiveAlert()
+					<p class="auth-status" data-auth-status hidden></p>
+
+					<section class="admin-card">
+						<p class="section-label">Profile</p>
+						<form class="form-row" data-account="profile">
+							<div class="form-field">
+								<label class="form-label" for="account-name">Display name</label>
+								<input class="text-input" id="account-name" type="text" name="display_name" value={ user.DisplayName } autocomplete="name" required/>
+							</div>
+							<div class="form-field">
+								<label class="form-label" for="account-email">Email <span class="form-optional">optional</span></label>
+								<input class="text-input" id="account-email" type="email" name="email" value={ user.Email } autocomplete="email"/>
+							</div>
+							<button class="btn btn-primary" type="submit">Save</button>
+						</form>
+					</section>
+
+					<section class="admin-card">
+						<div class="account-card-head">
+							<p class="section-label">Passkeys</p>
+							<button class="btn btn-ghost" type="button" data-account="add-passkey">Add a passkey</button>
+						</div>
+						<div class="table-wrap">
+							<table class="admin-table">
+								<thead>
+									<tr>
+										<th>Name</th>
+										<th>Added</th>
+										<th>Last used</th>
+										<th></th>
+									</tr>
+								</thead>
+								<tbody>
+									for _, c := range creds {
+										<tr>
+											<td>
+												<input class="text-input account-passkey-label" type="text" value={ c.Label } placeholder="Passkey" aria-label="Passkey name" data-passkey-label={ c.ID }/>
+											</td>
+											<td>{ accountDate(c.CreatedAt) }</td>
+											<td>{ accountLastUsed(c.LastUsedAt) }</td>
+											<td class="admin-actions">
+												<button class="btn btn-ghost" type="button" data-account="save-passkey" data-credential-id={ c.ID }>Save name</button>
+												<button class="btn btn-danger" type="button" data-account="remove-passkey" data-credential-id={ c.ID }>Remove</button>
+											</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+						</div>
+					</section>
+
+					<section class="admin-card">
+						<div class="account-card-head">
+							<p class="section-label">Signed-in devices</p>
+							<button class="btn btn-danger" type="button" data-account="sign-out-all" data-user-id={ user.ID }>Sign out everywhere</button>
+						</div>
+						<div class="table-wrap">
+							<table class="admin-table">
+								<thead>
+									<tr>
+										<th>Device</th>
+										<th>IP</th>
+										<th>Signed in</th>
+										<th>Last seen</th>
+										<th></th>
+									</tr>
+								</thead>
+								<tbody>
+									for _, s := range sessions {
+										<tr>
+											<td>
+												<span class="account-device">
+													{ accountDevice(s.UserAgent) }
+													if s.ID == currentSessionID {
+														<span class="badge badge-info">this device</span>
+													}
+												</span>
+											</td>
+											<td>{ s.IP }</td>
+											<td>{ accountDate(s.CreatedAt) }</td>
+											<td>{ accountLastUsed(s.LastSeenAt) }</td>
+											<td class="admin-actions">
+												<button class="btn btn-ghost" type="button" data-account="revoke-session" data-session-id={ s.ID } data-current={ strconv.FormatBool(s.ID == currentSessionID) }>Sign out</button>
+											</td>
+										</tr>
+									}
+									if len(sessions) == 0 {
+										<tr>
+											<td colspan="5">No active sessions.</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+						</div>
+					</section>
+				</div>
+			</div>
+		</div>
+	}
+}
+
+func accountDate(t time.Time) string {
+	if t.IsZero() {
+		return "—"
+	}
+	return t.Format("2 Jan 2006, 15:04")
+}
+
+func accountLastUsed(t time.Time) string {
+	if t.IsZero() {
+		return "never"
+	}
+	return t.Format("2 Jan 2006, 15:04")
+}
+
+func accountDevice(ua string) string {
+	ua = strings.TrimSpace(ua)
+	if ua == "" {
+		return "Unknown device"
+	}
+	if len(ua) > 48 {
+		return ua[:48] + "…"
+	}
+	return ua
+}

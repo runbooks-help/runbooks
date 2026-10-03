@@ -1,7 +1,7 @@
 package components
 
 // SessionActions is the sidebar footer account section: the Admin page link
-// (admins only) and Sign out (when identity is on).
+// (admins only), Account (when identity is on) and Sign out.
 templ SessionActions(isAdmin, identityEnabled bool) {
 	if isAdmin || identityEnabled {
 		<nav class="session-actions">
@@ -9,6 +9,7 @@ templ SessionActions(isAdmin, identityEnabled bool) {
 				<a href="/admin">Admin</a>
 			}
 			if identityEnabled {
+				<a href="/account">Account</a>
 				<button type="button" data-auth="logout">Sign out</button>
 			}
 		</nav>

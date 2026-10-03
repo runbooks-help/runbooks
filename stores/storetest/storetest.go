@@ -212,6 +212,26 @@ func StoreContract(t *testing.T, newStore func(t *testing.T) stores.Store) {
 		if err := s.InsertSession(ctx, stores.Session{ID: "s3", UserID: "u2", CreatedAt: base, ExpiresAt: base.Add(time.Hour), LastSeenAt: base}); err != nil {
 			t.Fatalf("InsertSession s3: %v", err)
 		}
+
+		// ListSessions is per user and most-recently-seen first; empty is OK.
+		list, err := s.ListSessions(ctx, "u1")
+		if err != nil {
+			t.Fatalf("ListSessions: %v", err)
+		}
+		if len(list) != 2 || list[0].ID != "s1" || list[1].ID != "s2" {
+			t.Errorf("ListSessions(u1) = %+v, want s1 then s2", list)
+		}
+		if list, err = s.ListSessions(ctx, "u2"); err != nil {
+			t.Fatalf("ListSessions(u2): %v", err)
+		} else if len(list) != 1 || list[0].ID != "s3" {
+			t.Errorf("ListSessions(u2) = %+v, want just s3", list)
+		}
+		if list, err = s.ListSessions(ctx, "nobody"); err != nil {
+			t.Fatalf("ListSessions(nobody): %v", err)
+		} else if len(list) != 0 {
+			t.Errorf("ListSessions(nobody) = %+v, want none", list)
+		}
+
 		if err := s.DeleteSessionsForUser(ctx, "u1"); err != nil {
 			t.Fatalf("DeleteSessionsForUser: %v", err)
 		}

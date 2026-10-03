@@ -1302,6 +1302,7 @@ function authStatus(message) {
 	if (!el) return;
 	el.textContent = message;
 	el.hidden = !message;
+	if (message) hideLiveAlert();
 }
 
 // passkeyErrorMessage turns the terse DOMException the WebAuthn API throws into
@@ -1560,6 +1561,104 @@ if (adminStatus) {
 			} catch (_) {
 				adminUrl.select();
 				showAdminStatus('Press Ctrl/Cmd+C to copy.');
+			}
+		});
+	}
+}
+
+// Account page: profile, passkeys and signed-in devices.
+const accountForm = document.querySelector('[data-account="profile"]');
+if (accountForm) {
+	accountForm.addEventListener('submit', async event => {
+		event.preventDefault();
+		const fields = Object.fromEntries(new FormData(accountForm).entries());
+		try {
+			await authPost('/api/auth/v1/profile', { display_name: fields.display_name, email: fields.email });
+			authStatus('Profile saved.');
+		} catch (err) {
+			showLiveAlert('Could not save your profile', err);
+		}
+	});
+
+	const addPasskey = document.querySelector('[data-account="add-passkey"]');
+	if (addPasskey) {
+		addPasskey.addEventListener('click', async () => {
+			addPasskey.disabled = true;
+			hideLiveAlert();
+			authStatus('Creating your passkey…');
+			try {
+				const begin = await authPost('/api/auth/v1/passkeys/begin');
+				const credential = await createPasskey(begin.options);
+				await authPost('/api/auth/v1/passkeys/finish', { challenge: begin.challenge, credential });
+				window.location.reload();
+			} catch (err) {
+				showLiveAlert('Could not add the passkey', err);
+				addPasskey.disabled = false;
+			}
+		});
+	}
+
+	document.querySelectorAll('[data-account="save-passkey"]').forEach(button => {
+		button.addEventListener('click', async () => {
+			const row = button.closest('tr');
+			const input = row.querySelector('[data-passkey-label]');
+			button.disabled = true;
+			try {
+				await authPost('/api/auth/v1/passkeys/rename', {
+					credential_id: button.dataset.credentialId,
+					label: input.value,
+				});
+				authStatus('Passkey name saved.');
+			} catch (err) {
+				showLiveAlert('Could not rename the passkey', err);
+			} finally {
+				button.disabled = false;
+			}
+		});
+	});
+
+	document.querySelectorAll('[data-account="remove-passkey"]').forEach(button => {
+		button.addEventListener('click', async () => {
+			button.disabled = true;
+			try {
+				await authPost('/api/auth/v1/passkeys/remove', { credential_id: button.dataset.credentialId });
+				button.closest('tr').remove();
+				authStatus('Passkey removed.');
+			} catch (err) {
+				showLiveAlert('Could not remove the passkey', err);
+				button.disabled = false;
+			}
+		});
+	});
+
+	document.querySelectorAll('[data-account="revoke-session"]').forEach(button => {
+		button.addEventListener('click', async () => {
+			button.disabled = true;
+			try {
+				await authPost('/api/auth/v1/sessions/revoke', { session_id: button.dataset.sessionId });
+				if (button.dataset.current === 'true') {
+					window.location.assign('/login');
+					return;
+				}
+				button.closest('tr').remove();
+				authStatus('Device signed out.');
+			} catch (err) {
+				showLiveAlert('Could not sign out that device', err);
+				button.disabled = false;
+			}
+		});
+	});
+
+	const signOutAll = document.querySelector('[data-account="sign-out-all"]');
+	if (signOutAll) {
+		signOutAll.addEventListener('click', async () => {
+			signOutAll.disabled = true;
+			try {
+				await authPost('/api/auth/v1/sessions/revoke', { user_id: signOutAll.dataset.userId });
+				window.location.assign('/login');
+			} catch (err) {
+				showLiveAlert('Could not sign out', err);
+				signOutAll.disabled = false;
 			}
 		});
 	}

@@ -8,9 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
-	"time"
-
 	"runbooks/identity"
 	"runbooks/parser"
 	"runbooks/stores"
@@ -18,6 +15,8 @@ import (
 	"runbooks/stores/postgres"
 	"runbooks/stores/sqlite"
 	"runbooks/views"
+	"strings"
+	"time"
 )
 
 //go:embed public
@@ -176,7 +175,14 @@ func main() {
 		}))
 		mux.HandleFunc("/api/runbooks/v1/ack", authn.requireAPI(authn.ackRunbook))
 		mux.HandleFunc("/api/auth/v1/invites", authn.requireAdminAPI(authn.createInvite))
-		mux.HandleFunc("/api/auth/v1/sessions/revoke", authn.requireAdminAPI(authn.revokeSessions))
+		mux.HandleFunc("/account", authn.requirePage(authn.accountPage(groups)))
+		mux.HandleFunc("/api/auth/v1/profile", authn.requireAPI(authn.updateProfile))
+		mux.HandleFunc("/api/auth/v1/sessions", authn.requireAPI(authn.listSessions))
+		mux.HandleFunc("/api/auth/v1/sessions/revoke", authn.requireAPI(authn.revokeSessions))
+		mux.HandleFunc("/api/auth/v1/passkeys/begin", authn.requireAPI(authn.passkeyBegin))
+		mux.HandleFunc("/api/auth/v1/passkeys/finish", authn.requireAPI(authn.passkeyFinish))
+		mux.HandleFunc("/api/auth/v1/passkeys/rename", authn.requireAPI(authn.passkeyRename))
+		mux.HandleFunc("/api/auth/v1/passkeys/remove", authn.requireAPI(authn.passkeyRemove))
 		// Break-glass recovery is only reachable when a token is configured.
 		if cfg.IdentityRecoveryToken != "" {
 			mux.HandleFunc("/recovery", authn.recoveryPage)

@@ -152,3 +152,62 @@ test("break-glass recovers an orphaned admin (abandoned /setup)", async (t) => {
 		throw err;
 	}
 });
+
+// The account page: the signed-in user manages their profile, passkeys and
+// sessions. A second passkey cannot be enrolled through the harness's single
+// virtual authenticator (excludeCredentials blocks a duplicate credential on the
+// same authenticator), so the add route is checked directly while rename and the
+// last-passkey guard are driven through the UI.
+test("the account page manages the profile, passkeys and sessions", async (t) => {
+	const app = await startApp();
+	t.after(() => app.stop());
+	const b = await startBrowser();
+	t.after(() => b.stop());
+	try {
+		await bootAdmin(b.page, app.base);
+		await b.page.goto(app.base + "/account");
+		await b.page.locator(".account-inner").waitFor({ timeout: uiTimeout });
+
+		// The add endpoint is live and returns WebAuthn creation options.
+		const begin = await b.page.evaluate(() =>
+			fetch("/api/auth/v1/passkeys/begin", { method: "POST" }).then((r) => r.json()),
+		);
+		assert.ok(begin.options && begin.options.publicKey, "passkeys/begin returns creation options");
+
+		// The passkey is listed and the current session is marked.
+		assert.equal(await b.page.locator('[data-account="save-passkey"]').count(), 1, "the passkey is listed");
+		assert.equal(await b.page.locator(".account-device .badge").count(), 1, "the current session is marked");
+
+		// Rename it.
+		await b.page.locator("[data-passkey-label]").first().fill("YubiKey");
+		await b.page.locator('[data-account="save-passkey"]').first().click();
+		await b.page.waitForFunction(() =>
+			document.querySelector("[data-auth-status]")?.textContent.includes("Passkey name saved"),
+		);
+
+		// Removing the last passkey is refused, and the row stays.
+		await b.page.locator('[data-account="remove-passkey"]').first().click();
+		await b.page.locator("[data-live-alert] .alert-message").waitFor({ timeout: uiTimeout });
+		assert.match(await b.page.locator("[data-live-alert] .alert-message").textContent(), /last passkey/i);
+
+		// Save the profile.
+		await b.page.fill("#account-name", "Renamed Admin");
+		await b.page.locator('form[data-account="profile"] button[type="submit"]').click();
+		await b.page.waitForFunction(() =>
+			document.querySelector("[data-auth-status]")?.textContent.includes("Profile saved"),
+		);
+
+		// Sign out everywhere, then sign back in: the passkey and profile survived.
+		await b.page.locator('[data-account="sign-out-all"]').click();
+		await b.page.waitForURL(atPath(app.base, "/login"), { timeout: navTimeout });
+		await signIn(b.page, app.base);
+		await b.page.goto(app.base + "/account");
+		await b.page.locator("[data-passkey-label]").waitFor({ timeout: uiTimeout });
+		assert.equal(await b.page.locator("[data-passkey-label]").first().inputValue(), "YubiKey", "renamed passkey persisted");
+		assert.equal(await b.page.locator("#account-name").inputValue(), "Renamed Admin", "display name persisted");
+		await holdIfAsked();
+	} catch (err) {
+		await reportFailure(b.page, app.logs());
+		throw err;
+	}
+});

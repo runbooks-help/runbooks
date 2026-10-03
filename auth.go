@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"runbooks/identity"
+	"runbooks/parser"
 	"runbooks/stores"
 	"runbooks/views"
 )
@@ -455,34 +456,222 @@ func (a *auth) createInvite(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// revokeSessions ends every session a user holds (lost device, offboarding).
+// revokeSessions ends sessions: an admin ends every session a user holds (lost
+// device, offboarding) by user_id, and anyone may end one of their own by
+// session_id. A member can never touch another user's sessions.
 func (a *auth) revokeSessions(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		UserID string `json:"user_id"`
+		UserID    string `json:"user_id"`
+		SessionID string `json:"session_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSONError(w, http.StatusBadRequest, "bad request")
 		return
 	}
+	me := userFrom(r.Context())
 	userID := strings.TrimSpace(req.UserID)
-	if userID == "" {
-		writeJSONError(w, http.StatusBadRequest, "user_id is required")
-		return
-	}
-	if _, err := a.st.GetUser(r.Context(), userID); err != nil {
-		if errors.Is(err, stores.ErrNotFound) {
-			writeJSONError(w, http.StatusNotFound, "unknown user")
+	sessionID := strings.TrimSpace(req.SessionID)
+
+	if userID != "" {
+		if userID != me.ID && !me.IsAdmin() {
+			writeJSONError(w, http.StatusForbidden, "admin only")
 			return
 		}
-		writeJSONError(w, http.StatusInternalServerError, "could not look up user")
+		if _, err := a.st.GetUser(r.Context(), userID); err != nil {
+			if errors.Is(err, stores.ErrNotFound) {
+				writeJSONError(w, http.StatusNotFound, "unknown user")
+				return
+			}
+			writeJSONError(w, http.StatusInternalServerError, "could not look up user")
+			return
+		}
+		if err := a.svc.RevokeForUser(r.Context(), userID); err != nil {
+			writeJSONError(w, http.StatusInternalServerError, "could not revoke sessions")
+			return
+		}
+		a.recordAuthEvent(r, stores.ActionRevoke, me.ID, userID)
+		writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
 		return
 	}
-	if err := a.svc.RevokeForUser(r.Context(), userID); err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "could not revoke sessions")
+
+	if sessionID == "" {
+		writeJSONError(w, http.StatusBadRequest, "user_id or session_id is required")
 		return
 	}
-	a.recordAuthEvent(r, stores.ActionRevoke, userFrom(r.Context()).ID, userID)
+	if err := a.svc.RevokeSession(r.Context(), me.ID, sessionID); err != nil {
+		if errors.Is(err, identity.ErrSession) {
+			writeJSONError(w, http.StatusNotFound, "unknown session")
+			return
+		}
+		writeJSONError(w, http.StatusInternalServerError, "could not revoke session")
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
+}
+
+// accountPage shows the signed-in user's profile, passkeys and sessions.
+func (a *auth) accountPage(groups []parser.SystemGroup) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		u := userFrom(r.Context())
+		creds, err := a.svc.Credentials(r.Context(), u.ID)
+		if err != nil {
+			http.Error(w, "could not load passkeys", http.StatusInternalServerError)
+			return
+		}
+		sessions, err := a.svc.Sessions(r.Context(), u.ID)
+		if err != nil {
+			http.Error(w, "could not load sessions", http.StatusInternalServerError)
+			return
+		}
+		current := ""
+		if c, err := r.Cookie(sessionCookieName); err == nil {
+			current = identity.SessionID(c.Value)
+		}
+		views.AccountPage(groups, u, creds, sessions, current).Render(r.Context(), w)
+	}
+}
+
+// listSessions returns the signed-in user's own sessions as JSON.
+func (a *auth) listSessions(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	u := userFrom(r.Context())
+	sessions, err := a.svc.Sessions(r.Context(), u.ID)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "could not load sessions")
+		return
+	}
+	current := ""
+	if c, err := r.Cookie(sessionCookieName); err == nil {
+		current = identity.SessionID(c.Value)
+	}
+	out := make([]map[string]any, 0, len(sessions))
+	for _, s := range sessions {
+		out = append(out, map[string]any{
+			"id":           s.ID,
+			"created_at":   s.CreatedAt,
+			"last_seen_at": s.LastSeenAt,
+			"user_agent":   s.UserAgent,
+			"ip":           s.IP,
+			"current":      s.ID == current,
+		})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"sessions": out})
+}
+
+// passkeyBegin starts adding a passkey to the signed-in user.
+func (a *auth) passkeyBegin(w http.ResponseWriter, r *http.Request) {
+	u := userFrom(r.Context())
+	token, options, err := a.svc.BeginRegistration(r.Context(), u.ID)
+	if err != nil {
+		logAuthFailure("account/passkey/begin", err)
+		writeJSONError(w, http.StatusInternalServerError, "could not begin registration")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"challenge": token, "options": options})
+}
+
+// passkeyFinish stores the new passkey, optionally naming it.
+func (a *auth) passkeyFinish(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Challenge  string          `json:"challenge"`
+		Credential json.RawMessage `json:"credential"`
+		Label      string          `json:"label"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	cred, err := a.svc.FinishRegistration(r.Context(), req.Challenge, req.Credential)
+	if err != nil {
+		logAuthFailure("account/passkey/finish", err)
+		writeJSONError(w, http.StatusBadRequest, "registration failed")
+		return
+	}
+	if label := strings.TrimSpace(req.Label); label != "" {
+		_ = a.svc.RenameCredential(r.Context(), cred.UserID, cred.ID, label)
+	}
+	a.recordAuthEvent(r, stores.ActionEnrol, cred.UserID, cred.UserID)
+	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
+}
+
+// passkeyRename sets a passkey's label.
+func (a *auth) passkeyRename(w http.ResponseWriter, r *http.Request) {
+	u := userFrom(r.Context())
+	var req struct {
+		CredentialID string `json:"credential_id"`
+		Label        string `json:"label"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	if strings.TrimSpace(req.CredentialID) == "" {
+		writeJSONError(w, http.StatusBadRequest, "credential_id is required")
+		return
+	}
+	if err := a.svc.RenameCredential(r.Context(), u.ID, req.CredentialID, req.Label); err != nil {
+		if errors.Is(err, identity.ErrCredential) {
+			writeJSONError(w, http.StatusNotFound, "unknown passkey")
+			return
+		}
+		writeJSONError(w, http.StatusInternalServerError, "could not rename passkey")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
+}
+
+// passkeyRemove deletes a passkey, refusing to remove the user's last one.
+func (a *auth) passkeyRemove(w http.ResponseWriter, r *http.Request) {
+	u := userFrom(r.Context())
+	var req struct {
+		CredentialID string `json:"credential_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	if err := a.svc.RemoveCredential(r.Context(), u.ID, strings.TrimSpace(req.CredentialID)); err != nil {
+		switch {
+		case errors.Is(err, identity.ErrLastPasskey):
+			writeJSONError(w, http.StatusConflict, "You cannot remove your last passkey.")
+		case errors.Is(err, identity.ErrCredential):
+			writeJSONError(w, http.StatusNotFound, "unknown passkey")
+		default:
+			writeJSONError(w, http.StatusInternalServerError, "could not remove passkey")
+		}
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
+}
+
+// updateProfile changes the signed-in user's display name and optional email.
+func (a *auth) updateProfile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	u := userFrom(r.Context())
+	var req struct {
+		DisplayName string `json:"display_name"`
+		Email       string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	if strings.TrimSpace(req.DisplayName) == "" {
+		writeJSONError(w, http.StatusBadRequest, "display name is required")
+		return
+	}
+	updated, err := a.svc.UpdateProfile(r.Context(), u.ID, req.DisplayName, req.Email)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "could not save profile")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"display_name": updated.DisplayName, "email": updated.Email})
 }
 
 func (a *auth) logout(w http.ResponseWriter, r *http.Request) {

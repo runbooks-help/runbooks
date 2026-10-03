@@ -300,6 +300,16 @@ func (s *store) DeleteSessionsForUser(ctx context.Context, userID string) error 
 	return err
 }
 
+// ListSessions returns a user's sessions, most recently seen first. Empty is OK.
+func (s *store) ListSessions(ctx context.Context, userID string) ([]stores.Session, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT `+sessionColumns+` FROM sessions WHERE user_id = $1 ORDER BY last_seen_at DESC`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanSessions(rows)
+}
+
 // scanSession scans a session row. scan is a *sql.Row's or *sql.Rows' Scan method.
 func scanSession(scan func(dest ...any) error) (stores.Session, error) {
 	var (
@@ -322,6 +332,19 @@ func scanSession(scan func(dest ...any) error) (stores.Session, error) {
 	sess.UserAgent = userAgent.V
 	sess.IP = ip.V
 	return sess, nil
+}
+
+// scanSessions drains a session row cursor.
+func scanSessions(rows *sql.Rows) ([]stores.Session, error) {
+	var out []stores.Session
+	for rows.Next() {
+		sess, err := scanSession(rows.Scan)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, sess)
+	}
+	return out, rows.Err()
 }
 
 const challengeColumns = `id, kind, data, expires_at`
