@@ -29,6 +29,8 @@ func initTestRepo(t *testing.T) string {
 	mustGit(t, work, "clone", bare, ".")
 	mustGit(t, work, "config", "user.email", "test@test.com")
 	mustGit(t, work, "config", "user.name", "Test")
+	// Hermetic: the host's commit.gpgsign must not reach the throwaway repo.
+	mustGit(t, work, "config", "commit.gpgsign", "false")
 	mustGit(t, work, "commit", "--allow-empty", "-m", "init")
 	mustGit(t, work, "push", "origin", "main")
 

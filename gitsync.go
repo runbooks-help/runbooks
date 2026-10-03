@@ -230,7 +230,9 @@ func doGitSync(ctx context.Context, cfg config, job gitSyncJob) (string, bool, e
 	}
 
 	msg := fmt.Sprintf("sync: %s %s", req.RunbookTitle, date)
-	if err := gitRun(ctx, ws, env, "commit", "-m", msg); err != nil {
+	// The server is not a signing authority: never let the host's commit.gpgsign
+	// setting (or a locked agent) turn a sync into a failure.
+	if err := gitRun(ctx, ws, env, "-c", "commit.gpgsign=false", "commit", "-m", msg); err != nil {
 		return "", false, fmt.Errorf("git commit failed")
 	}
 
