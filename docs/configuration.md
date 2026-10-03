@@ -68,3 +68,8 @@ unauthenticated request is refused), or `GITSYNC_API_TOKEN` when identity is off
 With identity on, a signed-in user's commit is authored as that user
 (`DisplayName <Email>`); `GITSYNC_AUTHOR_*` applies only when the user has no
 email, and `GITSYNC_API_TOKEN` is the non-human fallback.
+
+The git transport is `go-git` (pure Go) — no system `git` binary is needed. SSH
+remotes are verified against `known_hosts` (`SSH_KNOWN_HOSTS`, then
+`~/.ssh/known_hosts` / `/etc/ssh/ssh_known_hosts`); there is no `accept-new`, so
+the host key must already be present.

@@ -23,11 +23,11 @@ or rewriting.
 
 | Class | Count | Licences |
 |---|---|---|
-| Distributed Go modules (linked into the binary) | 28 | MIT, BSD-2/3-Clause, Apache-2.0, ISC, **MPL-2.0 (1)**, dual MIT OR Apache (1) |
+| Distributed Go modules (linked into the binary) | 46 | Apache-2.0 (8), BSD-2-Clause (2), BSD-3-Clause (19), MIT (16), **MPL-2.0 (1)** |
 | Vendored browser JS | 4 | BSD-3-Clause, MIT, MIT-or-GPLv3 (elect MIT), Apache-2.0 (DOMPurify) |
 | Vendored icons | 1 | ISC (Feather-derived subset MIT) |
 | Self-hosted fonts | 2 | OFL-1.1 |
-| Build/test-only Go modules | 45 | MIT, BSD-2/3-Clause, Apache-2.0, ISC, MPL-2.0 (1, not linked) |
+| Build/test-only Go modules | 59 | MIT, BSD-2/3-Clause, Apache-2.0, ISC, MPL-2.0 (1, not linked) |
 | Build tooling (non-Go) | — | MIT, Apache-2.0 |
 
 ### The one weak-copyleft dependency
@@ -54,34 +54,56 @@ driver is the correct call.
 ## 1. Distributed Go modules
 
 Linked into the `runbooks` binary (from `go list -deps .`). Every one is
-permissive except the noted MPL driver.
+permissive except the noted MPL driver. The git transport is part of this set:
+`go-git` (Apache-2.0) and its tree — `go-git/go-billy`, `ProtonMail/go-crypto`,
+`skeema/knownhosts`, `xanzy/ssh-agent`, `pjbgf/sha1cd`, `filepath-securejoin`, …
+— replaced shelling out to a system `git` binary, so neither the container nor a
+bare-binary self-host needs git installed.
 
 | Module | Version | Licence |
 |---|---|---|
+| `dario.cat/mergo` | v1.0.0 | BSD-3-Clause |
 | `filippo.io/edwards25519` | v1.2.0 | BSD-3-Clause |
 | `github.com/a-h/templ` | v0.3.1020 | MIT |
+| `github.com/cloudflare/circl` | v1.6.3 | BSD-3-Clause |
+| `github.com/cyphar/filepath-securejoin` | v0.6.1 | BSD-3-Clause |
 | `github.com/dustin/go-humanize` | v1.0.1 | MIT |
+| `github.com/emirpasic/gods` | v1.18.1 | BSD-2-Clause |
 | `github.com/fxamacker/cbor/v2` | v2.9.4 | MIT |
+| `github.com/go-git/gcfg` | v1.5.1-0.20230307220236-3a3c6141e376 | BSD-3-Clause |
+| `github.com/go-git/go-billy/v5` | v5.9.0 | Apache-2.0 |
+| `github.com/go-git/go-git/v5` | v5.19.2 | Apache-2.0 |
+| `github.com/golang/groupcache` | v0.0.0-20241129210726-2c02b8208cf8 | Apache-2.0 |
+| `github.com/golang-jwt/jwt/v5` | v5.3.1 | MIT |
+| `github.com/google/go-tpm` | v0.9.8 | Apache-2.0 |
+| `github.com/google/uuid` | v1.6.0 | BSD-3-Clause |
 | `github.com/go-sql-driver/mysql` | v1.10.1 | **MPL-2.0** (Larger Work, §3.3) |
 | `github.com/go-viper/mapstructure/v2` | v2.5.0 | MIT |
 | `github.com/go-webauthn/webauthn` | v0.18.2 | BSD-3-Clause |
 | `github.com/go-webauthn/x` | v0.3.1 | BSD-3-Clause |
-| `github.com/golang-jwt/jwt/v5` | v5.3.1 | MIT |
-| `github.com/google/go-tpm` | v0.9.8 | Apache-2.0 |
-| `github.com/google/uuid` | v1.6.0 | BSD-3-Clause |
 | `github.com/jackc/pgpassfile` | v1.0.0 | MIT |
 | `github.com/jackc/pgservicefile` | v0.0.0-20240606120523-5a60cdf6a761 | MIT |
 | `github.com/jackc/pgx/v5` | v5.11.0 | MIT |
 | `github.com/jackc/puddle/v2` | v2.2.2 | MIT |
+| `github.com/jbenet/go-context` | v0.0.0-20150711004518-d14ea06fba99 | MIT |
+| `github.com/kevinburke/ssh_config` | v1.2.0 | MIT |
+| `github.com/klauspost/cpuid/v2` | v2.3.0 | MIT |
 | `github.com/philhofer/fwd` | v1.2.0 | MIT |
+| `github.com/pjbgf/sha1cd` | v0.6.0 | Apache-2.0 |
+| `github.com/ProtonMail/go-crypto` | v1.1.6 | BSD-3-Clause |
 | `github.com/remyoudompheng/bigfft` | v0.0.0-20230129092748-24d4a6f8daec | BSD-3-Clause |
+| `github.com/sergi/go-diff` | v1.3.2-0.20230802210424-5b0b94c5c0d3 | MIT |
+| `github.com/skeema/knownhosts` | v1.3.1 | Apache-2.0 |
 | `github.com/tinylib/msgp` | v1.6.4 | MIT |
 | `github.com/x448/float16` | v0.8.4 | MIT |
+| `github.com/xanzy/ssh-agent` | v0.3.3 | Apache-2.0 |
 | `golang.org/x/crypto` | v0.57.0 | BSD-3-Clause |
+| `golang.org/x/net` | v0.59.0 | BSD-3-Clause |
 | `golang.org/x/sync` | v0.23.0 | BSD-3-Clause |
 | `golang.org/x/sys` | v0.48.0 | BSD-3-Clause |
 | `golang.org/x/text` | v0.42.0 | BSD-3-Clause |
-| `gopkg.in/yaml.v3` | v3.0.1 | MIT OR Apache-2.0 |
+| `gopkg.in/warnings.v0` | v0.1.2 | BSD-2-Clause |
+| `gopkg.in/yaml.v3` | v3.0.1 | Apache-2.0 (or MIT) |
 | `modernc.org/libc` | v1.77.1 | BSD-3-Clause (+ third-party MIT / public domain) |
 | `modernc.org/mathutil` | v1.7.1 | BSD-3-Clause |
 | `modernc.org/memory` | v1.12.1 | BSD-3-Clause |

@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"runbooks/internal/gitcmd"
+	"runbooks/internal/gitrepo"
 	"runbooks/stores"
 )
 
@@ -148,27 +149,16 @@ func doGitSync(ctx context.Context, cfg config, job gitSyncJob) (string, bool, e
 	}
 	defer os.RemoveAll(ws)
 
-	env, cleanup, err := gitcmd.AuthEnv(gitcmd.Credentials{Username: cfg.GitSyncUsername, Token: cfg.GitSyncToken, SSHKey: cfg.GitSyncSSHKey})
+	creds := gitrepo.Credentials{
+		Username: cfg.GitSyncUsername,
+		Token:    cfg.GitSyncToken,
+		SSHKey:   cfg.GitSyncSSHKey,
+	}
+	repo, err := gitrepo.Fresh(ctx, ws, cfg.GitSyncRepo, cfg.GitSyncBranch, creds)
 	if err != nil {
-		return "", false, err
-	}
-	defer cleanup()
-
-	if err := gitcmd.Run(ctx, ws, env, "clone", cfg.GitSyncRepo, "."); err != nil {
+		// Generic to the caller: the error can carry the remote URL.
+		log.Printf("gitsync: clone failed: %v", err)
 		return "", false, fmt.Errorf("clone failed")
-	}
-
-	if job.author.name != "" {
-		gitcmd.Run(ctx, ws, env, "config", "user.name", job.author.name)
-	}
-	if job.author.email != "" {
-		gitcmd.Run(ctx, ws, env, "config", "user.email", job.author.email)
-	}
-
-	if err := gitcmd.Run(ctx, ws, env, "checkout", cfg.GitSyncBranch); err != nil {
-		if err := gitcmd.Run(ctx, ws, env, "checkout", "-b", cfg.GitSyncBranch); err != nil {
-			return "", false, fmt.Errorf("branch setup failed")
-		}
 	}
 
 	date := time.Now().UTC().Format("2006-01-02")
@@ -215,32 +205,20 @@ func doGitSync(ctx context.Context, cfg config, job gitSyncJob) (string, bool, e
 		return "", false, fmt.Errorf("write runbook failed")
 	}
 
-	if err := gitcmd.Run(ctx, ws, env, "add", "."); err != nil {
-		return "", false, fmt.Errorf("git add failed")
-	}
-
-	// Nothing changed since the last sync — report up-to-date rather than
-	// creating an empty commit.
-	status, err := gitcmd.Output(ctx, ws, env, "status", "--porcelain")
-	if err != nil {
-		return "", false, fmt.Errorf("git status failed")
-	}
-	if strings.TrimSpace(status) == "" {
-		return "", false, nil
-	}
-
 	msg := fmt.Sprintf("sync: %s %s", req.RunbookTitle, date)
-	if err := gitcmd.Run(ctx, ws, env, "commit", "-m", msg); err != nil {
+	hash, changed, err := gitrepo.Commit(repo, msg, gitrepo.Author{Name: job.author.name, Email: job.author.email})
+	if err != nil {
+		log.Printf("gitsync: commit failed: %v", err)
 		return "", false, fmt.Errorf("git commit failed")
 	}
-
-	if err := gitcmd.Run(ctx, ws, env, "push", "origin", cfg.GitSyncBranch); err != nil {
+	// Nothing changed since the last sync — report up-to-date rather than
+	// creating an empty commit.
+	if !changed {
+		return "", false, nil
+	}
+	if err := gitrepo.Push(ctx, repo, cfg.GitSyncBranch, creds); err != nil {
+		log.Printf("gitsync: push failed: %v", err)
 		return "", false, fmt.Errorf("git push failed")
 	}
-
-	sha, err := gitcmd.Output(ctx, ws, env, "rev-parse", "HEAD")
-	if err != nil {
-		return "", false, fmt.Errorf("rev-parse failed")
-	}
-	return sha, true, nil
+	return hash.String(), true, nil
 }

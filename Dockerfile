@@ -25,9 +25,9 @@ LABEL org.opencontainers.image.title="Runbooks" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}"
 
-# git for the notes sync push; openssh-client for SSH remotes; ca-certificates
-# for HTTPS remotes.
-RUN apk add --no-cache git openssh-client ca-certificates && \
+# The image needs no system git: content and notes sync use go-git, and SSH
+# remotes use its pure-Go client. ca-certificates is for HTTPS remotes.
+RUN apk add --no-cache ca-certificates && \
     adduser -D -u 10001 -h /app runbooks
 WORKDIR /app
 COPY --from=builder /app/runbooks .

@@ -13,25 +13,25 @@ import (
 	"strings"
 	"testing"
 
+	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"runbooks/stores"
 )
 
-// initTestRepo creates a bare git repo and pushes an initial empty commit to it.
+// initTestRepo creates an empty bare git repo, using go-git (no system git).
 // Returns the file:// URL of the bare repo.
 func initTestRepo(t *testing.T) string {
 	t.Helper()
-
 	bare := t.TempDir()
-	mustGit(t, "", "init", "--bare", "-b", "main", bare)
-
-	// Clone the bare repo, make an initial commit, push
-	work := t.TempDir()
-	mustGit(t, work, "clone", bare, ".")
-	mustGit(t, work, "config", "user.email", "test@test.com")
-	mustGit(t, work, "config", "user.name", "Test")
-	mustGit(t, work, "commit", "--allow-empty", "-m", "init")
-	mustGit(t, work, "push", "origin", "main")
-
+	r, err := git.PlainInit(bare, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Point the bare repo's HEAD at main, the branch sync pushes to, so a clone
+	// checks it out.
+	if err := r.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, plumbing.NewBranchReferenceName("main"))); err != nil {
+		t.Fatal(err)
+	}
 	return "file://" + bare
 }
 

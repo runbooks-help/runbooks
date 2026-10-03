@@ -1,11 +1,15 @@
-package content
+package contentsource
 
 import (
 	"context"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
+
+	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 func TestResolveLocal(t *testing.T) {
@@ -81,29 +85,32 @@ func TestResolveGitKeepsLastGood(t *testing.T) {
 	}
 }
 
-// seedRepo creates a git repo with one runbook and returns its path.
+// seedRepo creates a git repo with one runbook, using go-git (no system git).
 func seedRepo(t *testing.T) string {
 	t.Helper()
-	if _, err := exec.LookPath("git"); err != nil {
-		t.Skip("git not installed")
-	}
 	src := t.TempDir()
-	run(t, src, "git", "init", "-b", "main")
-	run(t, src, "git", "config", "user.email", "test@example.com")
-	run(t, src, "git", "config", "user.name", "Test")
+	r, err := git.PlainInit(src, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Unborn HEAD: point it at main so the first commit creates the branch.
+	if err := r.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, plumbing.NewBranchReferenceName("main"))); err != nil {
+		t.Fatal(err)
+	}
+	wt, err := r.Worktree()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(filepath.Join(src, "runbook.md"), []byte("---\ntitle: X\nslug: x\n---\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	run(t, src, "git", "add", ".")
-	run(t, src, "git", "commit", "-m", "init")
-	return src
-}
-
-func run(t *testing.T, dir string, name string, args ...string) {
-	t.Helper()
-	cmd := exec.Command(name, args...)
-	cmd.Dir = dir
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("%s %v: %v\n%s", name, args, err, out)
+	if _, err := wt.Add("runbook.md"); err != nil {
+		t.Fatal(err)
 	}
+	if _, err := wt.Commit("init", &git.CommitOptions{
+		Author: &object.Signature{Name: "Test", Email: "test@example.com", When: time.Now()},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	return src
 }

@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"runbooks/content"
+	"runbooks/contentsource"
 	"runbooks/identity"
-	"runbooks/internal/gitcmd"
+	"runbooks/internal/gitrepo"
 	"runbooks/parser"
 	"runbooks/stores"
 	"runbooks/stores/mysql"
@@ -164,12 +164,12 @@ func main() {
 	// says how to add runbooks, so a fresh checkout still boots. The tree is
 	// external — a local directory (CONTENT_DIR) or a git repo (CONTENT_SOURCE)
 	// — and never bundled in the image.
-	contentDir, err := content.Resolve(context.Background(), content.Options{
+	contentDir, err := contentsource.Resolve(context.Background(), contentsource.Options{
 		Source: cfg.ContentSource,
 		Dir:    cfg.ContentDir,
 		Repo:   cfg.GitSyncRepo,
 		Branch: cfg.GitSyncBranch,
-		Creds: gitcmd.Credentials{
+		Creds: gitrepo.Credentials{
 			Username: cfg.GitSyncUsername,
 			Token:    cfg.GitSyncToken,
 			SSHKey:   cfg.GitSyncSSHKey,
