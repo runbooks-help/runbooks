@@ -65,11 +65,27 @@ body {
 .rail-brand {
 	position: relative;
 	z-index: 1;
-	color: var(--accent-strong);
-	font-weight: 700;
-	font-size: var(--text-md);
+	font-size: var(--text-lg);
 	line-height: 1;
 	text-decoration: none;
+}
+
+/* The open-book brand mark: two pages in the head green, drawn with the same
+   ░/▓ shade characters the bookshelf easter egg uses. Monospace keeps the two
+   cells aligned at every size; the denser glyph gets the brighter green. */
+.book-mark {
+	display: inline-flex;
+	font-family: var(--font-mono);
+	font-weight: var(--mono-weight);
+	line-height: 1;
+}
+
+.book-page-a {
+	color: var(--accent);
+}
+
+.book-page-b {
+	color: var(--accent-strong);
 }
 
 /* The sidebar overlays the rail and main when summoned, dismissed by the scrim,
@@ -140,13 +156,15 @@ body[data-drawer] .drawer-scrim {
 .sidebar-logo {
 	display: flex;
 	align-items: center;
+	gap: var(--space-2);
 	padding: 0 var(--space-4) var(--space-5);
 	border-bottom: 1px solid var(--nav-border);
 	margin-bottom: var(--space-3);
 	text-decoration: none;
 }
 
-/* Purely typographic brand mark: "run" in the head green, "books" in body text. */
+/* Wordmark: the open-book mark, then "run" in the head green and "books" in
+   body text. */
 .wordmark {
 	font-size: var(--text-md);
 	font-weight: 700;

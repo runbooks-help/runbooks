@@ -9,7 +9,9 @@ package components
 templ Rail() {
 	<aside class="rail">
 		<button class="rail-hit" type="button" data-rail-menu aria-label="Open runbook menu" aria-expanded="false">›</button>
-		<a class="rail-brand" href="/" aria-label="Runbooks">r</a>
+		<a class="rail-brand" href="/" aria-label="Runbooks">
+			@BookMark()
+		</a>
 		<div class="rail-appearance">
 			@AppearanceTrigger(false)
 		</div>

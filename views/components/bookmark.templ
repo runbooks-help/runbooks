@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
+package components
+
+// BookMark is the open-book brand mark: two pages, a lighter left and a denser
+// right, drawn with the same ░/▓ shade characters the bookshelf easter egg
+// uses. It is monospace so the two cells line up at every size. Decorative —
+// the link around it carries the accessible name.
+templ BookMark() {
+	<span class="book-mark" aria-hidden="true">
+		<span class="book-page book-page-a">░</span>
+		<span class="book-page book-page-b">▓</span>
+	</span>
+}

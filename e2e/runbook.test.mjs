@@ -507,6 +507,7 @@ test("the rail is the default shell and summons the sidebar at every width", asy
 			assert.equal(s.sidebarX, 0, `the sidebar covers the rail at ${width}px`);
 			assert.equal(s.expanded, "true", "the rail reports expanded");
 			assert.notEqual(s.scrim, "none", "the scrim is shown");
+			if (width === 1280) await snap(page, "brand-sidebar");
 
 			await page.keyboard.press("Escape");
 			await page.waitForFunction(() => !document.body.dataset.drawer && document.querySelector(".sidebar").getBoundingClientRect().x < 0, null, { timeout: uiTimeout });
@@ -517,6 +518,7 @@ test("the rail is the default shell and summons the sidebar at every width", asy
 		await page.click(".rail-brand");
 		await page.waitForURL((url) => new URL(url).pathname === "/", { timeout: uiTimeout });
 		assert.equal((await shell()).drawer, null, "the brand does not open the drawer");
+		await snap(page, "brand-rail");
 	} catch (err) {
 		await reportFailure(page, app.logs());
 		throw err;
