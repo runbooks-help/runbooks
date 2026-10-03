@@ -28,6 +28,12 @@ mise run build
 
 Produces a single `runbooks` binary with all assets embedded.
 
+## Identity
+
+Identity — passkey sign-in, or delegation to an upstream proxy/SSO gateway — is
+optional and off by default. To gate reads and attribute writes to named users, see
+[docs/identity.md](docs/identity.md).
+
 ## Writing a runbook
 
 Create a `.md` file under `content/<system>/<category>/`. The path decides the sidebar hierarchy:
