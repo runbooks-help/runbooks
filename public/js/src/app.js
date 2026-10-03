@@ -13,6 +13,14 @@ function escapeHtml(str) {
 		.replace(/"/g, '&quot;');
 }
 
+// setHTML replaces an element's children with parsed HTML. A DOMParser never
+// runs scripts, and every caller passes escaped or sanitized markup, so this is
+// the single place an HTML string becomes DOM (rather than a bare innerHTML).
+function setHTML(el, html) {
+	const parsed = new DOMParser().parseFromString(html, 'text/html');
+	el.replaceChildren(...parsed.body.childNodes);
+}
+
 // Substitute {{VAR_NAME}} tokens in already-highlighted HTML.
 // hljs does not escape { } so tokens survive highlighting intact.
 function substituteVars(html) {
@@ -25,6 +33,7 @@ function substituteVars(html) {
 }
 
 function renderBlock(template, lang) {
+	const hljs = window.hljs;
 	let highlighted;
 	try {
 		if (lang && hljs.getLanguage(lang)) {
@@ -41,7 +50,7 @@ function renderBlock(template, lang) {
 function updateAll() {
 	document.querySelectorAll('[data-template]').forEach(block => {
 		const code = block.querySelector('code');
-		if (code) code.innerHTML = renderBlock(block.dataset.template, block.dataset.lang || '');
+		if (code) setHTML(code, renderBlock(block.dataset.template, block.dataset.lang || ''));
 	});
 }
 
@@ -347,7 +356,7 @@ function recordTimeline(entry) {
 // rendered HTML is untrusted (notes are pasted and shared), so it is sanitized
 // to a strict allowlist before it becomes DOM.
 function renderNotesPreview(md) {
-	notesPreview.innerHTML = window.DOMPurify.sanitize(window.marked.parse(expandNoteImgs(md)));
+	setHTML(notesPreview, window.DOMPurify.sanitize(window.marked.parse(expandNoteImgs(md))));
 	notesPreview.querySelectorAll('a[href]').forEach(a => {
 		a.target = '_blank';
 		a.rel = 'noopener noreferrer';
@@ -1058,7 +1067,7 @@ if (indexSearch) {
 			snippet.className = 'search-result-snippet';
 			// The server escapes and <mark>-wraps the snippet; this is the only HTML
 			// the client ever injects from the response.
-			snippet.innerHTML = r.snippet;
+			setHTML(snippet, r.snippet);
 			link.append(snippet);
 
 			li.append(link);
