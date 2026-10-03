@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -101,6 +103,7 @@ func newTestServerWith(t *testing.T, mutate func(*config)) (*httptest.Server, *i
 		views.AdminPage(nil, users, u.IsAdmin(), a.cfg.IdentityEnabled).Render(r.Context(), w)
 	}))
 	mux.HandleFunc("/admin/audit", a.requireAdmin(a.auditPage(nil)))
+	mux.HandleFunc("/admin/audit.csv", a.requireAdmin(a.auditCSV))
 	mux.HandleFunc("/api/auth/v1/invites", a.requireAdminAPI(a.createInvite))
 	mux.HandleFunc("/api/auth/v1/users/disable", a.requireAdminAPI(a.disableUser))
 	mux.HandleFunc("/api/auth/v1/users/enable", a.requireAdminAPI(a.enableUser))
@@ -1031,6 +1034,134 @@ func TestAuditPage(t *testing.T) {
 	}
 	if !strings.Contains(html, ">ack<") {
 		t.Errorf("audit page does not show the ack action")
+	}
+	if !strings.Contains(html, "/admin/audit.csv") {
+		t.Errorf("audit page does not link the CSV export")
+	}
+}
+
+// TestAuditCSV exports the feed: admin-gated, CSV headers, newest first, with
+// spreadsheet-formula injection neutralised.
+func TestAuditCSV(t *testing.T) {
+	srv, _, st := newTestServer(t)
+	rp := testRP()
+	authn := virtualwebauthn.NewAuthenticator()
+	cred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	adminClient, _ := bootstrapAdmin(t, srv, rp, authn, cred)
+
+	// The export shares the page's admin gate: a member is refused.
+	code, body := postJSON(t, adminClient, srv.URL+"/api/auth/v1/invites", map[string]string{"role": "member"})
+	if code != http.StatusOK {
+		t.Fatalf("create invite = %d: %s", code, body)
+	}
+	var invite struct {
+		Token string `json:"token"`
+	}
+	if err := json.Unmarshal(body, &invite); err != nil {
+		t.Fatalf("decode invite: %v", err)
+	}
+	memberClient, _ := enrolInvite(t, srv, st, rp, invite.Token, "Sam")
+	if code, _ := get(t, memberClient, srv.URL+"/admin/audit.csv"); code != http.StatusForbidden {
+		t.Fatalf("member GET /admin/audit.csv = %d, want 403", code)
+	}
+
+	// A deliberately hostile detail and an actor id with no matching user.
+	if err := st.InsertAuthEvent(context.Background(), stores.AuthEvent{
+		At:          time.Now().UTC(),
+		Action:      stores.ActionAck,
+		ActorUserID: "ghost",
+		Detail:      "=cmd|'/c calc'!A0",
+		IP:          "203.0.113.7",
+		UserAgent:   "curl/8.0",
+	}); err != nil {
+		t.Fatalf("InsertAuthEvent: %v", err)
+	}
+
+	res, err := adminClient.Get(srv.URL + "/admin/audit.csv")
+	if err != nil {
+		t.Fatalf("GET /admin/audit.csv: %v", err)
+	}
+	defer res.Body.Close()
+	raw, _ := io.ReadAll(res.Body)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("admin GET /admin/audit.csv = %d: %s", res.StatusCode, raw)
+	}
+	if ct := res.Header.Get("Content-Type"); !strings.HasPrefix(ct, "text/csv") {
+		t.Errorf("Content-Type = %q, want text/csv", ct)
+	}
+	if cd := res.Header.Get("Content-Disposition"); !strings.Contains(cd, "attachment") || !strings.Contains(cd, ".csv") {
+		t.Errorf("Content-Disposition = %q, want an attachment filename", cd)
+	}
+
+	rows, err := csv.NewReader(strings.NewReader(string(raw))).ReadAll()
+	if err != nil {
+		t.Fatalf("parse CSV: %v", err)
+	}
+	wantHeader := []string{"at", "action", "actor_user_id", "actor", "target_user_id", "target", "detail", "ip", "user_agent"}
+	if len(rows) < 2 || !slices.Equal(rows[0], wantHeader) {
+		t.Fatalf("CSV header = %v, want %v", rows[0], wantHeader)
+	}
+
+	// Newest first: the injected event was written last, so it is the first row.
+	got := rows[1]
+	if got[1] != string(stores.ActionAck) {
+		t.Errorf("action = %q, want %q", got[1], stores.ActionAck)
+	}
+	if got[3] != "ghost" {
+		t.Errorf("actor = %q, want the raw id when no user matches", got[3])
+	}
+	if got[6] != "'=cmd|'/c calc'!A0" {
+		t.Errorf("detail = %q, want the formula prefixed with a quote", got[6])
+	}
+	if got[7] != "203.0.113.7" || got[8] != "curl/8.0" {
+		t.Errorf("from columns = %q %q", got[7], got[8])
+	}
+	if got[0] == "" || got[0][len(got[0])-1] != 'Z' {
+		t.Errorf("at = %q, want an RFC3339 UTC instant", got[0])
+	}
+
+	// A non-GET is refused.
+	req, err := http.NewRequest(http.MethodPost, srv.URL+"/admin/audit.csv", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	post, err := adminClient.Do(req)
+	if err != nil {
+		t.Fatalf("POST /admin/audit.csv: %v", err)
+	}
+	post.Body.Close()
+	if post.StatusCode != http.StatusMethodNotAllowed {
+		t.Fatalf("POST /admin/audit.csv = %d, want 405", post.StatusCode)
+	}
+}
+
+// TestAuditDisplayName covers the CSV name resolution, including the empty and
+// unknown-id fallbacks.
+func TestAuditDisplayName(t *testing.T) {
+	names := map[string]string{"u1": "Ada"}
+	if got := auditDisplayName(names, "u1"); got != "Ada" {
+		t.Errorf("auditDisplayName(known) = %q, want Ada", got)
+	}
+	if got := auditDisplayName(names, "u2"); got != "u2" {
+		t.Errorf("auditDisplayName(unknown) = %q, want the id", got)
+	}
+	if got := auditDisplayName(names, ""); got != "" {
+		t.Errorf("auditDisplayName(empty) = %q, want empty", got)
+	}
+}
+
+// TestCSVSafe covers every guarded formula introducer plus the plain case.
+func TestCSVSafe(t *testing.T) {
+	for _, in := range []string{"=1+1", "+x", "-x", "@x", "\tx", "\rx"} {
+		if got := csvSafe(in); got != "'"+in {
+			t.Errorf("csvSafe(%q) = %q, want a leading quote", in, got)
+		}
+	}
+	if got := csvSafe("plain"); got != "plain" {
+		t.Errorf("csvSafe(plain) = %q", got)
+	}
+	if got := csvSafe(""); got != "" {
+		t.Errorf("csvSafe(empty) = %q", got)
 	}
 }
 

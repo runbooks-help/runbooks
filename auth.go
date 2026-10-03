@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/subtle"
+	"encoding/csv"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -543,17 +544,34 @@ func (a *auth) accountPage(groups []parser.SystemGroup) http.HandlerFunc {
 	}
 }
 
+// loadAudit returns the append-only feed newest-first plus an id→display-name
+// map, shared by the audit page and its CSV export.
+func (a *auth) loadAudit(ctx context.Context) ([]stores.AuthEvent, map[string]string, error) {
+	events, err := a.st.ListAuthEvents(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	slices.Reverse(events)
+	users, err := a.st.ListUsers(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	names := make(map[string]string, len(users))
+	for _, u := range users {
+		names[u.ID] = u.DisplayName
+	}
+	return events, names, nil
+}
+
 // auditPage renders the append-only auth_events feed, newest first. The store
-// returns oldest-first; the page reverses and slices it. No row is ever edited
-// or deleted here.
+// returns oldest-first; loadAudit reverses it. No row is ever edited or deleted.
 func (a *auth) auditPage(groups []parser.SystemGroup) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		events, err := a.st.ListAuthEvents(r.Context())
+		events, names, err := a.loadAudit(r.Context())
 		if err != nil {
 			http.Error(w, "could not load audit events", http.StatusInternalServerError)
 			return
 		}
-		slices.Reverse(events)
 
 		page := 1
 		if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 0 {
@@ -567,18 +585,72 @@ func (a *auth) auditPage(groups []parser.SystemGroup) http.HandlerFunc {
 		start := (page - 1) * auditPageSize
 		pageEvents := events[start:min(start+auditPageSize, len(events))]
 
-		users, err := a.st.ListUsers(r.Context())
-		if err != nil {
-			http.Error(w, "could not load users", http.StatusInternalServerError)
-			return
-		}
-		names := make(map[string]string, len(users))
-		for _, u := range users {
-			names[u.ID] = u.DisplayName
-		}
-
 		views.AuditPage(groups, pageEvents, names, page, pageCount).Render(r.Context(), w)
 	}
+}
+
+// auditCSV downloads the whole feed as CSV, newest first. Read-only and
+// admin-gated exactly like the page: a single-instance export of the current
+// log, not the org-scale export (filters, scheduling, retention, SIEM/API) that
+// stays in the hosted layer.
+func (a *auth) auditCSV(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	events, names, err := a.loadAudit(r.Context())
+	if err != nil {
+		http.Error(w, "could not load audit events", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+	w.Header().Set("Content-Disposition",
+		`attachment; filename="runbooks-audit-`+time.Now().UTC().Format("2006-01-02")+`.csv"`)
+
+	cw := csv.NewWriter(w)
+	_ = cw.Write([]string{"at", "action", "actor_user_id", "actor", "target_user_id", "target", "detail", "ip", "user_agent"})
+	for _, e := range events {
+		_ = cw.Write([]string{
+			e.At.UTC().Format(time.RFC3339),
+			csvSafe(string(e.Action)),
+			csvSafe(e.ActorUserID),
+			csvSafe(auditDisplayName(names, e.ActorUserID)),
+			csvSafe(e.TargetUserID),
+			csvSafe(auditDisplayName(names, e.TargetUserID)),
+			csvSafe(e.Detail),
+			csvSafe(e.IP),
+			csvSafe(e.UserAgent),
+		})
+	}
+	cw.Flush()
+}
+
+// auditDisplayName resolves an id to its display name for the CSV, falling back
+// to the raw id and leaving an empty id empty (the page renders a dash instead).
+func auditDisplayName(names map[string]string, id string) string {
+	if id == "" {
+		return ""
+	}
+	if n := names[id]; n != "" {
+		return n
+	}
+	return id
+}
+
+// csvSafe neutralises spreadsheet formula injection: a cell beginning with a
+// formula introducer or control character is prefixed with a single quote, so a
+// spreadsheet treats it as text.
+func csvSafe(s string) string {
+	if s == "" {
+		return s
+	}
+	switch s[0] {
+	case '=', '+', '-', '@', '\t', '\r':
+		return "'" + s
+	}
+	return s
 }
 
 // listSessions returns the signed-in user's own sessions as JSON.

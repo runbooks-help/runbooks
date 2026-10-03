@@ -282,6 +282,7 @@ func (cs *contentState) buildMux(snap *contentSnapshot) *http.ServeMux {
 			views.AdminPage(snap.groups, users, u.IsAdmin(), cfg.IdentityEnabled).Render(r.Context(), w)
 		}))
 		mux.HandleFunc("/admin/audit", authn.requireAdmin(authn.auditPage(snap.groups)))
+		mux.HandleFunc("/admin/audit.csv", authn.requireAdmin(authn.auditCSV))
 		mux.HandleFunc("/api/runbooks/v1/ack", authn.requireAPI(authn.ackRunbook))
 		mux.HandleFunc("/api/auth/v1/invites", authn.requireAdminAPI(authn.createInvite))
 		mux.HandleFunc("/api/auth/v1/users/disable", authn.requireAdminAPI(authn.disableUser))

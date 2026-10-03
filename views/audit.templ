@@ -31,6 +31,9 @@ templ AuditPage(groups []parser.SystemGroup, events []stores.AuthEvent, names ma
 			<div class="content">
 				<div class="stack account-inner">
 					<section class="admin-card">
+						<div class="audit-toolbar">
+							<a class="btn btn-ghost" href="/admin/audit.csv" download>Export CSV</a>
+						</div>
 						<div class="table-wrap">
 							<table class="admin-table">
 								<thead>
