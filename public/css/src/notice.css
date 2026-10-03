@@ -2,11 +2,12 @@
 	display: flex;
 	gap: var(--space-3);
 	align-items: flex-start;
-	padding: var(--space-4) var(--space-6);
+	margin: var(--space-4) var(--space-6);
+	padding: var(--space-3) var(--space-4);
 	background: rgba(239, 68, 68, 0.07);
-	border-top: 1px solid rgba(239, 68, 68, 0.2);
-	border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+	border: 1px solid rgba(239, 68, 68, 0.2);
 	border-left: 4px solid var(--danger);
+	border-radius: var(--radius-sm);
 	flex-shrink: 0;
 }
 
