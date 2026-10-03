@@ -432,6 +432,75 @@ func scanInvite(scan func(dest ...any) error) (stores.Invite, error) {
 	return inv, nil
 }
 
+const apiKeyColumns = `id, user_id, label, created_by, created_at, last_used_at, revoked_at`
+
+// GetAPIKey returns the key with the given hashed id, or stores.ErrNotFound.
+func (s *store) GetAPIKey(ctx context.Context, id string) (stores.APIKey, error) {
+	return scanAPIKey(s.db.QueryRowContext(ctx, `SELECT `+apiKeyColumns+` FROM api_keys WHERE id = ?`, id).Scan)
+}
+
+// InsertAPIKey adds a key. Only the hash is stored; the raw key never is.
+func (s *store) InsertAPIKey(ctx context.Context, k stores.APIKey) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO api_keys (id, user_id, label, created_by, created_at, last_used_at, revoked_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		k.ID, k.UserID, k.Label, k.CreatedBy, k.CreatedAt.Unix(),
+		nullable.Null[int64]{V: k.LastUsedAt.Unix(), Valid: !k.LastUsedAt.IsZero()},
+		nullable.Null[int64]{V: k.RevokedAt.Unix(), Valid: !k.RevokedAt.IsZero()})
+	return err
+}
+
+// UpdateAPIKey touches last-used and revoke. An unknown id is not an error.
+func (s *store) UpdateAPIKey(ctx context.Context, k stores.APIKey) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE api_keys SET last_used_at = ?, revoked_at = ? WHERE id = ?`,
+		nullable.Null[int64]{V: k.LastUsedAt.Unix(), Valid: !k.LastUsedAt.IsZero()},
+		nullable.Null[int64]{V: k.RevokedAt.Unix(), Valid: !k.RevokedAt.IsZero()}, k.ID)
+	return err
+}
+
+// ListAPIKeys returns a user's keys, oldest first. Empty is OK.
+func (s *store) ListAPIKeys(ctx context.Context, userID string) ([]stores.APIKey, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT `+apiKeyColumns+` FROM api_keys WHERE user_id = ? ORDER BY created_at`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var keys []stores.APIKey
+	for rows.Next() {
+		k, err := scanAPIKey(rows.Scan)
+		if err != nil {
+			return nil, err
+		}
+		keys = append(keys, k)
+	}
+	return keys, rows.Err()
+}
+
+// scanAPIKey scans a key row. scan is a *sql.Row's or *sql.Rows' Scan method.
+func scanAPIKey(scan func(dest ...any) error) (stores.APIKey, error) {
+	var (
+		k          stores.APIKey
+		createdAt  int64
+		lastUsedAt nullable.Null[int64]
+		revokedAt  nullable.Null[int64]
+	)
+	if err := scan(&k.ID, &k.UserID, &k.Label, &k.CreatedBy, &createdAt, &lastUsedAt, &revokedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return stores.APIKey{}, stores.ErrNotFound
+		}
+		return stores.APIKey{}, err
+	}
+	k.CreatedAt = time.Unix(createdAt, 0).UTC()
+	if lastUsedAt.Valid {
+		k.LastUsedAt = time.Unix(lastUsedAt.V, 0).UTC()
+	}
+	if revokedAt.Valid {
+		k.RevokedAt = time.Unix(revokedAt.V, 0).UTC()
+	}
+	return k, nil
+}
+
 // InsertAuthEvent appends an audit row. The store assigns the id.
 func (s *store) InsertAuthEvent(ctx context.Context, e stores.AuthEvent) error {
 	_, err := s.db.ExecContext(ctx,

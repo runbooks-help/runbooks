@@ -235,7 +235,22 @@ func main() {
 			page = authn.requirePage(page)
 		}
 		mux.HandleFunc("/"+rb.Slug, page)
+
+		// The raw markdown is a read-only machine endpoint: session or API key.
+		raw := func(w http.ResponseWriter, r *http.Request) { serveMarkdown(w, r, rb) }
+		if authn != nil {
+			raw = authn.requireRead(raw)
+		}
+		mux.HandleFunc("/"+rb.Slug+".md", raw)
 	}
+
+	// The llms.txt index is generated from the same groups as the sidebar, so it
+	// matches site order. Read-only machine endpoint: session or API key.
+	llmsIndex := http.HandlerFunc(handleLLMSIndex(groups))
+	if authn != nil {
+		llmsIndex = authn.requireRead(llmsIndex)
+	}
+	mux.Handle("/llms.txt", llmsIndex)
 
 	gitSync := http.HandlerFunc(handleGitSync(cfg))
 	if authn != nil {
@@ -244,10 +259,11 @@ func main() {
 	mux.Handle("/api/git-sync/v1", gitSync)
 
 	// Body search reads the same content as the pages, so with identity on it sits
-	// behind the same read gate (a 401 JSON, not a login redirect).
+	// behind the same read gate as the raw markdown and the llms index — a 401
+	// JSON, not a login redirect. A read-scoped API key satisfies it.
 	search := http.HandlerFunc(handleSearch(searchIndex))
 	if authn != nil {
-		search = authn.requireAPI(search)
+		search = authn.requireRead(search)
 	}
 	mux.Handle("/api/runbooks/v1/search", search)
 

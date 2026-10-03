@@ -110,6 +110,10 @@ func newTestServerWith(t *testing.T, mutate func(*config)) (*httptest.Server, *i
 	mux.HandleFunc("/api/auth/v1/passkeys/rename", a.requireAPI(a.passkeyRename))
 	mux.HandleFunc("/api/auth/v1/passkeys/remove", a.requireAPI(a.passkeyRemove))
 	mux.HandleFunc("/api/runbooks/v1/ack", a.requireAPI(a.ackRunbook))
+	// Read-only machine endpoint: a session or a read-scoped API key.
+	mux.HandleFunc("/api/runbooks/v1/search", a.requireRead(func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"user": userFrom(r.Context()).ID})
+	}))
 	mux.HandleFunc("/api/git-sync/v1", a.gateGitSync(handleGitSync(cfg)))
 	if cfg.IdentityRecoveryToken != "" {
 		mux.HandleFunc("/recovery", a.recoveryPage)
@@ -1383,5 +1387,53 @@ func TestAbandonedSetupReopens(t *testing.T) {
 	}
 	if code, _ := get(t, newClient(t), srv.URL+"/setup"); code != http.StatusFound {
 		t.Errorf("GET /setup after a completed setup = %d, want 302", code)
+	}
+}
+
+func TestRequireReadAcceptsAPIKey(t *testing.T) {
+	srv, svc, st := newTestServer(t)
+	ctx := context.Background()
+	if err := st.InsertUser(ctx, stores.User{ID: "u1", DisplayName: "Ada", Role: stores.RoleMember, CreatedAt: time.Now()}); err != nil {
+		t.Fatalf("insert user: %v", err)
+	}
+	raw, key, err := svc.MintAPIKey(ctx, "u1", "on-call bot")
+	if err != nil {
+		t.Fatalf("MintAPIKey: %v", err)
+	}
+
+	get := func(token string) (int, string) {
+		t.Helper()
+		req, err := http.NewRequest(http.MethodGet, srv.URL+"/api/runbooks/v1/search", nil)
+		if err != nil {
+			t.Fatalf("new request: %v", err)
+		}
+		if token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("GET search: %v", err)
+		}
+		defer res.Body.Close()
+		body, _ := io.ReadAll(res.Body)
+		return res.StatusCode, string(body)
+	}
+
+	if code, _ := get(""); code != http.StatusUnauthorized {
+		t.Errorf("no credential: status = %d, want 401", code)
+	}
+	if code, body := get(raw); code != http.StatusOK {
+		t.Errorf("valid key: status = %d, want 200 (%s)", code, body)
+	} else if !strings.Contains(body, `"user":"u1"`) {
+		t.Errorf("valid key body = %s, want user u1", body)
+	}
+
+	// A revoked key no longer authenticates.
+	key.RevokedAt = time.Now()
+	if err := st.UpdateAPIKey(ctx, key); err != nil {
+		t.Fatalf("revoke: %v", err)
+	}
+	if code, _ := get(raw); code != http.StatusUnauthorized {
+		t.Errorf("revoked key: status = %d, want 401", code)
 	}
 }

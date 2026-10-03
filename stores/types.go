@@ -121,6 +121,24 @@ func (i Invite) Used() bool { return !i.UsedAt.IsZero() }
 // Expired reports whether the invite is past its expiry at now.
 func (i Invite) Expired(now time.Time) bool { return !now.Before(i.ExpiresAt) }
 
+// APIKey is a read-scoped credential an automated client (an agent) presents.
+// ID is the hash of the opaque key — the raw value only ever lives in the
+// caller's one-time copy, never here. A key belongs to a user so reads attribute
+// to them.
+type APIKey struct {
+	ID         string
+	UserID     string
+	Label      string // user-facing name, e.g. "on-call bot"
+	CreatedBy  string
+	CreatedAt  time.Time
+	LastUsedAt time.Time // zero until first use
+	RevokedAt  time.Time // zero while active
+}
+
+// Revoked reports whether the key has been revoked. A revoked key never
+// authenticates, and revocation takes effect on the next request.
+func (k APIKey) Revoked() bool { return !k.RevokedAt.IsZero() }
+
 // AuthAction names an audited identity action. The set is deliberately small;
 // the hosted layer augments it.
 type AuthAction string

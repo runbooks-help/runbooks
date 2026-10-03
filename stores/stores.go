@@ -17,6 +17,7 @@ type Store interface {
 	SessionStore
 	ChallengeStore
 	InviteStore
+	APIKeyStore
 	AuthEventStore
 
 	// Close releases the database.
@@ -70,6 +71,15 @@ type InviteStore interface {
 	GetInvite(ctx context.Context, id string) (Invite, error)
 	InsertInvite(ctx context.Context, i Invite) error
 	UpdateInvite(ctx context.Context, i Invite) error
+}
+
+// APIKeyStore is the read-scoped agent-key half of the contract. A Get miss is
+// ErrNotFound, List treats empty as OK, and Update is idempotent.
+type APIKeyStore interface {
+	GetAPIKey(ctx context.Context, id string) (APIKey, error)
+	ListAPIKeys(ctx context.Context, userID string) ([]APIKey, error)
+	InsertAPIKey(ctx context.Context, k APIKey) error
+	UpdateAPIKey(ctx context.Context, k APIKey) error
 }
 
 // AuthEventStore is the append-only audit half of the contract. Insert assigns

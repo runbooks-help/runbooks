@@ -51,6 +51,7 @@ type Service struct {
 	sessions   stores.SessionStore
 	challenges stores.ChallengeStore
 	invites    stores.InviteStore
+	apiKeys    stores.APIKeyStore
 
 	challengeTTL   time.Duration
 	sessionTTL     time.Duration
@@ -101,6 +102,7 @@ func New(cfg Config, st stores.Store) (*Service, error) {
 		sessions:       st,
 		challenges:     st,
 		invites:        st,
+		apiKeys:        st,
 		challengeTTL:   cfg.ChallengeTTL,
 		sessionTTL:     cfg.SessionTTL,
 		sessionIdleTTL: cfg.SessionIdleTTL,

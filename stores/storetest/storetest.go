@@ -334,6 +334,61 @@ func StoreContract(t *testing.T, newStore func(t *testing.T) stores.Store) {
 		}
 	})
 
+	t.Run("api keys", func(t *testing.T) {
+		s := newStore(t)
+
+		k := stores.APIKey{ID: "k1", UserID: "u1", Label: "on-call bot", CreatedBy: "u1", CreatedAt: base}
+		if err := s.InsertAPIKey(ctx, k); err != nil {
+			t.Fatalf("InsertAPIKey: %v", err)
+		}
+		got, err := s.GetAPIKey(ctx, "k1")
+		if err != nil {
+			t.Fatalf("GetAPIKey: %v", err)
+		}
+		if diff := cmp.Diff(k, got); diff != "" {
+			t.Errorf("GetAPIKey mismatch (-want +got):\n%s", diff)
+		}
+		if got.Revoked() {
+			t.Errorf("fresh key revoked: %+v", got)
+		}
+
+		// Listing is per user; another user sees nothing.
+		if keys, err := s.ListAPIKeys(ctx, "u1"); err != nil {
+			t.Fatalf("ListAPIKeys: %v", err)
+		} else if len(keys) != 1 {
+			t.Fatalf("ListAPIKeys len = %d, want 1", len(keys))
+		}
+		if keys, err := s.ListAPIKeys(ctx, "u2"); err != nil {
+			t.Fatalf("ListAPIKeys other user: %v", err)
+		} else if len(keys) != 0 {
+			t.Errorf("ListAPIKeys other user len = %d, want 0", len(keys))
+		}
+
+		if _, err := s.GetAPIKey(ctx, "missing"); !errors.Is(err, stores.ErrNotFound) {
+			t.Errorf("GetAPIKey missing err = %v, want ErrNotFound", err)
+		}
+
+		// Update touches last-used and revokes.
+		k.LastUsedAt = base.Add(5 * time.Minute)
+		k.RevokedAt = base.Add(6 * time.Minute)
+		if err := s.UpdateAPIKey(ctx, k); err != nil {
+			t.Fatalf("UpdateAPIKey: %v", err)
+		}
+		got, err = s.GetAPIKey(ctx, "k1")
+		if err != nil {
+			t.Fatalf("GetAPIKey after update: %v", err)
+		}
+		if diff := cmp.Diff(k, got); diff != "" {
+			t.Errorf("GetAPIKey after update mismatch (-want +got):\n%s", diff)
+		}
+		if !got.Revoked() {
+			t.Errorf("key should be revoked after update: %+v", got)
+		}
+		if err := s.UpdateAPIKey(ctx, stores.APIKey{ID: "missing"}); err != nil {
+			t.Errorf("UpdateAPIKey missing err = %v, want nil (idempotent)", err)
+		}
+	})
+
 	t.Run("auth events", func(t *testing.T) {
 		s := newStore(t)
 

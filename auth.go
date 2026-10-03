@@ -972,6 +972,45 @@ func (a *auth) requireAPI(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// requireRead gates a read-only machine endpoint (search, raw markdown, the
+// llms index). It accepts a session (or proxy assertion) or a read-scoped API
+// key, and answers 401 JSON rather than a login redirect. It is never used on a
+// write handler, so a key is read-only by construction.
+func (a *auth) requireRead(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if u, ok := a.resolveUser(r); ok {
+			next(w, r.WithContext(context.WithValue(r.Context(), userKey{}, u)))
+			return
+		}
+		if u, ok := a.apiKeyUser(r); ok {
+			next(w, r.WithContext(context.WithValue(r.Context(), userKey{}, u)))
+			return
+		}
+		writeJSONError(w, http.StatusUnauthorized, "sign in or present an API key")
+	}
+}
+
+// apiKeyUser resolves a Bearer API key to its owning user, or reports false. It
+// is called only by requireRead, so a key can never authenticate a write.
+func (a *auth) apiKeyUser(r *http.Request) (stores.User, bool) {
+	auth := r.Header.Get("Authorization")
+	if !strings.HasPrefix(auth, bearerPrefix) {
+		return stores.User{}, false
+	}
+	raw := strings.TrimSpace(strings.TrimPrefix(auth, bearerPrefix))
+	if raw == "" {
+		return stores.User{}, false
+	}
+	u, err := a.svc.AuthenticateAPIKey(r.Context(), raw)
+	if err != nil {
+		if !errors.Is(err, identity.ErrAPIKey) {
+			logAuthFailure("apikey", err)
+		}
+		return stores.User{}, false
+	}
+	return u, true
+}
+
 // ackRunbook records that a reader acknowledged a destructive runbook, as an
 // audit event attributed to the signed-in user. The slug is the event's detail.
 func (a *auth) ackRunbook(w http.ResponseWriter, r *http.Request) {

@@ -10,7 +10,7 @@ import (
 )
 
 // tables are dropped between contract subtests so each starts clean.
-var tables = []string{"auth_events", "webauthn_challenges", "invites", "sessions", "credentials", "users"}
+var tables = []string{"api_keys", "auth_events", "webauthn_challenges", "invites", "sessions", "credentials", "users"}
 
 func newStore(t *testing.T) stores.Store {
 	t.Helper()
