@@ -136,9 +136,10 @@ description = "Mutation-test the SQLite store, the identity service and the auth
 run = """
   gremlins unleash ./stores/sqlite
   gremlins unleash ./identity
-  # The auth/admin/recovery HTTP layer is in package main; scope the run to
-  # auth.go so it does not mutate generated views, wiring or git-sync.
-  gremlins unleash --exclude-files 'views/|cmd/|parser/|internal/|stores/|identity/|gitsync.go|main.go|_test.go' .
+  # The auth/admin/recovery HTTP layer is in package main; scope the run to the
+  # hand-written handlers so it does not mutate generated views, wiring or
+  # git-sync. The styleguide is a dev-only surface, deliberately untested.
+  gremlins unleash --exclude-files 'views/|cmd/|parser/|internal/|stores/|identity/|gitsync.go|main.go|styleguide.go|_test.go' .
 """
 
 [tasks."test:mutation:all"]
