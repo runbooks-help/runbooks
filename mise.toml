@@ -132,10 +132,12 @@ run = """
 """
 
 [tasks."test:mutation"]
-description = "Mutation-test the SQLite store, the identity service and the auth HTTP layer (fast, no database)"
+description = "Mutation-test the SQLite store, the identity service, the git/content sources and the auth HTTP layer (fast, no database)"
 run = """
   gremlins unleash ./stores/sqlite
   gremlins unleash ./identity
+  gremlins unleash ./contentsource
+  gremlins unleash ./internal/gitrepo
   # The auth/admin/recovery HTTP layer is in package main; scope the run to the
   # hand-written handlers so it does not mutate generated views, wiring or
   # git-sync. The styleguide is a dev-only surface, deliberately untested.
@@ -148,6 +150,8 @@ run = """
   podman compose up -d --wait mysql postgres
   gremlins unleash ./stores/sqlite
   gremlins unleash ./identity
+  gremlins unleash ./contentsource
+  gremlins unleash ./internal/gitrepo
   # The database-backed stores share one database, so the mutants must run
   # serially — parallel runs would race on the tables they reset.
   STORES_MYSQL_DSN="root:root@tcp(127.0.0.1:3307)/runbooks_identity" gremlins unleash --workers 1 ./stores/mysql

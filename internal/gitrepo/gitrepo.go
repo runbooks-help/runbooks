@@ -29,22 +29,21 @@ type Credentials struct {
 // AuthMethod returns the go-git auth for the credentials, or nil for anonymous
 // access. SSH verifies the host against the user's known_hosts.
 func (c Credentials) AuthMethod() (transport.AuthMethod, error) {
-	switch {
-	case c.SSHKey != "":
+	if c.SSHKey != "" {
 		key, err := gitssh.NewPublicKeysFromFile("git", c.SSHKey, "")
 		if err != nil {
 			return nil, fmt.Errorf("ssh key: %w", err)
 		}
 		return key, nil
-	case c.Token != "":
+	}
+	if c.Token != "" {
 		user := c.Username
 		if user == "" {
 			user = "oauth2"
 		}
 		return &githttp.BasicAuth{Username: user, Password: c.Token}, nil
-	default:
-		return nil, nil
 	}
+	return nil, nil
 }
 
 // Author is the commit identity.
