@@ -352,7 +352,7 @@ func TestLoadConfig_GitSyncEnabled(t *testing.T) {
 		{"repo+token+api token", "https://h/r.git", "t", "", "a", "", false, true},
 		{"repo+token+identity proxy auth", "https://h/r.git", "t", "", "", "sqlite", true, true},
 		{"proxy auth without identity", "https://h/r.git", "t", "", "", "", true, false},
-		{"identity on, proxy off", "https://h/r.git", "t", "", "", "sqlite", false, false},
+		{"identity on alone authorises the session", "https://h/r.git", "t", "", "", "sqlite", false, true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

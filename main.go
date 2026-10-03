@@ -97,10 +97,12 @@ func loadConfig() config {
 	}
 
 	// A repo and a credential are required to do anything, and the write route
-	// must never be reachable unauthenticated: without a shared token or an
-	// upstream-auth assertion (the identity proxy setting), sync stays off.
+	// must never be reachable unauthenticated: with identity on a user session (or
+	// proxy assertion) authorises the endpoint and an unauthenticated request is
+	// refused; with identity off, the shared API token is the gate. Without one of
+	// those, sync stays off.
 	hasCredential := cfg.GitSyncToken != "" || cfg.GitSyncSSHKey != ""
-	hasEndpointAuth := cfg.GitSyncAPIToken != "" || (cfg.IdentityEnabled && cfg.IdentityTrustProxyAuth)
+	hasEndpointAuth := cfg.GitSyncAPIToken != "" || cfg.IdentityEnabled
 	cfg.GitSyncEnabled = cfg.GitSyncRepo != "" && hasCredential && hasEndpointAuth
 
 	// The styleguide is a dev/self-host surface, off in the default container.
