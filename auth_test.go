@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -99,7 +100,14 @@ func newTestServerWith(t *testing.T, mutate func(*config)) (*httptest.Server, *i
 	mux.HandleFunc("/api/auth/v1/invites", a.requireAdminAPI(a.createInvite))
 	mux.HandleFunc("/api/auth/v1/users/disable", a.requireAdminAPI(a.disableUser))
 	mux.HandleFunc("/api/auth/v1/users/enable", a.requireAdminAPI(a.enableUser))
-	mux.HandleFunc("/api/auth/v1/sessions/revoke", a.requireAdminAPI(a.revokeSessions))
+	mux.HandleFunc("/account", a.requirePage(a.accountPage(nil)))
+	mux.HandleFunc("/api/auth/v1/profile", a.requireAPI(a.updateProfile))
+	mux.HandleFunc("/api/auth/v1/sessions", a.requireAPI(a.listSessions))
+	mux.HandleFunc("/api/auth/v1/sessions/revoke", a.requireAPI(a.revokeSessions))
+	mux.HandleFunc("/api/auth/v1/passkeys/begin", a.requireAPI(a.passkeyBegin))
+	mux.HandleFunc("/api/auth/v1/passkeys/finish", a.requireAPI(a.passkeyFinish))
+	mux.HandleFunc("/api/auth/v1/passkeys/rename", a.requireAPI(a.passkeyRename))
+	mux.HandleFunc("/api/auth/v1/passkeys/remove", a.requireAPI(a.passkeyRemove))
 	mux.HandleFunc("/api/runbooks/v1/ack", a.requireAPI(a.ackRunbook))
 	mux.HandleFunc("/api/git-sync/v1", a.gateGitSync(handleGitSync(cfg)))
 	if cfg.IdentityRecoveryToken != "" {
@@ -979,6 +987,215 @@ func TestAuditPage(t *testing.T) {
 	}
 	if !strings.Contains(html, ">ack<") {
 		t.Errorf("audit page does not show the ack action")
+	}
+}
+
+func TestAuditPagePagination(t *testing.T) {
+	srv, _, st := newTestServer(t)
+	rp := testRP()
+	authn := virtualwebauthn.NewAuthenticator()
+	cred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	adminClient, _ := bootstrapAdmin(t, srv, rp, authn, cred)
+
+	// Bootstrap already wrote some events; top up to exactly two pages with
+	// recognisable slugs, so the ceil() arithmetic is exercised (an off-by-one
+	// would change the page count).
+	base, err := st.ListAuthEvents(context.Background())
+	if err != nil {
+		t.Fatalf("ListAuthEvents: %v", err)
+	}
+	n := auditPageSize*2 - len(base)
+	for i := 0; i < n; i++ {
+		if err := st.InsertAuthEvent(context.Background(), stores.AuthEvent{
+			At: time.Now().UTC(), Action: stores.ActionAck, Detail: fmt.Sprintf("rb-%03d", i),
+		}); err != nil {
+			t.Fatalf("InsertAuthEvent: %v", err)
+		}
+	}
+	newest := fmt.Sprintf("rb-%03d", n-1)
+
+	// Newest first: page 1 holds the highest-numbered slugs, not the lowest.
+	code, page1 := get(t, adminClient, srv.URL+"/admin/audit")
+	if code != http.StatusOK {
+		t.Fatalf("page 1 = %d, want 200", code)
+	}
+	if !strings.Contains(string(page1), newest) || strings.Contains(string(page1), "rb-000") {
+		t.Errorf("page 1 should be newest first")
+	}
+
+	// Page 2 is the next slice, and the pager is shown.
+	code, page2 := get(t, adminClient, srv.URL+"/admin/audit?page=2")
+	if code != http.StatusOK {
+		t.Fatalf("page 2 = %d, want 200", code)
+	}
+	if !strings.Contains(string(page2), "rb-000") || strings.Contains(string(page2), newest) {
+		t.Errorf("page 2 should hold the oldest slugs")
+	}
+	if !strings.Contains(string(page2), "Page 2 of 2") {
+		t.Errorf("page 2 should render the pager")
+	}
+
+	// An out-of-range page clamps to the last page rather than erroring or
+	// panicking on a slice beyond the end.
+	code, page3 := get(t, adminClient, srv.URL+"/admin/audit?page=3")
+	if code != http.StatusOK {
+		t.Fatalf("page 3 = %d, want 200 (clamped)", code)
+	}
+	if !strings.Contains(string(page3), "rb-000") || !strings.Contains(string(page3), "Page 2 of 2") {
+		t.Errorf("page 3 should clamp to the last page")
+	}
+
+	// A non-positive page falls back to page 1 rather than slicing from a
+	// negative offset.
+	code, page0 := get(t, adminClient, srv.URL+"/admin/audit?page=0")
+	if code != http.StatusOK {
+		t.Fatalf("page 0 = %d, want 200", code)
+	}
+	if !strings.Contains(string(page0), newest) {
+		t.Errorf("page 0 should fall back to page 1")
+	}
+}
+
+func TestSelfSessionRevoke(t *testing.T) {
+	srv, _, st := newTestServer(t)
+	rp := testRP()
+	authn := virtualwebauthn.NewAuthenticator()
+	cred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	adminClient, adminID := bootstrapAdmin(t, srv, rp, authn, cred)
+
+	code, body := postJSON(t, adminClient, srv.URL+"/api/auth/v1/invites", map[string]string{"role": "member"})
+	if code != http.StatusOK {
+		t.Fatalf("create invite = %d: %s", code, body)
+	}
+	var invite struct {
+		Token string `json:"token"`
+	}
+	if err := json.Unmarshal(body, &invite); err != nil {
+		t.Fatalf("decode invite: %v", err)
+	}
+	memberClient, member := enrolInvite(t, srv, st, rp, invite.Token, "Sam")
+
+	// A member cannot end another user's sessions...
+	if code, _ := postJSON(t, memberClient, srv.URL+"/api/auth/v1/sessions/revoke", map[string]string{"user_id": adminID}); code != http.StatusForbidden {
+		t.Errorf("member revoke admin = %d, want 403", code)
+	}
+	// ...but may sign itself out everywhere.
+	if code, body := postJSON(t, memberClient, srv.URL+"/api/auth/v1/sessions/revoke", map[string]string{"user_id": member.ID}); code != http.StatusOK {
+		t.Errorf("member self revoke = %d: %s", code, body)
+	}
+	if code, _ := get(t, memberClient, srv.URL+"/"); code != http.StatusFound {
+		t.Errorf("member GET / after self revoke = %d, want 302", code)
+	}
+}
+
+func TestAccountHandlers(t *testing.T) {
+	srv, _, st := newTestServer(t)
+	rp := testRP()
+	authn := virtualwebauthn.NewAuthenticator()
+	cred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	client, adminID := bootstrapAdmin(t, srv, rp, authn, cred)
+
+	if code, body := get(t, client, srv.URL+"/account"); code != http.StatusOK {
+		t.Fatalf("GET /account = %d, want 200", code)
+	} else if !strings.Contains(string(body), "this device") {
+		t.Errorf("account page should mark the current session")
+	}
+
+	// Profile: GET is not allowed; an empty name is rejected; a real edit sticks.
+	if code, _ := get(t, client, srv.URL+"/api/auth/v1/profile"); code != http.StatusMethodNotAllowed {
+		t.Errorf("GET profile = %d, want 405", code)
+	}
+	if code, _ := postJSON(t, client, srv.URL+"/api/auth/v1/profile", map[string]string{"display_name": "  "}); code != http.StatusBadRequest {
+		t.Errorf("empty profile name = %d, want 400", code)
+	}
+	if code, _ := postJSON(t, client, srv.URL+"/api/auth/v1/profile", map[string]string{"display_name": "Ben Two", "email": "two@example.com"}); code != http.StatusOK {
+		t.Errorf("profile update = %d, want 200", code)
+	}
+	if u, err := st.GetUser(context.Background(), adminID); err != nil || u.DisplayName != "Ben Two" {
+		t.Errorf("profile did not persist: %+v err=%v", u, err)
+	}
+
+	// Sessions: the signed-in user's own session is listed and marked current.
+	code, body := get(t, client, srv.URL+"/api/auth/v1/sessions")
+	if code != http.StatusOK || !strings.Contains(string(body), "\"current\":true") {
+		t.Errorf("sessions list = %d %s, want 200 with a current session", code, body)
+	}
+	if code, _ := postJSON(t, client, srv.URL+"/api/auth/v1/sessions/revoke", map[string]string{}); code != http.StatusBadRequest {
+		t.Errorf("revoke with no ids = %d, want 400", code)
+	}
+	if code, _ := postJSON(t, client, srv.URL+"/api/auth/v1/sessions/revoke", map[string]string{"session_id": "nope"}); code != http.StatusNotFound {
+		t.Errorf("revoke unknown session = %d, want 404", code)
+	}
+
+	// Passkeys: begin returns options; the error paths are mapped to statuses.
+	if code, body := postJSON(t, client, srv.URL+"/api/auth/v1/passkeys/begin", nil); code != http.StatusOK || !strings.Contains(string(body), "options") {
+		t.Errorf("passkeys/begin = %d %s, want 200 with options", code, body)
+	}
+
+	// Add a second passkey through the account endpoint — the flow the browser E2E
+	// cannot drive with a single virtual authenticator. Covers the success path
+	// and the label.
+	code, beginBody := postJSON(t, client, srv.URL+"/api/auth/v1/passkeys/begin", nil)
+	if code != http.StatusOK {
+		t.Fatalf("passkeys/begin = %d: %s", code, beginBody)
+	}
+	var pb beginResponse
+	if err := json.Unmarshal(beginBody, &pb); err != nil {
+		t.Fatalf("decode begin: %v", err)
+	}
+	att, err := virtualwebauthn.ParseAttestationOptions(string(pb.Options))
+	if err != nil {
+		t.Fatalf("parse attestation options: %v", err)
+	}
+	// A fresh authenticator, so the excludeCredentials list does not block it.
+	backupAuthn := virtualwebauthn.NewAuthenticator()
+	backupCred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	attResp := virtualwebauthn.CreateAttestationResponse(rp, backupAuthn, backupCred, *att)
+	if code, body := postJSON(t, client, srv.URL+"/api/auth/v1/passkeys/finish", map[string]any{
+		"challenge": pb.Challenge, "credential": json.RawMessage(attResp), "label": "Backup",
+	}); code != http.StatusOK {
+		t.Fatalf("passkeys/finish = %d: %s", code, body)
+	}
+	creds, err := st.ListCredentials(context.Background(), adminID)
+	if err != nil {
+		t.Fatalf("ListCredentials: %v", err)
+	}
+	var backupID string
+	for _, c := range creds {
+		if c.Label == "Backup" {
+			backupID = c.ID
+		}
+	}
+	if backupID == "" {
+		t.Fatalf("the new passkey was not stored: %+v", creds)
+	}
+
+	// Rename and remove it (the success paths).
+	if code, _ := postJSON(t, client, srv.URL+"/api/auth/v1/passkeys/rename", map[string]string{"credential_id": backupID, "label": "Spare"}); code != http.StatusOK {
+		t.Errorf("rename passkey = %d, want 200", code)
+	}
+	if code, _ := postJSON(t, client, srv.URL+"/api/auth/v1/passkeys/remove", map[string]string{"credential_id": backupID}); code != http.StatusOK {
+		t.Errorf("remove passkey = %d, want 200", code)
+	}
+	if code, _ := postJSON(t, client, srv.URL+"/api/auth/v1/passkeys/finish", map[string]string{"challenge": "x"}); code != http.StatusBadRequest {
+		t.Errorf("passkeys/finish with a dead challenge = %d, want 400", code)
+	}
+	if code, _ := postJSON(t, client, srv.URL+"/api/auth/v1/passkeys/rename", map[string]string{"credential_id": "  "}); code != http.StatusBadRequest {
+		t.Errorf("rename with no id = %d, want 400", code)
+	}
+	if code, _ := postJSON(t, client, srv.URL+"/api/auth/v1/passkeys/rename", map[string]string{"credential_id": "nope", "label": "x"}); code != http.StatusNotFound {
+		t.Errorf("rename unknown passkey = %d, want 404", code)
+	}
+	if code, _ := postJSON(t, client, srv.URL+"/api/auth/v1/passkeys/remove", map[string]string{"credential_id": "nope"}); code != http.StatusNotFound {
+		t.Errorf("remove unknown passkey = %d, want 404", code)
+	}
+
+	// Disable/enable report an unknown target rather than 200.
+	if code, _ := postJSON(t, client, srv.URL+"/api/auth/v1/users/disable", map[string]string{"user_id": "nope"}); code != http.StatusNotFound {
+		t.Errorf("disable unknown = %d, want 404", code)
+	}
+	if code, _ := postJSON(t, client, srv.URL+"/api/auth/v1/users/enable", map[string]string{"user_id": "nope"}); code != http.StatusNotFound {
+		t.Errorf("enable unknown = %d, want 404", code)
 	}
 }
 

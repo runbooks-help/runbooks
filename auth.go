@@ -556,9 +556,7 @@ func (a *auth) auditPage(groups []parser.SystemGroup) http.HandlerFunc {
 		if pageCount == 0 {
 			pageCount = 1
 		}
-		if page > pageCount {
-			page = pageCount
-		}
+		page = min(page, pageCount)
 		start := (page - 1) * auditPageSize
 		pageEvents := events[start:min(start+auditPageSize, len(events))]
 
