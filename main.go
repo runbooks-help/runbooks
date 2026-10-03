@@ -186,6 +186,8 @@ func main() {
 		mux.HandleFunc("/admin/audit", authn.requireAdmin(authn.auditPage(groups)))
 		mux.HandleFunc("/api/runbooks/v1/ack", authn.requireAPI(authn.ackRunbook))
 		mux.HandleFunc("/api/auth/v1/invites", authn.requireAdminAPI(authn.createInvite))
+		mux.HandleFunc("/api/auth/v1/users/disable", authn.requireAdminAPI(authn.disableUser))
+		mux.HandleFunc("/api/auth/v1/users/enable", authn.requireAdminAPI(authn.enableUser))
 		mux.HandleFunc("/account", authn.requirePage(authn.accountPage(groups)))
 		mux.HandleFunc("/api/auth/v1/profile", authn.requireAPI(authn.updateProfile))
 		mux.HandleFunc("/api/auth/v1/sessions", authn.requireAPI(authn.listSessions))

@@ -96,6 +96,8 @@ func newTestServerWith(t *testing.T, mutate func(*config)) (*httptest.Server, *i
 	}))
 	mux.HandleFunc("/admin/audit", a.requireAdmin(a.auditPage(nil)))
 	mux.HandleFunc("/api/auth/v1/invites", a.requireAdminAPI(a.createInvite))
+	mux.HandleFunc("/api/auth/v1/users/disable", a.requireAdminAPI(a.disableUser))
+	mux.HandleFunc("/api/auth/v1/users/enable", a.requireAdminAPI(a.enableUser))
 	mux.HandleFunc("/api/auth/v1/sessions/revoke", a.requireAdminAPI(a.revokeSessions))
 	mux.HandleFunc("/api/runbooks/v1/ack", a.requireAPI(a.ackRunbook))
 	mux.HandleFunc("/api/git-sync/v1", a.gateGitSync(handleGitSync(cfg)))
@@ -468,6 +470,78 @@ func TestAdminFlow(t *testing.T) {
 	}
 	if code, _ := postJSON(t, admin, srv.URL+"/api/auth/v1/sessions/revoke", map[string]string{"user_id": "nope"}); code != http.StatusNotFound {
 		t.Fatalf("revoke unknown = %d, want 404", code)
+	}
+}
+
+func TestDisableEnableUser(t *testing.T) {
+	srv, _, st := newTestServer(t)
+	rp := testRP()
+	authn := virtualwebauthn.NewAuthenticator()
+	cred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	adminClient, adminID := bootstrapAdmin(t, srv, rp, authn, cred)
+
+	code, body := postJSON(t, adminClient, srv.URL+"/api/auth/v1/invites", map[string]string{"role": "member"})
+	if code != http.StatusOK {
+		t.Fatalf("create invite = %d: %s", code, body)
+	}
+	var invite struct {
+		Token string `json:"token"`
+	}
+	if err := json.Unmarshal(body, &invite); err != nil {
+		t.Fatalf("decode invite: %v", err)
+	}
+	memberClient, member := enrolInvite(t, srv, st, rp, invite.Token, "Sam")
+
+	// Only an admin may disable or enable.
+	if code, _ := postJSON(t, newClient(t), srv.URL+"/api/auth/v1/users/disable", map[string]string{"user_id": member.ID}); code != http.StatusUnauthorized {
+		t.Fatalf("anonymous disable = %d, want 401", code)
+	}
+	if code, _ := postJSON(t, memberClient, srv.URL+"/api/auth/v1/users/disable", map[string]string{"user_id": member.ID}); code != http.StatusForbidden {
+		t.Fatalf("member disable = %d, want 403", code)
+	}
+
+	// Disabling ends the member's live session immediately.
+	if code, _ := get(t, memberClient, srv.URL+"/"); code != http.StatusOK {
+		t.Fatalf("member GET / = %d, want 200", code)
+	}
+	if code, body := postJSON(t, adminClient, srv.URL+"/api/auth/v1/users/disable", map[string]string{"user_id": member.ID}); code != http.StatusOK {
+		t.Fatalf("disable = %d: %s", code, body)
+	}
+	if code, _ := get(t, memberClient, srv.URL+"/"); code != http.StatusFound {
+		t.Fatalf("member GET / after disable = %d, want 302", code)
+	}
+
+	// The last enabled admin cannot be disabled.
+	if code, _ := postJSON(t, adminClient, srv.URL+"/api/auth/v1/users/disable", map[string]string{"user_id": adminID}); code != http.StatusConflict {
+		t.Fatalf("disable last admin = %d, want 409", code)
+	}
+
+	// Unknown users 404; re-enabling restores the account.
+	if code, _ := postJSON(t, adminClient, srv.URL+"/api/auth/v1/users/disable", map[string]string{"user_id": "nope"}); code != http.StatusNotFound {
+		t.Fatalf("disable unknown = %d, want 404", code)
+	}
+	if code, body := postJSON(t, adminClient, srv.URL+"/api/auth/v1/users/enable", map[string]string{"user_id": member.ID}); code != http.StatusOK {
+		t.Fatalf("enable = %d: %s", code, body)
+	}
+	if u, err := st.GetUser(context.Background(), member.ID); err != nil || !u.Enabled() {
+		t.Fatalf("member after enable: %+v err=%v", u, err)
+	}
+
+	// Both transitions are audited against the target.
+	events, err := st.ListAuthEvents(context.Background())
+	if err != nil {
+		t.Fatalf("ListAuthEvents: %v", err)
+	}
+	for _, want := range []stores.AuthAction{stores.ActionDisable, stores.ActionEnable} {
+		found := false
+		for _, e := range events {
+			if e.Action == want && e.TargetUserID == member.ID {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("no %s event recorded for %s", want, member.ID)
+		}
 	}
 }
 

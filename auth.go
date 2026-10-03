@@ -719,6 +719,54 @@ func (a *auth) updateProfile(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"display_name": updated.DisplayName, "email": updated.Email})
 }
 
+// disableUser blocks a user from signing in and ends their sessions.
+func (a *auth) disableUser(w http.ResponseWriter, r *http.Request) {
+	a.setUserEnabled(w, r, false)
+}
+
+// enableUser restores a disabled user's ability to sign in.
+func (a *auth) enableUser(w http.ResponseWriter, r *http.Request) {
+	a.setUserEnabled(w, r, true)
+}
+
+// setUserEnabled is the shared body of disable/enable. The last-admin guard
+// lives in the service; the transition is audited either way.
+func (a *auth) setUserEnabled(w http.ResponseWriter, r *http.Request, enabled bool) {
+	var req struct {
+		UserID string `json:"user_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	userID := strings.TrimSpace(req.UserID)
+	if userID == "" {
+		writeJSONError(w, http.StatusBadRequest, "user_id is required")
+		return
+	}
+	action := stores.ActionDisable
+	var err error
+	if enabled {
+		action = stores.ActionEnable
+		err = a.svc.EnableUser(r.Context(), userID)
+	} else {
+		err = a.svc.DisableUser(r.Context(), userID)
+	}
+	switch {
+	case errors.Is(err, identity.ErrLastAdmin):
+		writeJSONError(w, http.StatusConflict, "cannot disable the last admin")
+		return
+	case errors.Is(err, identity.ErrUser):
+		writeJSONError(w, http.StatusNotFound, "unknown user")
+		return
+	case err != nil:
+		writeJSONError(w, http.StatusInternalServerError, "could not update user")
+		return
+	}
+	a.recordAuthEvent(r, action, userFrom(r.Context()).ID, userID)
+	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
+}
+
 func (a *auth) logout(w http.ResponseWriter, r *http.Request) {
 	if u, ok := a.sessionUser(r); ok {
 		a.recordAuthEvent(r, stores.ActionLogout, u.ID, u.ID)

@@ -1552,6 +1552,23 @@ if (adminStatus) {
 		});
 	});
 
+	const setUserEnabled = (selector, path, verb) => {
+		document.querySelectorAll(selector).forEach(button => {
+			button.addEventListener('click', async () => {
+				button.disabled = true;
+				try {
+					await authPost(path, { user_id: button.dataset.userId });
+					window.location.reload();
+				} catch (err) {
+					showLiveAlert(`Could not ${verb} the user`, err);
+					button.disabled = false;
+				}
+			});
+		});
+	};
+	setUserEnabled('[data-admin="disable"]', '/api/auth/v1/users/disable', 'disable');
+	setUserEnabled('[data-admin="enable"]', '/api/auth/v1/users/enable', 'enable');
+
 	const adminCopy = document.querySelector('[data-admin-copy]');
 	if (adminCopy) {
 		adminCopy.addEventListener('click', async () => {

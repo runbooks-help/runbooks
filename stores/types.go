@@ -139,9 +139,10 @@ const (
 	// ActionAck is a destructive runbook acknowledged by a reader. The runbook
 	// slug is carried in AuthEvent.Detail.
 	ActionAck AuthAction = "ack"
-	// ActionDisable is a user disabled by an admin. Reserved: no core endpoint
-	// emits it yet.
+	// ActionDisable is a user disabled by an admin.
 	ActionDisable AuthAction = "disable"
+	// ActionEnable is a disabled user re-enabled by an admin.
+	ActionEnable AuthAction = "enable"
 )
 
 // AuthEvent is one append-only audit row: who did what, to whom, from where. The

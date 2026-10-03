@@ -95,6 +95,11 @@ templ AdminPage(groups []parser.SystemGroup, users []stores.User, isAdmin, ident
 												<button class="btn btn-danger" type="button" data-admin="revoke" data-user-id={ u.ID }>
 													Revoke sessions
 												</button>
+												if u.Enabled() {
+													<button class="btn btn-danger" type="button" data-admin="disable" data-user-id={ u.ID }>Disable</button>
+												} else {
+													<button class="btn btn-ghost" type="button" data-admin="enable" data-user-id={ u.ID }>Enable</button>
+												}
 											</td>
 										</tr>
 									}
