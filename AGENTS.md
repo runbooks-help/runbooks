@@ -195,6 +195,24 @@ Authoring conventions that have bitten us:
   `<placeholder>` in the code — `<foo>` in a fence looks like real syntax.
 - Use `order:` to pull the most-likely-on-call runbook to the top of its category.
 
+## Agent access
+
+Runbooks are read by LLMs two ways. A **local** agent clones the repo and reads
+`content/` directly (frontmatter included — no parsing needed). A **remote**
+agent uses the read-only surface: `GET /llms.txt` (generated index, `llms.go`),
+`GET /<slug>.md` (raw `RunbookDef.Source`) and the existing
+`GET /api/runbooks/v1/search`. All three are public with identity off and gated
+by `requireRead` — session **or a read-scoped API key** — with identity on.
+
+API keys are minted self-service at `/account`, owned by a user, stored as
+`sha256(raw)` under an `rbk_` prefix, and revocable; a key is read-only by
+construction and never authenticates a write. See `docs/agent-access.md` and
+`specs/runbooks/agent-access`.
+
+**Never add a signpost `.md` under `content/`** (e.g. `content/AGENTS.md`):
+`parser.LoadDir` treats every `*.md` there as a runbook and a file without
+frontmatter is a startup error, so it breaks boot. This file is the signpost.
+
 ## Build pipeline and generated files
 
 - **templ**: edit `views/*.templ`. `views/*_templ.go` is generated and **gitignored** —

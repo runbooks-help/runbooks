@@ -110,3 +110,42 @@ func TestAuthenticateAPIKey(t *testing.T) {
 		t.Errorf("disabled-owner key err = %v, want ErrAPIKey", err)
 	}
 }
+
+func TestListAndRevokeAPIKeys(t *testing.T) {
+	ctx := context.Background()
+	svc, st := newTestService(t)
+	seedUser(t, st, "u1")
+	seedUser(t, st, "u2")
+
+	_, key, err := svc.MintAPIKey(ctx, "u1", "bot")
+	if err != nil {
+		t.Fatalf("MintAPIKey: %v", err)
+	}
+
+	if keys, err := svc.APIKeys(ctx, "u1"); err != nil {
+		t.Fatalf("APIKeys: %v", err)
+	} else if len(keys) != 1 {
+		t.Fatalf("APIKeys len = %d, want 1", len(keys))
+	}
+	if keys, err := svc.APIKeys(ctx, "u2"); err != nil {
+		t.Fatalf("APIKeys other user: %v", err)
+	} else if len(keys) != 0 {
+		t.Errorf("APIKeys other user len = %d, want 0", len(keys))
+	}
+
+	// A key owned by someone else is never revoked.
+	if err := svc.RevokeAPIKey(ctx, "u2", key.ID); !errors.Is(err, ErrAPIKey) {
+		t.Errorf("revoke another's key err = %v, want ErrAPIKey", err)
+	}
+
+	if err := svc.RevokeAPIKey(ctx, "u1", key.ID); err != nil {
+		t.Fatalf("RevokeAPIKey: %v", err)
+	}
+	// Revoking again is a no-op, not an error.
+	if err := svc.RevokeAPIKey(ctx, "u1", key.ID); err != nil {
+		t.Errorf("revoke again err = %v, want nil", err)
+	}
+	if err := svc.RevokeAPIKey(ctx, "u1", "missing"); !errors.Is(err, ErrAPIKey) {
+		t.Errorf("revoke unknown err = %v, want ErrAPIKey", err)
+	}
+}

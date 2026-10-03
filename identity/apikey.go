@@ -15,6 +15,32 @@ const apiKeyPrefix = "rbk_"
 // ErrAPIKey is a raw key that is unknown, revoked, or whose owner is disabled.
 var ErrAPIKey = errors.New("identity: api key missing, revoked or disabled")
 
+// APIKeys lists a user's keys, oldest first. Empty is OK.
+func (s *Service) APIKeys(ctx context.Context, userID string) ([]stores.APIKey, error) {
+	return s.apiKeys.ListAPIKeys(ctx, userID)
+}
+
+// RevokeAPIKey revokes one of a user's keys. A key that belongs to someone else
+// is reported as ErrAPIKey, never revoked. Revoking an already-revoked key is a
+// no-op.
+func (s *Service) RevokeAPIKey(ctx context.Context, userID, keyID string) error {
+	key, err := s.apiKeys.GetAPIKey(ctx, keyID)
+	if err != nil {
+		if errors.Is(err, stores.ErrNotFound) {
+			return ErrAPIKey
+		}
+		return err
+	}
+	if key.UserID != userID {
+		return ErrAPIKey
+	}
+	if key.Revoked() {
+		return nil
+	}
+	key.RevokedAt = s.now()
+	return s.apiKeys.UpdateAPIKey(ctx, key)
+}
+
 // MintAPIKey creates a read-scoped API key owned by userID and returns the raw
 // key. Only the SHA-256 hash is stored, so the raw value is shown once and can
 // never be recovered. The key is read-only by construction: the gate that

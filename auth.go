@@ -528,11 +528,16 @@ func (a *auth) accountPage(groups []parser.SystemGroup) http.HandlerFunc {
 			http.Error(w, "could not load sessions", http.StatusInternalServerError)
 			return
 		}
+		apiKeys, err := a.svc.APIKeys(r.Context(), u.ID)
+		if err != nil {
+			http.Error(w, "could not load API keys", http.StatusInternalServerError)
+			return
+		}
 		current := ""
 		if c, err := r.Cookie(sessionCookieName); err == nil {
 			current = identity.SessionID(c.Value)
 		}
-		views.AccountPage(groups, u, creds, sessions, current).Render(r.Context(), w)
+		views.AccountPage(groups, u, creds, sessions, apiKeys, current).Render(r.Context(), w)
 	}
 }
 
@@ -715,6 +720,60 @@ func (a *auth) updateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"display_name": updated.DisplayName, "email": updated.Email})
+}
+
+// createAPIKey mints a read-scoped key for the signed-in user and returns the
+// raw value once. Only its hash is stored, so it is never recoverable.
+func (a *auth) createAPIKey(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	u := userFrom(r.Context())
+	var req struct {
+		Label string `json:"label"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	if strings.TrimSpace(req.Label) == "" {
+		writeJSONError(w, http.StatusBadRequest, "a label is required")
+		return
+	}
+	raw, key, err := a.svc.MintAPIKey(r.Context(), u.ID, req.Label)
+	if err != nil {
+		logAuthFailure("account/apikey/create", err)
+		writeJSONError(w, http.StatusInternalServerError, "could not create the key")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"key": key.ID, "raw": raw, "label": key.Label})
+}
+
+// revokeAPIKey revokes one of the signed-in user's keys. A key owned by someone
+// else is a 404, never touched.
+func (a *auth) revokeAPIKey(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	u := userFrom(r.Context())
+	var req struct {
+		KeyID string `json:"key_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	if err := a.svc.RevokeAPIKey(r.Context(), u.ID, strings.TrimSpace(req.KeyID)); err != nil {
+		if errors.Is(err, identity.ErrAPIKey) {
+			writeJSONError(w, http.StatusNotFound, "unknown key")
+			return
+		}
+		writeJSONError(w, http.StatusInternalServerError, "could not revoke the key")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"ok": "true"})
 }
 
 // disableUser blocks a user from signing in and ends their sessions.

@@ -12,7 +12,7 @@ import (
 
 // AccountPage is the signed-in user's self-service surface: profile, passkeys
 // and active sessions. It lives in the app shell like the admin page.
-templ AccountPage(groups []parser.SystemGroup, user stores.User, creds []stores.Credential, sessions []stores.Session, currentSessionID string) {
+templ AccountPage(groups []parser.SystemGroup, user stores.User, creds []stores.Credential, sessions []stores.Session, apiKeys []stores.APIKey, currentSessionID string) {
 	@components.Shell("Account") {
 		@components.Rail()
 		<aside class="sidebar">
@@ -26,7 +26,7 @@ templ AccountPage(groups []parser.SystemGroup, user stores.User, creds []stores.
 		<div class="main main--full">
 			<div class="main-header">
 				<h1>Account</h1>
-				<p>Your profile, passkeys and signed-in devices.</p>
+				<p>Your profile, passkeys, API keys and signed-in devices.</p>
 			</div>
 			<div class="content">
 				<div class="stack account-inner">
@@ -75,6 +75,65 @@ templ AccountPage(groups []parser.SystemGroup, user stores.User, creds []stores.
 												<button class="btn btn-ghost" type="button" data-account="save-passkey" data-credential-id={ c.ID }>Save name</button>
 												<button class="btn btn-danger" type="button" data-account="remove-passkey" data-credential-id={ c.ID }>Remove</button>
 											</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+						</div>
+					</section>
+
+					<section class="admin-card">
+						<div class="account-card-head">
+							<p class="section-label">API keys</p>
+						</div>
+						<p class="account-note">Read-only keys for agents and automation. A key can search runbooks and fetch their raw markdown; it can never change anything.</p>
+						<form class="form-row" data-account="create-apikey">
+							<div class="form-field">
+								<label class="form-label" for="apikey-label">Label</label>
+								<input class="text-input" id="apikey-label" type="text" name="label" placeholder="e.g. on-call bot" autocomplete="off" required/>
+							</div>
+							<button class="btn btn-primary" type="submit">Create key</button>
+						</form>
+						<div class="apikey-reveal" data-apikey-reveal hidden>
+							<p class="account-note">Copy this key now — it is shown once and cannot be recovered.</p>
+							<div class="apikey-value">
+								<code data-apikey-value></code>
+								<button class="btn btn-ghost" type="button" data-account="copy-apikey">Copy</button>
+							</div>
+						</div>
+						<div class="table-wrap">
+							<table class="admin-table">
+								<thead>
+									<tr>
+										<th>Label</th>
+										<th>Created</th>
+										<th>Last used</th>
+										<th></th>
+									</tr>
+								</thead>
+								<tbody>
+									for _, k := range apiKeys {
+										<tr>
+											<td>
+												<span class="account-device">
+													{ k.Label }
+													if k.Revoked() {
+														<span class="badge badge-danger">revoked</span>
+													}
+												</span>
+											</td>
+											<td>{ accountDate(k.CreatedAt) }</td>
+											<td>{ accountLastUsed(k.LastUsedAt) }</td>
+											<td class="admin-actions">
+												if !k.Revoked() {
+													<button class="btn btn-danger" type="button" data-account="revoke-apikey" data-key-id={ k.ID }>Revoke</button>
+												}
+											</td>
+										</tr>
+									}
+									if len(apiKeys) == 0 {
+										<tr>
+											<td colspan="4">No API keys.</td>
 										</tr>
 									}
 								</tbody>

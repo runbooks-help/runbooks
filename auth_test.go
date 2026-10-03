@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -109,6 +110,8 @@ func newTestServerWith(t *testing.T, mutate func(*config)) (*httptest.Server, *i
 	mux.HandleFunc("/api/auth/v1/passkeys/finish", a.requireAPI(a.passkeyFinish))
 	mux.HandleFunc("/api/auth/v1/passkeys/rename", a.requireAPI(a.passkeyRename))
 	mux.HandleFunc("/api/auth/v1/passkeys/remove", a.requireAPI(a.passkeyRemove))
+	mux.HandleFunc("/api/auth/v1/apikeys", a.requireAPI(a.createAPIKey))
+	mux.HandleFunc("/api/auth/v1/apikeys/revoke", a.requireAPI(a.revokeAPIKey))
 	mux.HandleFunc("/api/runbooks/v1/ack", a.requireAPI(a.ackRunbook))
 	// Read-only machine endpoint: a session or a read-scoped API key.
 	mux.HandleFunc("/api/runbooks/v1/search", a.requireRead(func(w http.ResponseWriter, r *http.Request) {
@@ -1435,5 +1438,70 @@ func TestRequireReadAcceptsAPIKey(t *testing.T) {
 	}
 	if code, _ := get(raw); code != http.StatusUnauthorized {
 		t.Errorf("revoked key: status = %d, want 401", code)
+	}
+}
+
+func TestAPIKeyHandlers(t *testing.T) {
+	st, err := sqlite.Open(context.Background(), "file:"+filepath.Join(t.TempDir(), "apikey.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { st.Close() })
+	svc, err := identity.New(identity.Config{RPID: testRPID, RPDisplayName: testRPName, RPOrigins: []string{testOrigin}}, st)
+	if err != nil {
+		t.Fatalf("identity: %v", err)
+	}
+	a := newAuth(svc, st, config{})
+
+	ctx := context.Background()
+	if err := st.InsertUser(ctx, stores.User{ID: "u1", DisplayName: "Ada", Role: stores.RoleMember, CreatedAt: time.Now()}); err != nil {
+		t.Fatalf("insert user: %v", err)
+	}
+	user := stores.User{ID: "u1"}
+	authed := func(req *http.Request) *http.Request {
+		return req.WithContext(context.WithValue(req.Context(), userKey{}, user))
+	}
+
+	rec := httptest.NewRecorder()
+	a.createAPIKey(rec, authed(httptest.NewRequest(http.MethodPost, "/api/auth/v1/apikeys", strings.NewReader(`{"label":"bot"}`))))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("create status = %d, body %s", rec.Code, rec.Body)
+	}
+	var created struct{ Raw, Key string }
+	if err := json.Unmarshal(rec.Body.Bytes(), &created); err != nil {
+		t.Fatalf("decode create response: %v", err)
+	}
+	if !strings.HasPrefix(created.Raw, "rbk_") {
+		t.Errorf("raw = %q, want rbk_ prefix", created.Raw)
+	}
+	if created.Key == "" || created.Key == created.Raw {
+		t.Errorf("key id must be a hash, got %q", created.Key)
+	}
+	if u, err := svc.AuthenticateAPIKey(ctx, created.Raw); err != nil || u.ID != "u1" {
+		t.Fatalf("minted key did not authenticate: user=%q err=%v", u.ID, err)
+	}
+
+	// A blank label is refused.
+	rec = httptest.NewRecorder()
+	a.createAPIKey(rec, authed(httptest.NewRequest(http.MethodPost, "/api/auth/v1/apikeys", strings.NewReader(`{"label":"  "}`))))
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("blank label status = %d, want 400", rec.Code)
+	}
+
+	// Revoke stops the key authenticating.
+	rec = httptest.NewRecorder()
+	a.revokeAPIKey(rec, authed(httptest.NewRequest(http.MethodPost, "/api/auth/v1/apikeys/revoke", strings.NewReader(`{"key_id":"`+created.Key+`"}`))))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("revoke status = %d, body %s", rec.Code, rec.Body)
+	}
+	if _, err := svc.AuthenticateAPIKey(ctx, created.Raw); !errors.Is(err, identity.ErrAPIKey) {
+		t.Errorf("after revoke err = %v, want ErrAPIKey", err)
+	}
+
+	// Revoking an unknown key is a 404.
+	rec = httptest.NewRecorder()
+	a.revokeAPIKey(rec, authed(httptest.NewRequest(http.MethodPost, "/api/auth/v1/apikeys/revoke", strings.NewReader(`{"key_id":"missing"}`))))
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("revoke unknown status = %d, want 404", rec.Code)
 	}
 }

@@ -201,6 +201,8 @@ func main() {
 		mux.HandleFunc("/api/auth/v1/passkeys/finish", authn.requireAPI(authn.passkeyFinish))
 		mux.HandleFunc("/api/auth/v1/passkeys/rename", authn.requireAPI(authn.passkeyRename))
 		mux.HandleFunc("/api/auth/v1/passkeys/remove", authn.requireAPI(authn.passkeyRemove))
+		mux.HandleFunc("/api/auth/v1/apikeys", authn.requireAPI(authn.createAPIKey))
+		mux.HandleFunc("/api/auth/v1/apikeys/revoke", authn.requireAPI(authn.revokeAPIKey))
 		// Break-glass recovery is only reachable when a token is configured.
 		if cfg.IdentityRecoveryToken != "" {
 			mux.HandleFunc("/recovery", authn.recoveryPage)

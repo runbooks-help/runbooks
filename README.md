@@ -156,6 +156,14 @@ SET GLOBAL read_only = 0;
 ` ``
 ```
 
+## Agent access
+
+Runbooks are plain Markdown, so a local agent is best served by cloning the
+repo and reading `content/` directly — no API, no credentials. For a remote
+agent, an identity-enabled instance exposes a read-only surface (`/llms.txt`,
+`/<slug>.md`, `/api/runbooks/v1/search`) authorised by a read-scoped API key
+created at `/account`. See [docs/agent-access.md](docs/agent-access.md).
+
 ## Troubleshooting
 
 See [docs/troubleshooting.md](docs/troubleshooting.md) — notably, dark colours looking

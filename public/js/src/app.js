@@ -1688,4 +1688,51 @@ if (accountForm) {
 			}
 		});
 	}
+
+	const createAPIKey = document.querySelector('[data-account="create-apikey"]');
+	if (createAPIKey) {
+		createAPIKey.addEventListener('submit', async event => {
+			event.preventDefault();
+			const button = createAPIKey.querySelector('button[type="submit"]');
+			const label = createAPIKey.querySelector('[name="label"]').value.trim();
+			button.disabled = true;
+			try {
+				const result = await authPost('/api/auth/v1/apikeys', { label });
+				document.querySelector('[data-apikey-value]').textContent = result.raw;
+				document.querySelector('[data-apikey-reveal]').hidden = false;
+				createAPIKey.reset();
+				authStatus('Key created. Copy it now — it is shown once.');
+			} catch (err) {
+				showLiveAlert('Could not create the key', err);
+			} finally {
+				button.disabled = false;
+			}
+		});
+	}
+
+	const copyAPIKey = document.querySelector('[data-account="copy-apikey"]');
+	if (copyAPIKey) {
+		copyAPIKey.addEventListener('click', async () => {
+			const value = document.querySelector('[data-apikey-value]').textContent;
+			try {
+				await navigator.clipboard.writeText(value);
+				authStatus('Key copied.');
+			} catch {
+				showLiveAlert('Could not copy the key', new Error('clipboard unavailable'));
+			}
+		});
+	}
+
+	document.querySelectorAll('[data-account="revoke-apikey"]').forEach(button => {
+		button.addEventListener('click', async () => {
+			button.disabled = true;
+			try {
+				await authPost('/api/auth/v1/apikeys/revoke', { key_id: button.dataset.keyId });
+				window.location.reload();
+			} catch (err) {
+				showLiveAlert('Could not revoke the key', err);
+				button.disabled = false;
+			}
+		});
+	});
 }
