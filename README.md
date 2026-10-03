@@ -28,6 +28,12 @@ mise run build
 
 Produces a single `runbooks` binary with all assets embedded.
 
+## Configuration & operations
+
+Every setting is an environment variable — see
+[docs/configuration.md](docs/configuration.md) for the full reference, and
+[docs/operations.md](docs/operations.md) for storage, backups and upgrading.
+
 ## Identity
 
 Identity — passkey sign-in, or delegation to an upstream proxy/SSO gateway — is
