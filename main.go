@@ -183,6 +183,7 @@ func main() {
 			u := userFrom(r.Context())
 			views.AdminPage(groups, users, u.IsAdmin(), cfg.IdentityEnabled).Render(r.Context(), w)
 		}))
+		mux.HandleFunc("/admin/audit", authn.requireAdmin(authn.auditPage(groups)))
 		mux.HandleFunc("/api/runbooks/v1/ack", authn.requireAPI(authn.ackRunbook))
 		mux.HandleFunc("/api/auth/v1/invites", authn.requireAdminAPI(authn.createInvite))
 		mux.HandleFunc("/account", authn.requirePage(authn.accountPage(groups)))

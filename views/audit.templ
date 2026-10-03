@@ -1,0 +1,123 @@
+package views
+
+import (
+	"strconv"
+
+	"runbooks/parser"
+	"runbooks/stores"
+	"runbooks/views/components"
+)
+
+// AuditPage is the admin-only, read-only view of the append-only auth_events
+// feed. Newest first; no row is editable here.
+templ AuditPage(groups []parser.SystemGroup, events []stores.AuthEvent, names map[string]string, page, pageCount int) {
+	@components.Shell("Audit log") {
+		@components.Rail()
+		<aside class="sidebar">
+			@components.SidebarHeader()
+			@components.SidebarNav(groups, "admin")
+			<div class="sidebar-appearance">
+				@components.AppearanceTrigger(true)
+			</div>
+			@components.SessionActions(true, true)
+		</aside>
+		<div class="main main--full">
+			<div class="main-header">
+				<h1>Audit log</h1>
+				<p>Who did what, newest first. Append-only — nothing here can be edited.</p>
+			</div>
+			<div class="content">
+				<div class="stack account-inner">
+					<section class="admin-card">
+						<div class="table-wrap">
+							<table class="admin-table">
+								<thead>
+									<tr>
+										<th>When</th>
+										<th>Actor</th>
+										<th>Action</th>
+										<th>Target</th>
+										<th>Detail</th>
+										<th>From</th>
+									</tr>
+								</thead>
+								<tbody>
+									for _, e := range events {
+										<tr>
+											<td>{ accountDate(e.At) }</td>
+											<td>{ auditName(names, e.ActorUserID) }</td>
+											<td><span class="badge">{ string(e.Action) }</span></td>
+											<td>{ auditName(names, e.TargetUserID) }</td>
+											<td>
+												if e.Detail == "" {
+													<span class="muted">—</span>
+												} else if e.Action == stores.ActionAck {
+													<a href={ templ.SafeURL("/" + e.Detail) }>{ e.Detail }</a>
+												} else {
+													{ e.Detail }
+												}
+											</td>
+											<td class="audit-from">{ auditFrom(e) }</td>
+										</tr>
+									}
+									if len(events) == 0 {
+										<tr>
+											<td colspan="6">No events yet.</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+						</div>
+						if pageCount > 1 {
+							<nav class="audit-pager">
+								if page > 1 {
+									<a class="btn btn-ghost" href={ templ.SafeURL(auditPageHref(page - 1)) }>Newer</a>
+								}
+								<span class="muted">{ auditPagerLabel(page, pageCount) }</span>
+								if page < pageCount {
+									<a class="btn btn-ghost" href={ templ.SafeURL(auditPageHref(page + 1)) }>Older</a>
+								}
+							</nav>
+						}
+					</section>
+				</div>
+			</div>
+		</div>
+	}
+}
+
+// auditName maps a user id to a display name, falling back to the id (a row can
+// outlive its actor's display name changing, but not the id).
+func auditName(names map[string]string, id string) string {
+	if id == "" {
+		return "—"
+	}
+	if n := names[id]; n != "" {
+		return n
+	}
+	return id
+}
+
+// auditFrom is the request origin: IP and a short user-agent.
+func auditFrom(e stores.AuthEvent) string {
+	from := e.IP
+	if from == "" {
+		from = "—"
+	}
+	if e.UserAgent != "" {
+		ua := e.UserAgent
+		if len(ua) > 40 {
+			ua = ua[:40] + "…"
+		}
+		from += " · " + ua
+	}
+	return from
+}
+
+func auditPagerLabel(page, pageCount int) string {
+	return "Page " + strconv.Itoa(page) + " of " + strconv.Itoa(pageCount)
+}
+
+func auditPageHref(page int) string {
+	return "/admin/audit?page=" + strconv.Itoa(page)
+}

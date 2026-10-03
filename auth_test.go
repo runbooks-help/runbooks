@@ -94,6 +94,7 @@ func newTestServerWith(t *testing.T, mutate func(*config)) (*httptest.Server, *i
 		u := userFrom(r.Context())
 		views.AdminPage(nil, users, u.IsAdmin(), a.cfg.IdentityEnabled).Render(r.Context(), w)
 	}))
+	mux.HandleFunc("/admin/audit", a.requireAdmin(a.auditPage(nil)))
 	mux.HandleFunc("/api/auth/v1/invites", a.requireAdminAPI(a.createInvite))
 	mux.HandleFunc("/api/auth/v1/sessions/revoke", a.requireAdminAPI(a.revokeSessions))
 	mux.HandleFunc("/api/runbooks/v1/ack", a.requireAPI(a.ackRunbook))
@@ -843,6 +844,54 @@ func TestAckRunbookRecordsEvent(t *testing.T) {
 	}
 	if ack.ActorUserID != adminID || ack.Detail != "mts-deadlock-recovery" {
 		t.Errorf("ack event = %+v, want actor %s detail mts-deadlock-recovery", *ack, adminID)
+	}
+}
+
+func TestAuditPage(t *testing.T) {
+	srv, _, st := newTestServer(t)
+	rp := testRP()
+	authn := virtualwebauthn.NewAuthenticator()
+	cred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
+	adminClient, _ := bootstrapAdmin(t, srv, rp, authn, cred)
+
+	// A member is refused; an anonymous request redirects to the login page.
+	code, body := postJSON(t, adminClient, srv.URL+"/api/auth/v1/invites", map[string]string{"role": "member"})
+	if code != http.StatusOK {
+		t.Fatalf("create invite = %d: %s", code, body)
+	}
+	var invite struct {
+		Token string `json:"token"`
+	}
+	if err := json.Unmarshal(body, &invite); err != nil {
+		t.Fatalf("decode invite: %v", err)
+	}
+	memberClient, _ := enrolInvite(t, srv, st, rp, invite.Token, "Sam")
+	if code, _ := get(t, memberClient, srv.URL+"/admin/audit"); code != http.StatusForbidden {
+		t.Fatalf("member GET /admin/audit = %d, want 403", code)
+	}
+	res, err := newClient(t).Get(srv.URL + "/admin/audit")
+	if err != nil {
+		t.Fatalf("anonymous GET /admin/audit: %v", err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusFound || res.Header.Get("Location") != "/login" {
+		t.Fatalf("anonymous GET /admin/audit = %d %q, want 302 /login", res.StatusCode, res.Header.Get("Location"))
+	}
+
+	// The admin acknowledges a runbook; the ack is the newest row and links to it.
+	if code, body := postJSON(t, adminClient, srv.URL+"/api/runbooks/v1/ack", map[string]string{"slug": "mts-deadlock-recovery"}); code != http.StatusOK {
+		t.Fatalf("ack = %d: %s", code, body)
+	}
+	code, body = get(t, adminClient, srv.URL+"/admin/audit")
+	if code != http.StatusOK {
+		t.Fatalf("admin GET /admin/audit = %d, want 200", code)
+	}
+	html := string(body)
+	if !strings.Contains(html, "/mts-deadlock-recovery") {
+		t.Errorf("audit page does not link the acknowledged slug")
+	}
+	if !strings.Contains(html, ">ack<") {
+		t.Errorf("audit page does not show the ack action")
 	}
 }
 

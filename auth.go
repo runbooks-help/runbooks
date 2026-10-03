@@ -10,6 +10,8 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,6 +26,9 @@ const sessionCookieName = "runbooks_session"
 // defaultInviteTTL is how long a new invite link lives when the caller does not
 // set one.
 const defaultInviteTTL = 72 * time.Hour
+
+// auditPageSize is how many events the admin audit page shows at a time.
+const auditPageSize = 50
 
 // sessionAuthKey marks a git-sync request as authorised by a user session, so
 // the handler skips its shared-token check.
@@ -528,6 +533,46 @@ func (a *auth) accountPage(groups []parser.SystemGroup) http.HandlerFunc {
 			current = identity.SessionID(c.Value)
 		}
 		views.AccountPage(groups, u, creds, sessions, current).Render(r.Context(), w)
+	}
+}
+
+// auditPage renders the append-only auth_events feed, newest first. The store
+// returns oldest-first; the page reverses and slices it. No row is ever edited
+// or deleted here.
+func (a *auth) auditPage(groups []parser.SystemGroup) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		events, err := a.st.ListAuthEvents(r.Context())
+		if err != nil {
+			http.Error(w, "could not load audit events", http.StatusInternalServerError)
+			return
+		}
+		slices.Reverse(events)
+
+		page := 1
+		if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 0 {
+			page = p
+		}
+		pageCount := (len(events) + auditPageSize - 1) / auditPageSize
+		if pageCount == 0 {
+			pageCount = 1
+		}
+		if page > pageCount {
+			page = pageCount
+		}
+		start := (page - 1) * auditPageSize
+		pageEvents := events[start:min(start+auditPageSize, len(events))]
+
+		users, err := a.st.ListUsers(r.Context())
+		if err != nil {
+			http.Error(w, "could not load users", http.StatusInternalServerError)
+			return
+		}
+		names := make(map[string]string, len(users))
+		for _, u := range users {
+			names[u.ID] = u.DisplayName
+		}
+
+		views.AuditPage(groups, pageEvents, names, page, pageCount).Render(r.Context(), w)
 	}
 }
 

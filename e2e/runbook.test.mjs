@@ -232,6 +232,16 @@ test("a destructive runbook gates the page behind an acknowledgement", async (t)
 		await b.page.reload();
 		assert.equal(await dialog.evaluate(el => el.open), false, "stays acknowledged within the session");
 		assert.equal(await badge.isVisible(), true, "the reminder survives a reload within the session");
+
+		// The acknowledgement is auditable: it shows in the admin's audit log with
+		// the runbook linked from the detail column.
+		await b.page.goto(app.base + "/admin/audit");
+		await b.page.locator("table.admin-table").first().waitFor({ timeout: uiTimeout });
+		assert.equal(
+			await b.page.locator("table.admin-table a[href='/destructive-demo']").count(),
+			1,
+			"the acknowledged runbook is linked in the audit log",
+		);
 	} catch (err) {
 		await reportFailure(b.page, app.logs());
 		throw err;
