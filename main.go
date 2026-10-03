@@ -11,7 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"runbooks/content"
 	"runbooks/identity"
+	"runbooks/internal/gitcmd"
 	"runbooks/parser"
 	"runbooks/stores"
 	"runbooks/stores/mysql"
@@ -52,12 +54,18 @@ type config struct {
 	IdentitySessionIdleTTL  time.Duration
 
 	ContentDir        string
+	ContentSource     string
+	ContentGitPath    string
+	ContentGitCache   string
 	StyleGuideEnabled bool
 }
 
 func loadConfig() config {
 	cfg := config{
 		ContentDir:         os.Getenv("CONTENT_DIR"),
+		ContentSource:      os.Getenv("CONTENT_SOURCE"),
+		ContentGitPath:     os.Getenv("CONTENT_GIT_PATH"),
+		ContentGitCache:    os.Getenv("CONTENT_GIT_CACHE"),
 		GitSyncRepo:        os.Getenv("GITSYNC_REPO"),
 		GitSyncBranch:      os.Getenv("GITSYNC_BRANCH"),
 		GitSyncBasePath:    os.Getenv("GITSYNC_BASE_PATH"),
@@ -71,11 +79,20 @@ func loadConfig() config {
 	if cfg.ContentDir == "" {
 		cfg.ContentDir = "content"
 	}
+	if cfg.ContentSource == "" {
+		cfg.ContentSource = "local"
+	}
+	if cfg.ContentGitPath == "" {
+		cfg.ContentGitPath = "."
+	}
+	if cfg.ContentGitCache == "" {
+		cfg.ContentGitCache = "data/content"
+	}
 	if cfg.GitSyncBranch == "" {
 		cfg.GitSyncBranch = "main"
 	}
 	if cfg.GitSyncBasePath == "" {
-		cfg.GitSyncBasePath = "runs"
+		cfg.GitSyncBasePath = "runbook_runs"
 	}
 	if cfg.GitSyncUsername == "" {
 		cfg.GitSyncUsername = "oauth2"
@@ -143,11 +160,29 @@ func main() {
 		log.Fatal("IDENTITY_PUBLIC_URL is required when identity is enabled")
 	}
 
-	// An empty content/ is not an error: the index renders a welcome that says
-	// how to add runbooks, so a fresh checkout still boots. The directory is
-	// external — the operator mounts it (CONTENT_DIR) — and never bundled in the
-	// image.
-	runbooks, err := parser.LoadDir(cfg.ContentDir)
+	// An empty content tree is not an error: the index renders a welcome that
+	// says how to add runbooks, so a fresh checkout still boots. The tree is
+	// external — a local directory (CONTENT_DIR) or a git repo (CONTENT_SOURCE)
+	// — and never bundled in the image.
+	contentDir, err := content.Resolve(context.Background(), content.Options{
+		Source: cfg.ContentSource,
+		Dir:    cfg.ContentDir,
+		Repo:   cfg.GitSyncRepo,
+		Branch: cfg.GitSyncBranch,
+		Creds: gitcmd.Credentials{
+			Username: cfg.GitSyncUsername,
+			Token:    cfg.GitSyncToken,
+			SSHKey:   cfg.GitSyncSSHKey,
+		},
+		Path:  cfg.ContentGitPath,
+		Cache: cfg.ContentGitCache,
+	})
+	if err != nil {
+		log.Fatalf("content source: %v", err)
+	}
+	// The git-sync records path lives inside the repo when content is at its
+	// root; never walk it as runbooks (records have no frontmatter).
+	runbooks, err := parser.LoadDir(contentDir, cfg.GitSyncBasePath)
 	if err != nil {
 		log.Fatalf("load runbooks: %v", err)
 	}

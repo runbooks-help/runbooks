@@ -120,3 +120,30 @@ func TestLoadDirMalformedManifest(t *testing.T) {
 		t.Error("want an error for a malformed content/_meta.yml")
 	}
 }
+
+// TestLoadDirExcludesRecordsPath pins that the git-sync records folder is never
+// ingested as runbooks when content sits at a repo root that also holds records.
+func TestLoadDirExcludesRecordsPath(t *testing.T) {
+	dir := t.TempDir()
+	writeDoc(t, filepath.Join(dir, "mysql", "backup", "verify.md"), "Verify", "verify")
+	// A record has no frontmatter; without the exclusion it fails the walk.
+	rec := filepath.Join(dir, "runbook_runs", "2026-10-03", "verify", "notes.md")
+	if err := os.MkdirAll(filepath.Dir(rec), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(rec, []byte("just a record, no frontmatter\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := LoadDir(dir); err == nil {
+		t.Fatal("without the exclusion the records folder should fail the parse")
+	}
+
+	defs, err := LoadDir(dir, "runbook_runs")
+	if err != nil {
+		t.Fatalf("LoadDir with exclusion: %v", err)
+	}
+	if len(defs) != 1 || defs[0].Slug != "verify" {
+		t.Fatalf("defs = %+v, want just the verify runbook", defs)
+	}
+}

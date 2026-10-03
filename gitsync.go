@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
 
+	"runbooks/internal/gitcmd"
 	"runbooks/stores"
 )
 
@@ -148,25 +148,25 @@ func doGitSync(ctx context.Context, cfg config, job gitSyncJob) (string, bool, e
 	}
 	defer os.RemoveAll(ws)
 
-	env, cleanup, err := gitAuthEnv(cfg)
+	env, cleanup, err := gitcmd.AuthEnv(gitcmd.Credentials{Username: cfg.GitSyncUsername, Token: cfg.GitSyncToken, SSHKey: cfg.GitSyncSSHKey})
 	if err != nil {
 		return "", false, err
 	}
 	defer cleanup()
 
-	if err := gitRun(ctx, ws, env, "clone", cfg.GitSyncRepo, "."); err != nil {
+	if err := gitcmd.Run(ctx, ws, env, "clone", cfg.GitSyncRepo, "."); err != nil {
 		return "", false, fmt.Errorf("clone failed")
 	}
 
 	if job.author.name != "" {
-		gitRun(ctx, ws, env, "config", "user.name", job.author.name)
+		gitcmd.Run(ctx, ws, env, "config", "user.name", job.author.name)
 	}
 	if job.author.email != "" {
-		gitRun(ctx, ws, env, "config", "user.email", job.author.email)
+		gitcmd.Run(ctx, ws, env, "config", "user.email", job.author.email)
 	}
 
-	if err := gitRun(ctx, ws, env, "checkout", cfg.GitSyncBranch); err != nil {
-		if err := gitRun(ctx, ws, env, "checkout", "-b", cfg.GitSyncBranch); err != nil {
+	if err := gitcmd.Run(ctx, ws, env, "checkout", cfg.GitSyncBranch); err != nil {
+		if err := gitcmd.Run(ctx, ws, env, "checkout", "-b", cfg.GitSyncBranch); err != nil {
 			return "", false, fmt.Errorf("branch setup failed")
 		}
 	}
@@ -215,13 +215,13 @@ func doGitSync(ctx context.Context, cfg config, job gitSyncJob) (string, bool, e
 		return "", false, fmt.Errorf("write runbook failed")
 	}
 
-	if err := gitRun(ctx, ws, env, "add", "."); err != nil {
+	if err := gitcmd.Run(ctx, ws, env, "add", "."); err != nil {
 		return "", false, fmt.Errorf("git add failed")
 	}
 
 	// Nothing changed since the last sync — report up-to-date rather than
 	// creating an empty commit.
-	status, err := gitOutput(ctx, ws, env, "status", "--porcelain")
+	status, err := gitcmd.Output(ctx, ws, env, "status", "--porcelain")
 	if err != nil {
 		return "", false, fmt.Errorf("git status failed")
 	}
@@ -230,75 +230,17 @@ func doGitSync(ctx context.Context, cfg config, job gitSyncJob) (string, bool, e
 	}
 
 	msg := fmt.Sprintf("sync: %s %s", req.RunbookTitle, date)
-	if err := gitRun(ctx, ws, env, "commit", "-m", msg); err != nil {
+	if err := gitcmd.Run(ctx, ws, env, "commit", "-m", msg); err != nil {
 		return "", false, fmt.Errorf("git commit failed")
 	}
 
-	if err := gitRun(ctx, ws, env, "push", "origin", cfg.GitSyncBranch); err != nil {
+	if err := gitcmd.Run(ctx, ws, env, "push", "origin", cfg.GitSyncBranch); err != nil {
 		return "", false, fmt.Errorf("git push failed")
 	}
 
-	sha, err := gitOutput(ctx, ws, env, "rev-parse", "HEAD")
+	sha, err := gitcmd.Output(ctx, ws, env, "rev-parse", "HEAD")
 	if err != nil {
 		return "", false, fmt.Errorf("rev-parse failed")
 	}
 	return sha, true, nil
-}
-
-// gitAuthEnv builds the per-command environment for git and returns a cleanup
-// for any temporary files. HTTPS tokens go through GIT_ASKPASS so the secret
-// never appears in argv or the remote URL; SSH uses a key file.
-func gitAuthEnv(cfg config) ([]string, func(), error) {
-	env := []string{"GIT_TERMINAL_PROMPT=0"}
-	cleanup := func() {}
-
-	if cfg.GitSyncSSHKey != "" {
-		env = append(env, "GIT_SSH_COMMAND=ssh -i "+cfg.GitSyncSSHKey+
-			" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new")
-	}
-
-	if cfg.GitSyncToken != "" {
-		f, err := os.CreateTemp("", "runbooks-askpass-*")
-		if err != nil {
-			return nil, nil, fmt.Errorf("auth setup failed")
-		}
-		script := "#!/bin/sh\ncase \"$1\" in\n" +
-			"  *sername*) printf '%s\\n' \"$GITSYNC_ASKPASS_USER\" ;;\n" +
-			"  *) printf '%s\\n' \"$GITSYNC_ASKPASS_TOKEN\" ;;\n" +
-			"esac\n"
-		if _, err := f.WriteString(script); err != nil {
-			f.Close()
-			os.Remove(f.Name())
-			return nil, nil, fmt.Errorf("auth setup failed")
-		}
-		if err := f.Chmod(0o700); err != nil {
-			f.Close()
-			os.Remove(f.Name())
-			return nil, nil, fmt.Errorf("auth setup failed")
-		}
-		f.Close()
-		env = append(env,
-			"GIT_ASKPASS="+f.Name(),
-			"GITSYNC_ASKPASS_USER="+cfg.GitSyncUsername,
-			"GITSYNC_ASKPASS_TOKEN="+cfg.GitSyncToken,
-		)
-		cleanup = func() { os.Remove(f.Name()) }
-	}
-
-	return env, cleanup, nil
-}
-
-func gitRun(ctx context.Context, dir string, env []string, args ...string) error {
-	cmd := exec.CommandContext(ctx, "git", args...)
-	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), env...)
-	return cmd.Run()
-}
-
-func gitOutput(ctx context.Context, dir string, env []string, args ...string) (string, error) {
-	cmd := exec.CommandContext(ctx, "git", args...)
-	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), env...)
-	out, err := cmd.Output()
-	return strings.TrimSpace(string(out)), err
 }

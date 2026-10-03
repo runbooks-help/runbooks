@@ -355,7 +355,10 @@ func isTableSeparator(cells []string) bool {
 // Display names and sidebar order come from an optional content/_meta.yml (see
 // manifestFile). Results are sorted by system (order, title), then category
 // (order, title), then runbook order and title.
-func LoadDir(dir string) ([]RunbookDef, error) {
+//
+// exclude lists paths (relative to dir) the walk skips — the git-sync records
+// folder, when content lives at the root of a repo that also holds records.
+func LoadDir(dir string, exclude ...string) ([]RunbookDef, error) {
 	man, err := loadManifest(filepath.Join(dir, manifestFile))
 	if err != nil {
 		return nil, err
@@ -366,14 +369,27 @@ func LoadDir(dir string) ([]RunbookDef, error) {
 		if err != nil {
 			return err
 		}
-		if d.IsDir() || !strings.HasSuffix(d.Name(), ".md") {
-			return nil
-		}
 		rel, err := filepath.Rel(dir, path)
 		if err != nil {
 			return err
 		}
-		parts := strings.Split(filepath.ToSlash(rel), "/")
+		slashRel := filepath.ToSlash(rel)
+		for _, ex := range exclude {
+			ex = strings.Trim(filepath.ToSlash(ex), "/")
+			if ex == "" || slashRel == "." {
+				continue
+			}
+			if slashRel == ex || strings.HasPrefix(slashRel, ex+"/") {
+				if d.IsDir() {
+					return fs.SkipDir
+				}
+				return nil
+			}
+		}
+		if d.IsDir() || !strings.HasSuffix(d.Name(), ".md") {
+			return nil
+		}
+		parts := strings.Split(slashRel, "/")
 		parts = parts[:len(parts)-1] // drop the file name
 
 		data, err := os.ReadFile(path)

@@ -16,7 +16,14 @@ what the container runs with.
 
 | Var | Default | Meaning |
 |---|---|---|
-| `CONTENT_DIR` | `content` | Directory the runbooks are read from at startup. The image ships an empty one — mount your own. |
+| `CONTENT_DIR` | `content` | Directory the runbooks are read from when `CONTENT_SOURCE=local`. The image ships an empty one — mount your own. |
+| `CONTENT_SOURCE` | `local` | `local` (read `CONTENT_DIR`) or `git` (clone the remote into a cache and read it). |
+| `CONTENT_GIT_PATH` | `.` | Directory within the repo to read when `CONTENT_SOURCE=git`. |
+| `CONTENT_GIT_CACHE` | `data/content` | Where the git clone lives; reused across restarts. |
+
+With `CONTENT_SOURCE=git`, the remote and credential come from the `GITSYNC_*`
+variables below — content at the repo root, notes records in `GITSYNC_BASE_PATH`,
+which the content walk skips.
 
 ## Identity
 
@@ -50,7 +57,7 @@ unauthenticated request is refused), or `GITSYNC_API_TOKEN` when identity is off
 |---|---|---|
 | `GITSYNC_REPO` | *(unset)* | Remote URL — any host, HTTPS or SSH. Unset disables sync. |
 | `GITSYNC_BRANCH` | `main` | Target branch. |
-| `GITSYNC_BASE_PATH` | `runs` | Directory prefix for records. |
+| `GITSYNC_BASE_PATH` | `runbook_runs` | Directory prefix for records (skipped by the content walk when it sits inside the content tree). |
 | `GITSYNC_AUTHOR_NAME` | *(required)* | Fallback commit identity, when the user has no email. |
 | `GITSYNC_AUTHOR_EMAIL` | *(required)* | Fallback commit email. |
 | `GITSYNC_USERNAME` | `oauth2` | HTTPS basic-auth username (token as password). |

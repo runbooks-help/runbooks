@@ -2,10 +2,12 @@
 
 ## Storage
 
-- **Runbooks** are plain markdown in `CONTENT_DIR` (default `content`), read from
-  disk at runtime — not stored in a database, and not part of a backup of it. The
-  image ships an empty directory (it never bundles content); mount yours there, or
-  point `CONTENT_DIR` at wherever your runbooks live.
+- **Runbooks** are plain markdown read from a content **source** at runtime — not
+  stored in a database, and not part of a backup of it. By default that is a local
+  directory (`CONTENT_DIR`, default `content`); set `CONTENT_SOURCE=git` to read
+  from a repository instead, cloned into `CONTENT_GIT_CACHE` (records under
+  `GITSYNC_BASE_PATH` are skipped). The image ships an empty directory (it never
+  bundles content); mount yours there, or point the source wherever you like.
 - **Identity** (users, passkeys, sessions, invites, audit events) lives in the
   configured database. SQLite is the default and keeps everything in one file at
   `file:./data/runbooks.db`.
