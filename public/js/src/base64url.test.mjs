@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 

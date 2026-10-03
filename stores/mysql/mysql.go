@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 // Package mysql is the MySQL implementation of stores.Store.
 package mysql
 

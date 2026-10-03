@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 // Package gitrepo wraps go-git for the two places Runbooks touches a remote:
 // reading runbook content and writing notes records. It is pure Go — no system
 // git binary.

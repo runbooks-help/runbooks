@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: FSL-1.1-MIT */
+
 /* The author display below would otherwise beat the UA rule for [hidden], so the
    empty toast (and its close ✕) would sit at the bottom of the panel always. */
 .notes-sync-toast[hidden] {

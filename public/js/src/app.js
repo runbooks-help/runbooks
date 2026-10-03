@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 // Variable substitution + copy-to-clipboard for runbook pages
 
 import { decodeBase64URL, encodeBase64URL } from './base64url.mjs';

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 // Package storetest provides the contract every stores.Store implementation must
 // satisfy. Each store package runs it against a clean database.
 package storetest

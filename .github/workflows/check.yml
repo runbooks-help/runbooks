@@ -40,6 +40,9 @@ jobs:
           go run ./cmd/notices
           git diff --exit-code -- THIRD_PARTY_NOTICES.md
 
+      - name: Verify SPDX headers
+        run: go run ./cmd/spdx
+
       - name: go vet
         run: go vet ./...
 

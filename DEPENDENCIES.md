@@ -5,7 +5,7 @@ project's outbound licence, **FSL-1.1-MIT** (Functional Source License 1.1, MIT
 future licence). Spec: `runbooks-commercial-model.md`; governance:
 `runbooks-governance.md`.
 
-- Date: 2026-10-01
+- Date: 2026-10-03
 - Scope: what actually ships — the Go binary, the vendored browser JS and
   icons, the self-hosted fonts, and the container base. Build/test-only tooling
   is recorded too, because it affects CI and reproducibility.
@@ -211,11 +211,15 @@ Not distributed, but part of the build/CI story.
 
 ## 7. Container
 
-The runtime image is `alpine:3` plus `git`, `openssh-client` and
-`ca-certificates` from Alpine's package index. Alpine packages carry their own
-licences (mostly MIT / BSD / GPL where Alpine permits it); they are the base
-image's responsibility, not linked into `runbooks`. The image ships `LICENSE` and
-`NOTICE` alongside the binary.
+The runtime image is stock `alpine:3` plus `ca-certificates` from Alpine's
+package index — the go-git transport removed the `git` and `openssh-client`
+packages the image used to carry. Alpine packages carry their own licences
+(mostly MIT / BSD / GPL where Alpine permits it) and are the base image's
+responsibility, not linked into `runbooks`; per-package licence metadata is
+available with `apk info -L <pkg>`. The chain therefore reads: the `runbooks`
+binary (FSL-1.1-MIT, with `NOTICE` + `THIRD_PARTY_NOTICES.md`), plus the Alpine
+base image (its own licences). The image ships `LICENSE`, `NOTICE`,
+`DEPENDENCIES.md` and `THIRD_PARTY_NOTICES.md` alongside the binary.
 
 ## Regenerating this inventory
 
@@ -238,3 +242,10 @@ mise run notices
 ```
 
 CI regenerates it and fails if the committed file differs.
+
+## Source-file headers
+
+Every source file Runbooks authors carries `SPDX-License-Identifier: FSL-1.1-MIT`
+at the top. `mise run lint:spdx` verifies it (CI runs the same check); apply
+missing headers with `go run ./cmd/spdx -fix`. Vendored third-party assets,
+generated files and the Markdown docs are out of scope.

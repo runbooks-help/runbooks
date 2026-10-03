@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 // Runbook-page E2E: the reader's interactions on a real runbook page, against the
 // kitchen-sink gallery — the step roll-up, the notes Clear dialog, and both
 // themes. Also produces the runbook screenshots.

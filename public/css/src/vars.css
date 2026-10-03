@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: FSL-1.1-MIT */
+
 /* Variables — a runbook's runtime inputs. Two or fewer render inline in the
    sticky bar; more collapse to a one-line summary whose Edit opens the editor
    dialog (a table of label + value). No separate "Variables" heading. */

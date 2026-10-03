@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 // Package sqlite is the SQLite implementation of stores.Store — the default
 // provider: a single file, no external service, one container.
 package sqlite

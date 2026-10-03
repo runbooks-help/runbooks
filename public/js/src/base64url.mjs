@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 // WebAuthn options and responses carry binary fields as base64url strings.
 // These convert between those strings and byte arrays. atob/btoa are the only
 // browser primitives, so the padding and URL-safe handling lives here, in one

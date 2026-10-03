@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: FSL-1.1-MIT */
+
 /* App shell — rail + main content grid. The sidebar is a summoned overlay, not a
    column, so main keeps its width at every viewport. */
 

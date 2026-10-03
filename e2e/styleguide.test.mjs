@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 // Styleguide E2E: renders the design system inside the app shell and captures
 // each section, so a visual change can be eyeballed from one run. Screenshots are
 // the point — there is little to assert beyond the page rendering.

@@ -13,6 +13,7 @@ COPY . .
 RUN go tool templ generate ./... && \
     go run ./cmd/css && \
     go run ./cmd/js && \
+    go run ./cmd/notices -version "${VERSION}" && \
     CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.version=${VERSION}" -o runbooks .
 
 FROM alpine:3

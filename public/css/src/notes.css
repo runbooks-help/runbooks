@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: FSL-1.1-MIT */
+
 /* The panel is a floating overlay at every width, so toggling it never pushes the
    content. It carries its own close, since it can cover the header toggle. */
 .notes-panel {

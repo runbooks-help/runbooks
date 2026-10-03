@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 // Package postgres is the PostgreSQL implementation of stores.Store.
 package postgres
 

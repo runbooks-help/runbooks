@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 package views
 
 // PageConfig is the runtime configuration the client reads from #page-config:

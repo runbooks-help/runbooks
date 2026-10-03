@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 // Package contentsource resolves the directory the runbooks are read from: a
 // local directory, or a git repository cloned into a cache.
 package contentsource

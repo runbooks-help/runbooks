@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 // Package stores holds the identity persistence contract and an implementation
 // per database under subpackages.
 //

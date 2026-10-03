@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 // Package markup turns runbook text into the HTML fragments the views inject:
 // the inline Markdown used in prose, notices and table cells, and the
 // step-title → anchor slug.

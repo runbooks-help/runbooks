@@ -13,7 +13,11 @@ licence, not the FSL. The components and their licences are inventoried in
 DEPENDENCIES.md, and their full licence texts are reproduced in
 THIRD_PARTY_NOTICES.md.
 
-Two components require explicit notice here.
+Two components require explicit notice here. One is weak-copyleft:
+github.com/go-sql-driver/mysql (MPL-2.0), used unmodified and explicitly carved
+out from the FSL — see its section below. The other is the OFL-licensed fonts.
+Nothing in the FSL restricts your rights under the MPL in the driver's source,
+or under the OFL in the fonts.
 
 
 Atkinson Hyperlegible Next / Atkinson Hyperlegible Mono (fonts) — OFL-1.1

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 // Differential fuzzing for base64url.mjs against Node's own base64url codec.
 // Seeded PRNG so any failure is reproducible; FUZZ_ITERATIONS raises the budget
 // for a longer round.

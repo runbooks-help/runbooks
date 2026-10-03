@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 // Package identity is the identity service: passkey ceremonies and sessions on
 // top of stores. It holds no HTTP and no configuration loading — callers hand it
 // raw ceremony bodies and get back users and session tokens.

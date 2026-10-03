@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: FSL-1.1-MIT */
+
 /* Alert — interactive feedback. Intent (danger, warn, info, success) is
    independent of weight (inline, panel, banner): the intent sets the colour, the
    weight sets the frame. Panel is the default and carries no modifier. Status is

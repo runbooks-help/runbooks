@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 // Shared browser E2E harness. Boots a throwaway app instance (empty SQLite DB,
 // random port, identity on) and a fresh Chromium with a CDP virtual authenticator
 // shaped like a synced passkey. Each suite owns one concern and boots its own;

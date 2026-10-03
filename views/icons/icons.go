@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
 // Package icons renders the vendored Lucide icon subset as inline SVG.
 //
 // Icons are from Lucide 1.49.0 (https://lucide.dev), ISC-licensed; some are

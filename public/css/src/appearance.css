@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: FSL-1.1-MIT */
+
 /* Appearance — the floating panel of reading preferences (theme, code weight,
    reading size, steps). One component: box, title, four preference rows. It is
    summoned from a cogwheel — in the rail (always visible) or the sidebar

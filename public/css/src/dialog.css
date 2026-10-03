@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: FSL-1.1-MIT */
+
 /* Dialog — a native <dialog> modal, used for confirmations and prompts instead
    of window.confirm()/prompt(). The browser supplies the backdrop, focus trap
    and Esc handling; this only styles the panel. */
