@@ -173,6 +173,29 @@ func TestEnsureCloneFetchResetAndLastGood(t *testing.T) {
 	}
 }
 
+// TestExists covers the cache probe: a repository is true, a missing directory
+// and a plain directory are false.
+func TestExists(t *testing.T) {
+	repo := seedSource(t)
+	ok, err := Exists(repo)
+	if err != nil {
+		t.Fatalf("Exists repo: %v", err)
+	}
+	if !ok {
+		t.Fatal("want true for a repository")
+	}
+
+	missing := filepath.Join(t.TempDir(), "missing")
+	if ok, err := Exists(missing); err != nil || ok {
+		t.Fatalf("Exists missing = %v, %v; want false, nil", ok, err)
+	}
+
+	plain := t.TempDir()
+	if ok, err := Exists(plain); err != nil || ok {
+		t.Fatalf("Exists plain = %v, %v; want false, nil", ok, err)
+	}
+}
+
 // seedSource creates a non-bare repo with one runbook on main, using go-git.
 func seedSource(t *testing.T) string {
 	t.Helper()

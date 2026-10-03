@@ -1,11 +1,19 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
+
+	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+
+	"runbooks/contentsource"
 )
 
 // TestContentStateReload pins the rebuild-and-swap: a reload serves slugs added
@@ -38,6 +46,64 @@ func TestContentStateReload(t *testing.T) {
 	if code := serve(cs, "/second.md"); code != http.StatusOK {
 		t.Fatalf("/second.md after reload = %d, want 200", code)
 	}
+}
+
+// TestContentStateServesGitCacheWhenRemoteIsDown pins the startup order: with a
+// populated cache, boot serves last-good even when the remote is unreachable
+// (the background refresh then fails and is logged).
+func TestContentStateServesGitCacheWhenRemoteIsDown(t *testing.T) {
+	src := seedGitRepo(t)
+	cache := filepath.Join(t.TempDir(), "cache")
+	if _, _, err := contentsource.Open(context.Background(), contentsource.Options{
+		Source: "git", Repo: "file://" + src, Branch: "main", Cache: cache,
+	}); err != nil {
+		t.Fatalf("seed cache: %v", err)
+	}
+
+	cs, err := newContentState(config{
+		ContentSource:   "git",
+		ContentDir:      "content",
+		GitSyncRepo:     "file:///nonexistent-repo",
+		GitSyncBranch:   "main",
+		ContentGitPath:  ".",
+		ContentGitCache: cache,
+	}, nil, nil)
+	if err != nil {
+		t.Fatalf("boot with a cache must succeed: %v", err)
+	}
+	cs.bg.Wait()
+	if code := serve(cs, "/first"); code != http.StatusOK {
+		t.Fatalf("/first from cache = %d, want 200", code)
+	}
+}
+
+// seedGitRepo creates a repo with one runbook on main, using go-git.
+func seedGitRepo(t *testing.T) string {
+	t.Helper()
+	src := t.TempDir()
+	r, err := git.PlainInit(src, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, plumbing.NewBranchReferenceName("main"))); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(src, "first.md"), []byte("---\ntitle: First\nslug: first\n---\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	wt, err := r.Worktree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := wt.Add("first.md"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := wt.Commit("init", &git.CommitOptions{
+		Author: &object.Signature{Name: "Test", Email: "test@example.com", When: time.Now()},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	return src
 }
 
 func serve(h http.Handler, path string) int {

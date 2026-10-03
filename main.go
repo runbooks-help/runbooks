@@ -103,12 +103,35 @@ type contentState struct {
 	cfg   config
 	store stores.Store
 	authn *auth
+
+	// bg tracks the startup background refresh (a reused git cache), so a test
+	// can wait for it to settle before its temp dirs are removed.
+	bg sync.WaitGroup
 }
 
 func newContentState(cfg config, store stores.Store, authn *auth) (*contentState, error) {
 	cs := &contentState{cfg: cfg, store: store, authn: authn}
-	if err := cs.reload(); err != nil {
+	dir, reused, err := contentsource.Open(context.Background(), cs.sourceOptions())
+	if err != nil {
 		return nil, err
+	}
+	snap, err := parseContent(dir, cfg.GitSyncBasePath)
+	if err != nil {
+		return nil, err
+	}
+	cs.mu.Lock()
+	cs.mux = cs.buildMux(snap)
+	cs.mu.Unlock()
+	// A reused git cache is last-good: serve it now and fetch in the background.
+	// A failed refresh logs and leaves the startup snapshot serving.
+	if reused {
+		cs.bg.Add(1)
+		go func() {
+			defer cs.bg.Done()
+			if err := cs.reload(); err != nil {
+				log.Printf("content: background refresh failed: %v", err)
+			}
+		}()
 	}
 	return cs, nil
 }
@@ -121,10 +144,14 @@ func (cs *contentState) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	mux.ServeHTTP(w, r)
 }
 
-// reload rebuilds the snapshot and routes and swaps them in. A failed load
-// leaves the current set serving.
+// reload fetches the source, rebuilds the snapshot and routes, and swaps them
+// in. A failed fetch or parse leaves the current set serving (last-good).
 func (cs *contentState) reload() error {
-	snap, err := loadContent(cs.cfg)
+	dir, err := contentsource.Refresh(context.Background(), cs.sourceOptions())
+	if err != nil {
+		return err
+	}
+	snap, err := parseContent(dir, cs.cfg.GitSyncBasePath)
 	if err != nil {
 		return err
 	}
@@ -135,12 +162,11 @@ func (cs *contentState) reload() error {
 	return nil
 }
 
-// loadContent resolves the content source and parses it. An empty tree is not an
-// error: the index renders a welcome that says how to add runbooks. The git-sync
-// records path lives inside the repo when content is at its root, so it is
-// excluded from the walk (records have no frontmatter).
-func loadContent(cfg config) (*contentSnapshot, error) {
-	dir, err := contentsource.Resolve(context.Background(), contentsource.Options{
+// sourceOptions builds the content-source options from the config. Content and
+// notes sync share one remote and credential (GITSYNC_*).
+func (cs *contentState) sourceOptions() contentsource.Options {
+	cfg := cs.cfg
+	return contentsource.Options{
 		Source: cfg.ContentSource,
 		Dir:    cfg.ContentDir,
 		Repo:   cfg.GitSyncRepo,
@@ -152,11 +178,15 @@ func loadContent(cfg config) (*contentSnapshot, error) {
 		},
 		Path:  cfg.ContentGitPath,
 		Cache: cfg.ContentGitCache,
-	})
-	if err != nil {
-		return nil, err
 	}
-	defs, err := parser.LoadDir(dir, cfg.GitSyncBasePath)
+}
+
+// parseContent parses a content directory into a snapshot. An empty tree is not
+// an error: the index renders a welcome that says how to add runbooks. The
+// git-sync records path lives inside the repo when content is at its root, so it
+// is excluded from the walk (records have no frontmatter).
+func parseContent(dir, recordsPath string) (*contentSnapshot, error) {
+	defs, err := parser.LoadDir(dir, recordsPath)
 	if err != nil {
 		return nil, err
 	}

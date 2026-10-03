@@ -71,6 +71,19 @@ func Fresh(ctx context.Context, dir, repo, branch string, creds Credentials) (*g
 	return r, checkoutOrCreate(r, branch)
 }
 
+// Exists reports whether dir already holds a git repository, without fetching
+// it. A missing or non-repository directory is (false, nil).
+func Exists(dir string) (bool, error) {
+	_, err := git.PlainOpen(dir)
+	if errors.Is(err, git.ErrRepositoryNotExists) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("open %s: %w", dir, err)
+	}
+	return true, nil
+}
+
 // Ensure updates dir to origin/branch, cloning when dir is not yet a
 // repository. A failed fetch keeps an existing checkout (last-good) and reports
 // the error through onFetchError, when non-nil.
