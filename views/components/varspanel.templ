@@ -7,68 +7,114 @@ import (
 	"runbooks/parser"
 )
 
-// varsFoldThreshold is how many variables a runbook may carry before its panel
-// starts folded. Below it the row is short enough that folding gains nothing.
-const varsFoldThreshold = 2
+// varsInlineThreshold is how many inputs stay in the sticky bar as fields.
+// More than this and the bar becomes a one-line summary that opens the editor
+// dialog, so the bar never grows past one row however many inputs a runbook has.
+const varsInlineThreshold = 2
 
-// VarsPanel renders a runbook's runtime inputs as a wrapping row — no "Variables"
-// heading — that folds to a one-line summary once there are more than
-// varsFoldThreshold of them.
+// VarsPanel renders a runbook's runtime inputs — no "Variables" heading. Two or
+// fewer render as a wrapping row in the sticky bar; more collapse to a one-line
+// summary whose Edit control opens the editor dialog (a table of label + value,
+// full-screen sheet on narrow viewports).
 templ VarsPanel(fields []parser.VarField) {
-	<div class={ varsPanelClass(len(fields)) } data-vars-panel>
-		<button class="vars-fold" type="button" data-vars-toggle aria-expanded="true" aria-controls="vars-fields">
-			<span class="vars-fold-caret" aria-hidden="true">▾</span>
-			<span class="vars-fold-title">Inputs</span>
-			<span class="badge">{ strconv.Itoa(len(fields)) }</span>
-			<span class="vars-fold-set" data-vars-set></span>
-			<span class="vars-fold-labels">{ varsLabels(fields) }</span>
-		</button>
-		<div class="vars-fields" id="vars-fields">
-			for _, f := range fields {
-				<div class="var-field">
-					<div class="var-label-row">
-						<label class="var-label" for={ f.ID }>{ f.Label }</label>
-						if f.Hint != "" {
-							<button class="hint-btn" data-hint={ f.Hint } type="button" aria-label="How to find this value">?</button>
-						}
-					</div>
-					if f.Secret {
-						<input
-							id={ f.ID }
-							class="var-input"
-							type="password"
-							autocomplete="off"
-							spellcheck="false"
-							data-var={ f.VarName }
-						/>
-					} else {
-						<input
-							id={ f.ID }
-							class="var-input"
-							type="text"
-							autocomplete="off"
-							spellcheck="false"
-							data-var={ f.VarName }
-							placeholder={ f.Placeholder }
-						/>
-					}
+	<div class="vars-panel" data-vars-panel>
+		if len(fields) <= varsInlineThreshold {
+			<div class="vars-row">
+				for _, f := range fields {
+					@varField(f)
+				}
+			</div>
+		} else {
+			<button class="vars-summary" type="button" data-vars-open aria-haspopup="dialog" aria-expanded="false">
+				<span class="vars-summary-caret" aria-hidden="true">▸</span>
+				<span class="vars-summary-title">Inputs</span>
+				<span class="badge">{ strconv.Itoa(len(fields)) }</span>
+				<span class="vars-summary-list">{ varsLabels(fields) }</span>
+				<span class="vars-summary-set" data-vars-set></span>
+				<span class="btn btn-ghost vars-summary-edit">Edit</span>
+			</button>
+			<dialog class="vars-editor" data-vars-dialog aria-label="Runbook inputs">
+				<div class="vars-editor-head">
+					<span class="vars-editor-title">Inputs</span>
+					<span class="badge">{ strconv.Itoa(len(fields)) }</span>
+					<span class="vars-editor-set" data-vars-editor-set></span>
+					<button class="drawer-close" type="button" data-vars-close aria-label="Close">✕</button>
 				</div>
-			}
-		</div>
+				<div class="vars-editor-body">
+					<table class="vars-table">
+						<thead>
+							<tr>
+								<th class="vars-table-flag"></th>
+								<th>Input</th>
+								<th class="vars-table-value">Value</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, f := range fields {
+								<tr data-vars-field>
+									<td class="vars-table-flag"><span class="vars-dot"></span></td>
+									<td class="vars-table-label">
+										<span class="vars-table-name">{ f.Label }</span>
+										if f.Hint != "" {
+											<button class="hint-btn" data-hint={ f.Hint } type="button" aria-label="How to find this value">?</button>
+										}
+									</td>
+									<td class="vars-table-input">
+										@varInput(f)
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+				<div class="vars-editor-foot">
+					<button class="btn btn-ghost" type="button" data-vars-clear>Clear all</button>
+					<button class="btn btn-primary" type="button" data-vars-done>Done</button>
+				</div>
+			</dialog>
+		}
 	</div>
 }
 
-// varsPanelClass folds the panel by default once a runbook carries more than
-// varsFoldThreshold inputs. A stored `runbooks-vars` preference overrides it via
-// the `html[data-vars]` rules, so the default is only the starting point.
-func varsPanelClass(n int) string {
-	if n > varsFoldThreshold {
-		return "vars-panel is-folded"
-	}
-	return "vars-panel"
+// varField is the inline field — label above input, with its hint popover.
+templ varField(f parser.VarField) {
+	<div class="var-field">
+		<span class="var-label-row">
+			<label class="var-label" for={ f.ID }>{ f.Label }</label>
+			if f.Hint != "" {
+				<button class="hint-btn" data-hint={ f.Hint } type="button" aria-label="How to find this value">?</button>
+			}
+		</span>
+		@varInput(f)
+	</div>
 }
 
-// varsLabels joins the field labels for the folded summary preview.
+// varInput is the shared input control (secret or plain), used inline and in the
+// editor table.
+templ varInput(f parser.VarField) {
+	if f.Secret {
+		<input
+			id={ f.ID }
+			class="var-input"
+			type="password"
+			autocomplete="off"
+			spellcheck="false"
+			data-var={ f.VarName }
+		/>
+	} else {
+		<input
+			id={ f.ID }
+			class="var-input"
+			type="text"
+			autocomplete="off"
+			spellcheck="false"
+			data-var={ f.VarName }
+			placeholder={ f.Placeholder }
+		/>
+	}
+}
+
+// varsLabels joins the field labels for the summary's truncated preview.
 func varsLabels(fields []parser.VarField) string {
 	labels := make([]string, len(fields))
 	for i, f := range fields {

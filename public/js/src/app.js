@@ -66,37 +66,55 @@ document.querySelectorAll('[data-var]').forEach(input => {
 // Initialise display with placeholders
 updateAll();
 
-// Inputs fold — collapse the variables panel to a one-line summary. The server
-// folds by count (more than two) so the first paint is right; a stored
-// `runbooks-vars` preference overrides it. The summary's "N set" is live.
+// Inputs — two or fewer render inline in the bar; more collapse to a summary
+// whose Edit opens the editor dialog. The "N set" counts (summary and dialog
+// header) are live, and each editor row marks itself set once it has a value.
 const varsPanel = document.querySelector('[data-vars-panel]');
 if (varsPanel) {
-	const varsToggle = varsPanel.querySelector('[data-vars-toggle]');
-	const varsSet = varsPanel.querySelector('[data-vars-set]');
+	const varsDialog = varsPanel.querySelector('[data-vars-dialog]');
+	const varsOpen = varsPanel.querySelector('[data-vars-open]');
+	const varsSetLabels = [...varsPanel.querySelectorAll('[data-vars-set], [data-vars-editor-set]')];
 	const varsInputs = [...varsPanel.querySelectorAll('[data-var]')];
-
-	const applyVarsFold = folded => {
-		varsPanel.classList.toggle('is-folded', folded);
-		document.documentElement.dataset.vars = folded ? 'folded' : 'expanded';
-		varsToggle.setAttribute('aria-expanded', String(!folded));
-	};
 
 	const updateVarsSet = () => {
 		const set = varsInputs.filter(i => i.value.trim() !== '').length;
-		varsSet.textContent = set ? `${set} set` : '';
+		varsSetLabels.forEach(el => {
+			el.textContent = set ? `${set} set` : '';
+		});
+		varsInputs.forEach(i =>
+			i.closest('[data-vars-field]')?.classList.toggle('is-set', i.value.trim() !== '')
+		);
 	};
 
 	varsInputs.forEach(i => i.addEventListener('input', updateVarsSet));
 	updateVarsSet();
 
-	const stored = localStorage.getItem('runbooks-vars');
-	applyVarsFold(stored ? stored === 'folded' : varsPanel.classList.contains('is-folded'));
-
-	varsToggle.addEventListener('click', () => {
-		const folded = !varsPanel.classList.contains('is-folded');
-		localStorage.setItem('runbooks-vars', folded ? 'folded' : 'expanded');
-		applyVarsFold(folded);
-	});
+	if (varsDialog && varsOpen) {
+		const closeVars = () => varsDialog.close();
+		varsOpen.addEventListener('click', () => {
+			varsOpen.setAttribute('aria-expanded', 'true');
+			varsDialog.showModal();
+		});
+		varsDialog.querySelector('[data-vars-close]')?.addEventListener('click', closeVars);
+		varsDialog.querySelector('[data-vars-done]')?.addEventListener('click', closeVars);
+		varsDialog.querySelector('[data-vars-clear]')?.addEventListener('click', () => {
+			varsInputs.forEach(i => {
+				i.value = '';
+				vars[i.dataset.var] = '';
+			});
+			updateAll();
+			updateVarsSet();
+			varsInputs[0]?.focus();
+		});
+		// A native <dialog> only closes on Esc; make the scrim dismiss it too, so
+		// every modal overlay (this and the sidebar) answers a click outside.
+		varsDialog.addEventListener('click', e => {
+			if (e.target === varsDialog) varsDialog.close();
+		});
+		// Esc/the scrim close without going through closeVars, so sync the
+		// trigger from the close event rather than the button handler.
+		varsDialog.addEventListener('close', () => varsOpen.setAttribute('aria-expanded', 'false'));
+	}
 }
 
 // Copy-to-clipboard
@@ -209,14 +227,24 @@ function openHint(btn) {
 
 	hintPre.textContent = btn.dataset.hint;
 
-	// Position popup to the right of the rail, vertically near the button.
-	// Popup uses visibility:hidden so offsetHeight is always valid.
-	const railWidth = document.querySelector('.rail').offsetWidth;
-	const r = btn.getBoundingClientRect();
-	const popupH = hintPopup.offsetHeight;
-	const top = Math.max(8, Math.min(r.top, window.innerHeight - popupH - 8));
+	// The popup has to live inside whatever top layer the trigger is in: a plain
+	// body child paints under an open <dialog>. Re-parent on every open.
+	const host = btn.closest('dialog[open]') || document.body;
+	if (hintPopup.parentNode !== host) host.appendChild(hintPopup);
 
-	hintPopup.style.left = (railWidth + 8) + 'px';
+	// Sit beside the trigger, flipping to its left when the right edge runs out,
+	// and clamp so the panel never leaves the viewport. visibility:hidden keeps
+	// the measured size valid.
+	const gap = 8;
+	const r = btn.getBoundingClientRect();
+	const popupW = hintPopup.offsetWidth;
+	const popupH = hintPopup.offsetHeight;
+	let left = r.right + gap;
+	if (left + popupW > window.innerWidth - gap) left = r.left - popupW - gap;
+	left = Math.max(gap, Math.min(left, window.innerWidth - popupW - gap));
+	const top = Math.max(gap, Math.min(r.top, window.innerHeight - popupH - gap));
+
+	hintPopup.style.left = left + 'px';
 	hintPopup.style.top = top + 'px';
 	hintPopup.classList.add('open');
 }
@@ -241,6 +269,10 @@ document.querySelectorAll('.hint-btn').forEach(btn => {
 document.addEventListener('click', e => {
 	if (activeHintBtn && !hintPopup.contains(e.target)) closeHint();
 });
+
+// A dialog closing (Esc, Done, backdrop) hides its top layer, so the hint it
+// hosted must go with it rather than linger against a stale button.
+document.querySelectorAll('dialog').forEach(d => d.addEventListener('close', closeHint));
 
 document.addEventListener('keydown', e => {
 	if (e.key === 'Escape') closeHint();

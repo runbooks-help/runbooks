@@ -28,6 +28,49 @@
 	}
 }
 
+/* Inputs editor: a full-screen sheet on a phone, one field per row, rather than
+   a side drawer with a two-column table. */
+@media (max-width: 639.98px) {
+	dialog.vars-editor {
+		inset-inline: 0;
+		width: 100vw;
+		max-width: 100vw;
+		border-left: none;
+	}
+
+	.vars-table thead {
+		display: none;
+	}
+
+	.vars-table,
+	.vars-table tbody,
+	.vars-table tr,
+	.vars-table td {
+		display: block;
+	}
+
+	.vars-table tbody tr {
+		padding: var(--space-4) 0;
+	}
+
+	.vars-table td {
+		padding: 0;
+	}
+
+	.vars-table-flag {
+		display: none;
+	}
+
+	.vars-table-value {
+		width: auto;
+	}
+
+	.vars-table-name {
+		display: inline-block;
+		margin-bottom: var(--space-1);
+	}
+}
+
 @media print {
 	body {
 		display: block !important;

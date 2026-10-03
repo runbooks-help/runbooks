@@ -31,6 +31,7 @@
 	position: fixed;
 	z-index: 200;
 	width: 440px;
+	max-width: calc(100vw - var(--space-4));
 	background: #111;
 	border: 1px solid #2a2a2a;
 	border-radius: var(--radius-md);

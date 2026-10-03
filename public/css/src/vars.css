@@ -1,87 +1,17 @@
-/* Variables — a runbook's runtime inputs. A wrapping row that uses the horizontal
-   width (labels above inputs), with a fold to a one-line summary once a runbook
-   carries several. There is no separate "Variables" heading; the fold control
-   names the group. */
+/* Variables — a runbook's runtime inputs. Two or fewer render inline in the
+   sticky bar; more collapse to a one-line summary whose Edit opens the editor
+   dialog (a table of label + value). No separate "Variables" heading. */
 
 .vars-panel {
+	flex: 1;
+	min-width: 0;
+}
+
+.vars-row {
 	display: flex;
-	flex-wrap: wrap;
-	align-items: flex-end;
-	gap: var(--space-2) var(--space-5);
-	padding: var(--space-3) var(--space-6);
-	border-bottom: 1px solid var(--border);
-	flex-shrink: 0;
-}
-
-.vars-fold {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	padding: 0;
-	border: none;
-	background: transparent;
-	color: var(--muted);
-	font: inherit;
-	font-size: var(--text-2xs);
-	line-height: var(--leading-tight);
-	cursor: pointer;
-}
-
-.vars-fold-caret {
-	color: var(--muted);
-	transition: transform var(--duration-fast) var(--ease);
-}
-
-.vars-panel.is-folded .vars-fold-caret {
-	transform: rotate(-90deg);
-}
-
-.vars-fold-title {
-	font-weight: 600;
-	color: var(--text);
-}
-
-.vars-fold-set {
-	color: var(--warn);
-}
-
-/* Folded, the labels preview what the hidden inputs are. Expanded, the fields
-   themselves say it, so the preview drops out. JS keeps the class in step. */
-.vars-fold-labels {
-	max-width: 46ch;
-	overflow: hidden;
-	white-space: nowrap;
-	text-overflow: ellipsis;
-	color: var(--muted);
-	font-family: var(--font-mono);
-}
-
-.vars-panel:not(.is-folded) .vars-fold-labels {
-	display: none;
-}
-
-.vars-fields {
-	display: flex;
-	flex: 1 1 100%;
 	flex-wrap: wrap;
 	align-items: flex-end;
 	gap: var(--space-3) var(--space-5);
-}
-
-/* Visibility is decided twice: the server folds by count (the `is-folded`
-   class) so the first paint is right, and a stored preference overrides it
-   through `html[data-vars]` set before paint. The attribute rules carry an
-   extra class so they beat the count default. */
-.vars-panel.is-folded .vars-fields {
-	display: none;
-}
-
-html[data-vars="folded"] .vars-panel .vars-fields {
-	display: none;
-}
-
-html[data-vars="expanded"] .vars-panel.is-folded .vars-fields {
-	display: flex;
 }
 
 .var-field {
@@ -94,7 +24,6 @@ html[data-vars="expanded"] .vars-panel.is-folded .vars-fields {
 .var-label-row {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
 	gap: var(--space-2);
 }
 
@@ -121,4 +50,184 @@ html[data-vars="expanded"] .vars-panel.is-folded .vars-fields {
 .var-input:focus {
 	border-color: var(--accent-strong);
 	box-shadow: 0 0 0 2px rgba(106, 168, 141, 0.2);
+}
+
+/* The summary line for many inputs. It is itself the control that opens the
+   editor (aria-expanded), so it carries no separate Edit button. */
+.vars-summary {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	width: 100%;
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: var(--muted);
+	font: inherit;
+	font-size: var(--text-2xs);
+	line-height: var(--leading-tight);
+	text-align: left;
+	cursor: pointer;
+}
+
+.vars-summary-caret {
+	color: var(--muted);
+}
+
+.vars-summary-title {
+	font-weight: 600;
+	color: var(--text);
+}
+
+.vars-summary-list {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	font-family: var(--font-mono);
+}
+
+.vars-summary-set {
+	color: var(--warn);
+	white-space: nowrap;
+}
+
+.vars-summary-edit {
+	flex-shrink: 0;
+}
+
+/* The editor dialog — a right drawer, and a full-screen sheet below 640px
+   (responsive.css). Native <dialog> gives the backdrop, focus trap and Esc. */
+dialog.vars-editor {
+	position: fixed;
+	inset-block: 0;
+	inset-inline: auto 0;
+	width: var(--size-detail-max);
+	max-width: 92vw;
+	height: 100dvh;
+	max-height: none;
+	margin: 0;
+	padding: 0;
+	border: none;
+	border-left: 1px solid var(--border-strong);
+	border-radius: 0;
+	background: var(--surface);
+	color: var(--text);
+	box-shadow: var(--shadow-lg);
+	flex-direction: column;
+}
+
+dialog.vars-editor[open] {
+	display: flex;
+}
+
+dialog.vars-editor::backdrop {
+	background: rgba(0, 0, 0, 0.5);
+}
+
+.vars-editor-head {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	flex-shrink: 0;
+	padding: var(--space-4) var(--space-5);
+	border-bottom: 1px solid var(--border);
+}
+
+.vars-editor-title {
+	font-size: var(--text-sm);
+	font-weight: 600;
+}
+
+.vars-editor-set {
+	color: var(--warn);
+	font-family: var(--font-mono);
+}
+
+.vars-editor-head .drawer-close {
+	margin-left: auto;
+}
+
+.vars-editor-body {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--space-2) var(--space-5) var(--space-5);
+}
+
+.vars-editor-foot {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-2);
+	flex-shrink: 0;
+	padding: var(--space-3) var(--space-5);
+	border-top: 1px solid var(--border);
+	background: var(--surface-2);
+}
+
+.vars-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.vars-table thead th {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	padding: var(--space-3) var(--space-2) var(--space-2);
+	background: var(--surface);
+	text-align: left;
+	font-size: var(--text-2xs);
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+
+.vars-table-flag {
+	width: 22px;
+	padding-inline: 0;
+}
+
+.vars-table-value {
+	width: 58%;
+}
+
+.vars-table tbody tr {
+	border-top: 1px solid var(--border);
+}
+
+.vars-table td {
+	padding: var(--space-2);
+	vertical-align: middle;
+}
+
+.vars-dot {
+	display: block;
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	border: 1px solid var(--border-strong);
+}
+
+.vars-table tr.is-set .vars-dot {
+	background: var(--accent-strong);
+	border-color: var(--accent-strong);
+}
+
+.vars-table-label {
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	line-height: var(--leading-snug);
+	color: var(--muted);
+}
+
+.vars-table tr.is-set .vars-table-label {
+	color: var(--text);
+}
+
+.vars-table-name {
+	margin-right: var(--space-1);
 }
