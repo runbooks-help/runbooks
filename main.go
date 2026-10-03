@@ -142,6 +142,9 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("/public/", http.FileServer(http.FS(static)))
+	// Liveness only: no auth, no information, so probes work on an identity-gated
+	// instance.
+	mux.HandleFunc("/healthz", healthzHandler)
 
 	index := func(w http.ResponseWriter, r *http.Request) {
 		u := userFrom(r.Context())

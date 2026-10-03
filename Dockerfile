@@ -15,10 +15,17 @@ RUN go tool templ generate ./... && \
 FROM alpine:3
 # git for the notes sync push; openssh-client for SSH remotes; ca-certificates
 # for HTTPS remotes.
-RUN apk add --no-cache git openssh-client ca-certificates
+RUN apk add --no-cache git openssh-client ca-certificates && \
+    adduser -D -u 10001 -h /app runbooks
 WORKDIR /app
 COPY --from=builder /app/runbooks .
 COPY --from=builder /app/content ./content
 COPY --from=builder /app/LICENSE /app/NOTICE /app/DEPENDENCIES.md /app/THIRD_PARTY_NOTICES.md ./
-EXPOSE 8091
+# The SQLite identity database lives here; mount a volume to persist it.
+RUN mkdir -p /app/data && chown -R runbooks:runbooks /app
+VOLUME /app/data
+USER runbooks
+EXPOSE 8090
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget -q -O /dev/null http://127.0.0.1:8090/healthz || exit 1
 CMD ["./runbooks"]

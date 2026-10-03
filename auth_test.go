@@ -75,6 +75,7 @@ func newTestServerWith(t *testing.T, mutate func(*config)) (*httptest.Server, *i
 	a := newAuth(svc, st, cfg)
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", healthzHandler)
 	mux.HandleFunc("/login", a.loginPage)
 	mux.HandleFunc("/setup", a.setupPage)
 	mux.HandleFunc("/invite/{token}", a.invitePage)
@@ -161,6 +162,18 @@ func TestClientIP(t *testing.T) {
 	}
 	if got := clientIP(&http.Request{RemoteAddr: "127.0.0.1"}); got != "127.0.0.1" {
 		t.Errorf("clientIP without port = %q, want the raw address", got)
+	}
+}
+
+func TestHealthzIsPublic(t *testing.T) {
+	srv, _, _ := newTestServer(t)
+	res, err := newClient(t).Get(srv.URL + "/healthz")
+	if err != nil {
+		t.Fatalf("GET /healthz: %v", err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("GET /healthz = %d, want 200", res.StatusCode)
 	}
 }
 

@@ -6,6 +6,12 @@ import (
 	"runbooks/views/components"
 )
 
+// healthzHandler is a liveness probe: unauthenticated and information-free, so a
+// container or load balancer can probe an identity-gated instance.
+func healthzHandler(w http.ResponseWriter, r *http.Request) {
+	_, _ = w.Write([]byte("ok"))
+}
+
 // securityHeaders sets the baseline response headers. The CSP permits only the
 // one inline script the shell needs — the pre-paint theme script — by hash; the
 // inline JSON blocks (runbook source, page config) are data, not scripts, so
