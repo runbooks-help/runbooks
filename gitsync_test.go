@@ -455,3 +455,22 @@ func TestGitSync_UnauthenticatedIdentityOn_401(t *testing.T) {
 		t.Errorf("want 401, got %d: %s", w.Code, w.Body.String())
 	}
 }
+
+func TestGitSyncNeedsBrowserToken(t *testing.T) {
+	cases := []struct {
+		name            string
+		identityEnabled bool
+		apiToken        string
+		want            bool
+	}{
+		{"identity on, token set — session authorises", true, "secret", false},
+		{"identity off, token set — prompt", false, "secret", true},
+		{"identity off, no token — sync disabled", false, "", false},
+		{"identity on, no token — session authorises", true, "", false},
+	}
+	for _, tc := range cases {
+		if got := gitSyncNeedsBrowserToken(tc.identityEnabled, tc.apiToken); got != tc.want {
+			t.Errorf("%s: got %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}

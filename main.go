@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
+	"time"
+
 	"runbooks/identity"
 	"runbooks/parser"
 	"runbooks/stores"
@@ -15,8 +18,6 @@ import (
 	"runbooks/stores/postgres"
 	"runbooks/stores/sqlite"
 	"runbooks/views"
-	"strings"
-	"time"
 )
 
 //go:embed public
@@ -106,6 +107,15 @@ func loadConfig() config {
 	cfg.StyleGuideEnabled = envBool("STYLEGUIDE_ENABLED", false)
 
 	return cfg
+}
+
+// gitSyncNeedsBrowserToken reports whether the Sync UI must prompt for the shared
+// bearer token. With identity on, a signed-in session (or proxy assertion)
+// authorises and attributes the sync — and the page is already behind the read
+// gate — so the token is only the identity-off deployment's gate. It stays
+// configured server-side either way, as the CI/automation fallback.
+func gitSyncNeedsBrowserToken(identityEnabled bool, apiToken string) bool {
+	return !identityEnabled && apiToken != ""
 }
 
 func main() {
@@ -207,7 +217,7 @@ func main() {
 			u := userFrom(r.Context())
 			views.RunbookPage(rb, groups, views.PageConfig{
 				GitSyncEnabled:       cfg.GitSyncEnabled,
-				GitSyncRequiresToken: cfg.GitSyncAPIToken != "",
+				GitSyncRequiresToken: gitSyncNeedsBrowserToken(cfg.IdentityEnabled, cfg.GitSyncAPIToken),
 				RecordsBasePath:      cfg.GitSyncBasePath,
 				IsAdmin:              u.IsAdmin(),
 				IdentityEnabled:      cfg.IdentityEnabled,
