@@ -30,12 +30,17 @@ func TestRenderLLMSIndex(t *testing.T) {
 	for _, want := range []string{
 		"# Runbooks",
 		"## MySQL",
+		"### Replication",
 		"- [Replication Lag](/mts-deadlock.md): A worker deadlock stalls the replica.",
 		"- [Failover](/failover.md)",
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("llms index missing %q\n---\n%s", want, body)
 		}
+	}
+	// A category-less runbook gets no heading of its own.
+	if strings.Contains(body, "### \n") {
+		t.Errorf("empty category rendered a heading:\n%s", body)
 	}
 	// A runbook with no description gets no dangling separator.
 	if strings.Contains(body, "/failover.md):") {
