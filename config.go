@@ -34,28 +34,30 @@ type config struct {
 	IdentitySessionTTL      time.Duration
 	IdentitySessionIdleTTL  time.Duration
 
-	ContentDir        string
-	ContentSource     string
-	ContentGitPath    string
-	ContentGitCache   string
-	StyleGuideEnabled bool
+	ContentDir          string
+	ContentSource       string
+	ContentGitPath      string
+	ContentGitCache     string
+	ContentRefreshToken string
+	StyleGuideEnabled   bool
 }
 
 func loadConfig() config {
 	cfg := config{
-		ContentDir:         os.Getenv("CONTENT_DIR"),
-		ContentSource:      os.Getenv("CONTENT_SOURCE"),
-		ContentGitPath:     os.Getenv("CONTENT_GIT_PATH"),
-		ContentGitCache:    os.Getenv("CONTENT_GIT_CACHE"),
-		GitSyncRepo:        os.Getenv("GITSYNC_REPO"),
-		GitSyncBranch:      os.Getenv("GITSYNC_BRANCH"),
-		GitSyncBasePath:    os.Getenv("GITSYNC_BASE_PATH"),
-		GitSyncAuthorName:  os.Getenv("GITSYNC_AUTHOR_NAME"),
-		GitSyncAuthorEmail: os.Getenv("GITSYNC_AUTHOR_EMAIL"),
-		GitSyncUsername:    os.Getenv("GITSYNC_USERNAME"),
-		GitSyncToken:       os.Getenv("GITSYNC_TOKEN"),
-		GitSyncSSHKey:      os.Getenv("GITSYNC_SSH_KEY"),
-		GitSyncAPIToken:    os.Getenv("GITSYNC_API_TOKEN"),
+		ContentDir:          os.Getenv("CONTENT_DIR"),
+		ContentSource:       os.Getenv("CONTENT_SOURCE"),
+		ContentGitPath:      os.Getenv("CONTENT_GIT_PATH"),
+		ContentGitCache:     os.Getenv("CONTENT_GIT_CACHE"),
+		ContentRefreshToken: os.Getenv("CONTENT_REFRESH_TOKEN"),
+		GitSyncRepo:         os.Getenv("GITSYNC_REPO"),
+		GitSyncBranch:       os.Getenv("GITSYNC_BRANCH"),
+		GitSyncBasePath:     os.Getenv("GITSYNC_BASE_PATH"),
+		GitSyncAuthorName:   os.Getenv("GITSYNC_AUTHOR_NAME"),
+		GitSyncAuthorEmail:  os.Getenv("GITSYNC_AUTHOR_EMAIL"),
+		GitSyncUsername:     os.Getenv("GITSYNC_USERNAME"),
+		GitSyncToken:        os.Getenv("GITSYNC_TOKEN"),
+		GitSyncSSHKey:       os.Getenv("GITSYNC_SSH_KEY"),
+		GitSyncAPIToken:     os.Getenv("GITSYNC_API_TOKEN"),
 	}
 	if cfg.ContentDir == "" {
 		cfg.ContentDir = "content"

@@ -128,7 +128,7 @@ func (cs *contentState) reload() error {
 	if err != nil {
 		return err
 	}
-	mux := buildMux(cs.cfg, snap, cs.store, cs.authn)
+	mux := cs.buildMux(snap)
 	cs.mu.Lock()
 	cs.mux = mux
 	cs.mu.Unlock()
@@ -169,7 +169,8 @@ func loadContent(cfg config) (*contentSnapshot, error) {
 
 // buildMux registers every route for a snapshot. It is rebuilt on a refresh and
 // swapped in, so slug additions and removals take effect.
-func buildMux(cfg config, snap *contentSnapshot, store stores.Store, authn *auth) *http.ServeMux {
+func (cs *contentState) buildMux(snap *contentSnapshot) *http.ServeMux {
+	cfg, authn, store := cs.cfg, cs.authn, cs.store
 	mux := http.NewServeMux()
 	mux.Handle("/public/", http.FileServer(http.FS(static)))
 	// Liveness only: no auth, no information, so probes work on an identity-gated
@@ -279,6 +280,8 @@ func buildMux(cfg config, snap *contentSnapshot, store stores.Store, authn *auth
 		search = authn.requireRead(search)
 	}
 	mux.Handle("/api/runbooks/v1/search", search)
+
+	mux.HandleFunc("/api/content/v1/refresh", cs.refreshHandler())
 
 	return mux
 }
