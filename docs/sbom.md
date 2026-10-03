@@ -29,7 +29,9 @@ mise run sbom:image    # container (builds the image first; needs podman)
 ```
 
 CI generates both formats from the built image on every run and uploads them as
-the `sbom` artifact.
+the `sbom` artifact. On a `v*` tag it also attaches both to the **GitHub
+Release** for that tag, so a version's SBOMs sit with the release (and the tag)
+rather than only in the Actions run.
 
 ## Verifying a release
 
