@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"runbooks/contentsource"
@@ -160,49 +161,11 @@ func main() {
 		log.Fatal("IDENTITY_PUBLIC_URL is required when identity is enabled")
 	}
 
-	// An empty content tree is not an error: the index renders a welcome that
-	// says how to add runbooks, so a fresh checkout still boots. The tree is
-	// external — a local directory (CONTENT_DIR) or a git repo (CONTENT_SOURCE)
-	// — and never bundled in the image.
-	contentDir, err := contentsource.Resolve(context.Background(), contentsource.Options{
-		Source: cfg.ContentSource,
-		Dir:    cfg.ContentDir,
-		Repo:   cfg.GitSyncRepo,
-		Branch: cfg.GitSyncBranch,
-		Creds: gitrepo.Credentials{
-			Username: cfg.GitSyncUsername,
-			Token:    cfg.GitSyncToken,
-			SSHKey:   cfg.GitSyncSSHKey,
-		},
-		Path:  cfg.ContentGitPath,
-		Cache: cfg.ContentGitCache,
-	})
-	if err != nil {
-		log.Fatalf("content source: %v", err)
-	}
-	// The git-sync records path lives inside the repo when content is at its
-	// root; never walk it as runbooks (records have no frontmatter).
-	runbooks, err := parser.LoadDir(contentDir, cfg.GitSyncBasePath)
-	if err != nil {
-		log.Fatalf("load runbooks: %v", err)
-	}
-	groups := parser.GroupBySystem(runbooks)
-	searchIndex := parser.BuildIndex(runbooks)
-
-	mux := http.NewServeMux()
-	mux.Handle("/public/", http.FileServer(http.FS(static)))
-	// Liveness only: no auth, no information, so probes work on an identity-gated
-	// instance.
-	mux.HandleFunc("/healthz", healthzHandler)
-
-	index := func(w http.ResponseWriter, r *http.Request) {
-		u := userFrom(r.Context())
-		views.IndexPage(groups, u.IsAdmin(), cfg.IdentityEnabled).Render(r.Context(), w)
-	}
-
+	var store stores.Store
 	var authn *auth
 	if cfg.IdentityEnabled {
-		store, err := openIdentityStore(cfg)
+		var err error
+		store, err = openIdentityStore(cfg)
 		if err != nil {
 			log.Fatalf("identity: %v", err)
 		}
@@ -217,7 +180,118 @@ func main() {
 			log.Fatalf("identity: %v", err)
 		}
 		authn = newAuth(svc, store, cfg)
+		log.Printf("identity enabled (%s)", cfg.IdentityDriver)
+	}
 
+	state, err := newContentState(cfg, store, authn)
+	if err != nil {
+		log.Fatalf("content: %v", err)
+	}
+	if cfg.StyleGuideEnabled {
+		log.Printf("styleguide enabled at /styleguide")
+	}
+
+	log.Printf("runbooks listening on :%s", port)
+	log.Fatal(http.ListenAndServe(":"+port, securityHeaders(state)))
+}
+
+// contentSnapshot is the parsed content and the indexes derived from it. It is
+// immutable: a refresh builds a new one and swaps it in.
+type contentSnapshot struct {
+	defs   []parser.RunbookDef
+	groups []parser.SystemGroup
+	search *parser.SearchIndex
+}
+
+// contentState holds the live content and the routes built from it. A refresh
+// builds a complete snapshot and route set and swaps them under the lock, so no
+// request observes a partially loaded set and in-flight requests keep the set
+// they started on.
+type contentState struct {
+	mu    sync.RWMutex
+	mux   http.Handler
+	cfg   config
+	store stores.Store
+	authn *auth
+}
+
+func newContentState(cfg config, store stores.Store, authn *auth) (*contentState, error) {
+	cs := &contentState{cfg: cfg, store: store, authn: authn}
+	if err := cs.reload(); err != nil {
+		return nil, err
+	}
+	return cs, nil
+}
+
+// ServeHTTP serves from the current route set.
+func (cs *contentState) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	cs.mu.RLock()
+	mux := cs.mux
+	cs.mu.RUnlock()
+	mux.ServeHTTP(w, r)
+}
+
+// reload rebuilds the snapshot and routes and swaps them in. A failed load
+// leaves the current set serving.
+func (cs *contentState) reload() error {
+	snap, err := loadContent(cs.cfg)
+	if err != nil {
+		return err
+	}
+	mux := buildMux(cs.cfg, snap, cs.store, cs.authn)
+	cs.mu.Lock()
+	cs.mux = mux
+	cs.mu.Unlock()
+	return nil
+}
+
+// loadContent resolves the content source and parses it. An empty tree is not an
+// error: the index renders a welcome that says how to add runbooks. The git-sync
+// records path lives inside the repo when content is at its root, so it is
+// excluded from the walk (records have no frontmatter).
+func loadContent(cfg config) (*contentSnapshot, error) {
+	dir, err := contentsource.Resolve(context.Background(), contentsource.Options{
+		Source: cfg.ContentSource,
+		Dir:    cfg.ContentDir,
+		Repo:   cfg.GitSyncRepo,
+		Branch: cfg.GitSyncBranch,
+		Creds: gitrepo.Credentials{
+			Username: cfg.GitSyncUsername,
+			Token:    cfg.GitSyncToken,
+			SSHKey:   cfg.GitSyncSSHKey,
+		},
+		Path:  cfg.ContentGitPath,
+		Cache: cfg.ContentGitCache,
+	})
+	if err != nil {
+		return nil, err
+	}
+	defs, err := parser.LoadDir(dir, cfg.GitSyncBasePath)
+	if err != nil {
+		return nil, err
+	}
+	return &contentSnapshot{
+		defs:   defs,
+		groups: parser.GroupBySystem(defs),
+		search: parser.BuildIndex(defs),
+	}, nil
+}
+
+// buildMux registers every route for a snapshot. It is rebuilt on a refresh and
+// swapped in, so slug additions and removals take effect.
+func buildMux(cfg config, snap *contentSnapshot, store stores.Store, authn *auth) *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.Handle("/public/", http.FileServer(http.FS(static)))
+	// Liveness only: no auth, no information, so probes work on an identity-gated
+	// instance.
+	mux.HandleFunc("/healthz", healthzHandler)
+
+	index := func(w http.ResponseWriter, r *http.Request) {
+		u := userFrom(r.Context())
+		views.IndexPage(snap.groups, u.IsAdmin(), cfg.IdentityEnabled).Render(r.Context(), w)
+	}
+
+	if authn != nil {
 		mux.HandleFunc("/login", authn.loginPage)
 		mux.HandleFunc("/setup", authn.setupPage)
 		mux.HandleFunc("/invite/{token}", authn.invitePage)
@@ -235,14 +309,14 @@ func main() {
 				return
 			}
 			u := userFrom(r.Context())
-			views.AdminPage(groups, users, u.IsAdmin(), cfg.IdentityEnabled).Render(r.Context(), w)
+			views.AdminPage(snap.groups, users, u.IsAdmin(), cfg.IdentityEnabled).Render(r.Context(), w)
 		}))
-		mux.HandleFunc("/admin/audit", authn.requireAdmin(authn.auditPage(groups)))
+		mux.HandleFunc("/admin/audit", authn.requireAdmin(authn.auditPage(snap.groups)))
 		mux.HandleFunc("/api/runbooks/v1/ack", authn.requireAPI(authn.ackRunbook))
 		mux.HandleFunc("/api/auth/v1/invites", authn.requireAdminAPI(authn.createInvite))
 		mux.HandleFunc("/api/auth/v1/users/disable", authn.requireAdminAPI(authn.disableUser))
 		mux.HandleFunc("/api/auth/v1/users/enable", authn.requireAdminAPI(authn.enableUser))
-		mux.HandleFunc("/account", authn.requirePage(authn.accountPage(groups)))
+		mux.HandleFunc("/account", authn.requirePage(authn.accountPage(snap.groups)))
 		mux.HandleFunc("/api/auth/v1/profile", authn.requireAPI(authn.updateProfile))
 		mux.HandleFunc("/api/auth/v1/sessions", authn.requireAPI(authn.listSessions))
 		mux.HandleFunc("/api/auth/v1/sessions/revoke", authn.requireAPI(authn.revokeSessions))
@@ -260,21 +334,19 @@ func main() {
 		}
 
 		index = authn.requirePage(index)
-		log.Printf("identity enabled (%s)", cfg.IdentityDriver)
 	}
 
 	mux.HandleFunc("/{$}", index)
 
 	if cfg.StyleGuideEnabled {
 		registerStyleGuide(mux, authn, cfg)
-		log.Printf("styleguide enabled at /styleguide")
 	}
 
-	for _, rb := range runbooks {
+	for _, rb := range snap.defs {
 		rb := rb
 		page := func(w http.ResponseWriter, r *http.Request) {
 			u := userFrom(r.Context())
-			views.RunbookPage(rb, groups, views.PageConfig{
+			views.RunbookPage(rb, snap.groups, views.PageConfig{
 				GitSyncEnabled:       cfg.GitSyncEnabled,
 				GitSyncRequiresToken: gitSyncNeedsBrowserToken(cfg.IdentityEnabled, cfg.GitSyncAPIToken),
 				RecordsBasePath:      cfg.GitSyncBasePath,
@@ -297,7 +369,7 @@ func main() {
 
 	// The llms.txt index is generated from the same groups as the sidebar, so it
 	// matches site order. Read-only machine endpoint: session or API key.
-	llmsIndex := http.HandlerFunc(handleLLMSIndex(groups))
+	llmsIndex := http.HandlerFunc(handleLLMSIndex(snap.groups))
 	if authn != nil {
 		llmsIndex = authn.requireRead(llmsIndex)
 	}
@@ -312,14 +384,13 @@ func main() {
 	// Body search reads the same content as the pages, so with identity on it sits
 	// behind the same read gate as the raw markdown and the llms index — a 401
 	// JSON, not a login redirect. A read-scoped API key satisfies it.
-	search := http.HandlerFunc(handleSearch(searchIndex))
+	search := http.HandlerFunc(handleSearch(snap.search))
 	if authn != nil {
 		search = authn.requireRead(search)
 	}
 	mux.Handle("/api/runbooks/v1/search", search)
 
-	log.Printf("runbooks listening on :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, securityHeaders(mux)))
+	return mux
 }
 
 // openIdentityStore opens the configured identity database.
