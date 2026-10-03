@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -745,6 +746,40 @@ func getWithHeaders(t *testing.T, client *http.Client, url string, headers map[s
 	defer res.Body.Close()
 	data, _ := io.ReadAll(res.Body)
 	return res.StatusCode, data
+}
+
+// The default proxy identity header is Auth-Request-Email when none is configured.
+func TestProxyAuthDefaultHeader(t *testing.T) {
+	srv, _, _ := newTestServerWith(t, func(c *config) {
+		c.IdentityTrustProxyAuth = true
+		c.IdentityProxyUserHeader = ""
+	})
+	client := newClient(t)
+	headers := map[string]string{"Auth-Request-Email": "default@example.com"}
+	if code, body := getWithHeaders(t, client, srv.URL+"/", headers); code != http.StatusOK {
+		t.Fatalf("default header provisioning = %d: %s", code, body)
+	}
+}
+
+// A failed audit insert is best-effort: the request still succeeds, but the
+// failure is logged. Capturing the log makes the error branch observable.
+func TestRecordAuthEventLogsFailure(t *testing.T) {
+	_, svc, st := newTestServer(t)
+	if err := st.Close(); err != nil {
+		t.Fatalf("close store: %v", err)
+	}
+	a := newAuth(svc, st, config{})
+
+	var buf bytes.Buffer
+	restore := log.Writer()
+	log.SetOutput(&buf)
+	defer log.SetOutput(restore)
+
+	a.recordAuthEvent(httptest.NewRequest(http.MethodPost, "/", nil), stores.ActionLogout, "u1", "u1")
+
+	if !strings.Contains(buf.String(), "auth/event logout") {
+		t.Errorf("a failed audit insert should be logged, got %q", buf.String())
+	}
 }
 
 func TestProxyAuthProvisionsAndGates(t *testing.T) {
