@@ -1,17 +1,26 @@
+/* The panel is a floating overlay at every width, so toggling it never pushes the
+   content. It carries its own close, since it can cover the header toggle. */
 .notes-panel {
-	grid-area: notes;
+	position: fixed;
+	inset-block: 0;
+	right: 0;
+	width: var(--notes-width, 460px);
+	max-width: 92vw;
+	z-index: 40;
 	border-left: 1px solid var(--border);
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
 	background: var(--nav-bg);
-	position: relative;
-	justify-self: end;
-	width: var(--notes-width, 460px);
+	box-shadow: var(--shadow-lg);
 	transition:
 		transform var(--duration-base) var(--ease),
 		opacity var(--duration-base) var(--ease),
 		visibility 0s linear 0s;
+}
+
+.notes-panel .drawer-close {
+	display: inline-flex;
 }
 
 .notes-resize {

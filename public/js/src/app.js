@@ -66,6 +66,39 @@ document.querySelectorAll('[data-var]').forEach(input => {
 // Initialise display with placeholders
 updateAll();
 
+// Inputs fold — collapse the variables panel to a one-line summary. The server
+// folds by count (more than two) so the first paint is right; a stored
+// `runbooks-vars` preference overrides it. The summary's "N set" is live.
+const varsPanel = document.querySelector('[data-vars-panel]');
+if (varsPanel) {
+	const varsToggle = varsPanel.querySelector('[data-vars-toggle]');
+	const varsSet = varsPanel.querySelector('[data-vars-set]');
+	const varsInputs = [...varsPanel.querySelectorAll('[data-var]')];
+
+	const applyVarsFold = folded => {
+		varsPanel.classList.toggle('is-folded', folded);
+		document.documentElement.dataset.vars = folded ? 'folded' : 'expanded';
+		varsToggle.setAttribute('aria-expanded', String(!folded));
+	};
+
+	const updateVarsSet = () => {
+		const set = varsInputs.filter(i => i.value.trim() !== '').length;
+		varsSet.textContent = set ? `${set} set` : '';
+	};
+
+	varsInputs.forEach(i => i.addEventListener('input', updateVarsSet));
+	updateVarsSet();
+
+	const stored = localStorage.getItem('runbooks-vars');
+	applyVarsFold(stored ? stored === 'folded' : varsPanel.classList.contains('is-folded'));
+
+	varsToggle.addEventListener('click', () => {
+		const folded = !varsPanel.classList.contains('is-folded');
+		localStorage.setItem('runbooks-vars', folded ? 'folded' : 'expanded');
+		applyVarsFold(folded);
+	});
+}
+
 // Copy-to-clipboard
 document.addEventListener('click', e => {
 	const btn = e.target.closest('.copy-btn');
@@ -939,7 +972,16 @@ document.querySelector('[data-rail-menu]')?.addEventListener('click', () => {
 	setDrawer(document.body.dataset.drawer === 'sidebar' ? null : 'sidebar');
 });
 document.querySelector('[data-drawer-scrim]')?.addEventListener('click', () => setDrawer(null));
-document.querySelectorAll('[data-drawer-close]').forEach(btn => btn.addEventListener('click', () => setDrawer(null)));
+document.querySelectorAll('[data-drawer-close]').forEach(btn => btn.addEventListener('click', () => {
+	// The notes panel floats at every width: its close hides the panel on wide
+	// layouts and closes the drawer on narrow ones.
+	if (btn.closest('.notes-panel') && !narrowShell.matches) {
+		setNotesShown(false);
+		localStorage.setItem('runbooks-notes', 'off');
+		return;
+	}
+	setDrawer(null);
+}));
 document.addEventListener('keydown', e => {
 	if (e.key === 'Escape' && document.body.dataset.drawer) setDrawer(null);
 });

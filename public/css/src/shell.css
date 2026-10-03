@@ -3,31 +3,14 @@
 
 body {
 	display: grid;
-	grid-template-columns: var(--size-app-rail) 1fr var(--notes-width, 460px);
-	grid-template-areas: "rail main notes";
+	grid-template-columns: var(--size-app-rail) 1fr;
+	grid-template-areas: "rail main";
 	height: 100vh;
 	overflow: hidden;
 }
 
-/* The notes column slides rather than snapping: the panel keeps its grid area on a
-   collapsing third track and translates out. Motion uses the styleguide's base
-   duration + ease. A drag disables the track transition so it tracks the cursor. */
-@media (min-width: 1200px) {
-	body {
-		transition: grid-template-columns var(--duration-base) var(--ease);
-	}
-
-	body.resizing-notes {
-		transition: none;
-	}
-}
-
-/* Index and admin pages have no notes panel — let main span the full width. */
-body:has(.index-main),
-body:has(.main--full) {
-	grid-template-columns: var(--size-app-rail) 1fr;
-	grid-template-areas: "rail main";
-}
+/* The notes panel floats over the content at every width, so showing or hiding it
+   never reflows main. */
 
 /* The rail is the persistent left chrome: the brand mark plus a full-height hit
    area. The sidebar is only ever summoned, so the strip answers every click that
@@ -426,6 +409,7 @@ nav a.active {
 }
 
 .main {
+	position: relative;
 	grid-area: main;
 	display: flex;
 	flex-direction: column;
@@ -444,26 +428,22 @@ nav a.active {
 
 .main-header {
 	position: relative;
-	padding: var(--space-5) var(--space-6) var(--space-4);
+	padding: var(--space-4) var(--space-6) var(--space-3);
 	border-bottom: 1px solid var(--border);
 	flex-shrink: 0;
 }
 
-/* The notes panel is hideable; this sits in the header so it can always recall it. */
+/* The notes panel is hideable; the toggle lives in the runbook's sticky bar so
+   it occupies a row beside the inputs instead of floating over the steps. */
 .notes-toggle {
-	position: absolute;
-	top: var(--space-4);
-	right: var(--space-6);
+	margin-left: auto;
+	flex-shrink: 0;
 }
 
 .notes-toggle-glyph {
 	font-family: var(--font-mono);
 	font-weight: var(--mono-weight);
 	color: var(--muted);
-}
-
-body.notes-hidden {
-	grid-template-columns: var(--size-app-rail) 1fr 0px;
 }
 
 body.notes-hidden .notes-panel {
@@ -477,7 +457,7 @@ body.notes-hidden .notes-panel {
 }
 
 .main-header h1 {
-	font-size: var(--text-xl);
+	font-size: var(--text-lg);
 	line-height: var(--leading-tight);
 }
 

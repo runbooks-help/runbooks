@@ -52,75 +52,81 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 				<button type="button" data-zen-action="next">Next →</button>
 				<button type="button" data-zen-action="exit">Exit zen</button>
 			</div>
-			<div class="main-header">
-				<button class="btn btn-ghost notes-toggle" type="button" data-notes-toggle aria-pressed="true" aria-label="Hide notes">Notes <span class="notes-toggle-glyph" aria-hidden="true">▸</span></button>
-				<div class="runbook-tags">
-					<span class="badge">{ rb.GroupTitle }</span>
-					if rb.CategoryTitle != "" {
-						<span class="badge">{ rb.CategoryTitle }</span>
-					}
-					if rb.Acknowledge != "" {
-						<span class="badge badge-warn" data-ack-badge hidden title="You acknowledged this runbook this session">acknowledged</span>
-					}
-				</div>
-				<h1>{ rb.Title }</h1>
-				<p>@templ.Raw(markup.Prose(rb.Description))</p>
-			</div>
-			if rb.Notice != "" {
-				@components.FrontmatterNotice(rb.Notice)
-			}
-			if len(rb.Vars) > 0 {
-				@components.VarsPanel(rb.Vars)
-			}
-			<div
-				class="content"
-				data-runbook
-				if rb.Acknowledge != "" {
-					data-ack="pending"
-					inert
-				}
-			>
-				if len(rb.Steps) >= 3 {
-					<nav class="toc" aria-label="Contents" hidden>
-						<p class="toc-label">Contents</p>
-						<ol class="toc-list">
-							for i, step := range rb.Steps {
-								<li>
-									<a href={ "#" + markup.Slug(step.Title) }>
-										<span class="toc-num">{ strconv.Itoa(i + 1) }</span>
-										{ step.Title }
-									</a>
-								</li>
-							}
-							if len(rb.Rollback) > 0 {
-								<li><a href="#rollback">Rollback</a></li>
-							}
-						</ol>
-					</nav>
-				}
-				if len(rb.Steps) >= 2 {
-					<div class="step-controls">
-						if len(rb.Steps) >= 3 {
-							<button class="contents-btn" type="button" aria-pressed="false" title="Show a contents list">Contents</button>
+			<div class="runbook-scroll">
+				<div class="main-header">
+					<div class="runbook-tags">
+						<span class="badge">{ rb.GroupTitle }</span>
+						if rb.CategoryTitle != "" {
+							<span class="badge">{ rb.CategoryTitle }</span>
 						}
-						<span class="spacer"></span>
-						<button type="button" data-steps-action="expand">Expand all</button>
-						<button type="button" data-steps-action="collapse">Collapse all</button>
-						<button type="button" data-zen-action="enter">Zen</button>
+						if rb.Acknowledge != "" {
+							<span class="badge badge-warn" data-ack-badge hidden title="You acknowledged this runbook this session">acknowledged</span>
+						}
 					</div>
+					<h1>{ rb.Title }</h1>
+					<p>
+						@templ.Raw(markup.Prose(rb.Description))
+					</p>
+				</div>
+				if rb.Notice != "" {
+					@components.FrontmatterNotice(rb.Notice)
 				}
-				<div class="steps">
-					for i, step := range rb.Steps {
-						@stepCard(i+1, step, false)
+				<div class="runbook-bar">
+					if len(rb.Vars) > 0 {
+						@components.VarsPanel(rb.Vars)
 					}
-					if len(rb.Rollback) > 0 {
-						<div id="rollback">
-							<p class="section-label">Rollback</p>
-							for _, step := range rb.Rollback {
-								@stepCard(0, step, true)
+					<button class="btn btn-ghost notes-toggle" type="button" data-notes-toggle aria-pressed="true" aria-label="Hide notes">Notes <span class="notes-toggle-glyph" aria-hidden="true">▸</span></button>
+				</div>
+				<div
+					class="content"
+					data-runbook
+					if rb.Acknowledge != "" {
+						data-ack="pending"
+						inert
+					}
+				>
+					if len(rb.Steps) >= 3 {
+						<nav class="toc" aria-label="Contents" hidden>
+							<p class="toc-label">Contents</p>
+							<ol class="toc-list">
+								for i, step := range rb.Steps {
+									<li>
+										<a href={ "#" + markup.Slug(step.Title) }>
+											<span class="toc-num">{ strconv.Itoa(i + 1) }</span>
+											{ step.Title }
+										</a>
+									</li>
+								}
+								if len(rb.Rollback) > 0 {
+									<li><a href="#rollback">Rollback</a></li>
+								}
+							</ol>
+						</nav>
+					}
+					if len(rb.Steps) >= 2 {
+						<div class="step-controls">
+							if len(rb.Steps) >= 3 {
+								<button class="contents-btn" type="button" aria-pressed="false" title="Show a contents list">Contents</button>
 							}
+							<span class="spacer"></span>
+							<button type="button" data-steps-action="expand">Expand all</button>
+							<button type="button" data-steps-action="collapse">Collapse all</button>
+							<button type="button" data-zen-action="enter">Zen</button>
 						</div>
 					}
+					<div class="steps">
+						for i, step := range rb.Steps {
+							@stepCard(i+1, step, false)
+						}
+						if len(rb.Rollback) > 0 {
+							<div id="rollback">
+								<p class="section-label">Rollback</p>
+								for _, step := range rb.Rollback {
+									@stepCard(0, step, true)
+								}
+							</div>
+						}
+					</div>
 				</div>
 			</div>
 		</div>
@@ -145,20 +151,22 @@ templ stepCard(n int, step parser.Step, rollback bool) {
 
 templ renderBlock(b parser.Block) {
 	switch b.Kind {
-	case parser.KindCode:
-		@components.CodeBlock(b.Label, b.Body, b.Lang)
-	case parser.KindNotice:
-		@components.Notice(b.Variant, b.Message)
-	case parser.KindBranch:
-		@components.BranchBlock(b.Body)
-	case parser.KindHeading:
-		<h3 class="step-subheading">{ b.Text }</h3>
-	case parser.KindList:
-		@components.ListBlock(b.Items)
-	case parser.KindTable:
-		@components.TableBlock(b.Headers, b.Rows)
-	default:
-		<p>@templ.Raw(markup.Prose(b.Text))</p>
+		case parser.KindCode:
+			@components.CodeBlock(b.Label, b.Body, b.Lang)
+		case parser.KindNotice:
+			@components.Notice(b.Variant, b.Message)
+		case parser.KindBranch:
+			@components.BranchBlock(b.Body)
+		case parser.KindHeading:
+			<h3 class="step-subheading">{ b.Text }</h3>
+		case parser.KindList:
+			@components.ListBlock(b.Items)
+		case parser.KindTable:
+			@components.TableBlock(b.Headers, b.Rows)
+		default:
+			<p>
+				@templ.Raw(markup.Prose(b.Text))
+			</p>
 	}
 }
 

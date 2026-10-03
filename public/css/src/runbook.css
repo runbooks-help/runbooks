@@ -127,6 +127,45 @@
 	display: block;
 }
 
+/* The runbook body is one scroller: the title and the notice leave the viewport
+   as you read. Only the bar — the inputs and the notes toggle — sticks. */
+.runbook-scroll {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	scroll-padding-top: var(--space-6);
+}
+
+.runbook-scroll .content {
+	flex: 0 0 auto;
+	overflow: visible;
+}
+
+/* The sticky bar gives the notes toggle its own row beside the inputs, so it
+   never floats over the steps. */
+.runbook-bar {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	padding: var(--space-2) var(--space-6);
+	background: var(--bg);
+	border-bottom: 1px solid var(--border);
+}
+
+/* The bar owns the frame; the panel is just the inputs within it. */
+.runbook-bar .vars-panel {
+	flex: 1;
+	min-width: 0;
+	padding: 0;
+	border-bottom: none;
+	background: transparent;
+}
+
 /* Zen mode: one step at a time, no chrome. Entered from the toolbar, Esc exits. */
 .zen-bar {
 	display: none;
@@ -175,6 +214,7 @@ body.zen {
 body.zen .rail,
 body.zen .sidebar,
 body.zen .notes-panel,
+body.zen .notes-toggle,
 body.zen .main-header,
 body.zen .toc,
 body.zen .step-controls,

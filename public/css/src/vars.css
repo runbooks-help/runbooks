@@ -1,29 +1,94 @@
+/* Variables — a runbook's runtime inputs. A wrapping row that uses the horizontal
+   width (labels above inputs), with a fold to a one-line summary once a runbook
+   carries several. There is no separate "Variables" heading; the fold control
+   names the group. */
+
 .vars-panel {
-	padding: var(--space-4) var(--space-6);
-	border-bottom: 1px solid var(--border);
 	display: flex;
-	flex-direction: row;
 	flex-wrap: wrap;
 	align-items: flex-end;
-	gap: var(--space-3) var(--space-5);
+	gap: var(--space-2) var(--space-5);
+	padding: var(--space-3) var(--space-6);
+	border-bottom: 1px solid var(--border);
 	flex-shrink: 0;
 }
 
-.vars-heading {
-	flex-basis: 100%;
-	font-size: var(--text-2xs);
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.06em;
+.vars-fold {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: 0;
+	border: none;
+	background: transparent;
 	color: var(--muted);
-	margin: 0;
+	font: inherit;
+	font-size: var(--text-2xs);
+	line-height: var(--leading-tight);
+	cursor: pointer;
+}
+
+.vars-fold-caret {
+	color: var(--muted);
+	transition: transform var(--duration-fast) var(--ease);
+}
+
+.vars-panel.is-folded .vars-fold-caret {
+	transform: rotate(-90deg);
+}
+
+.vars-fold-title {
+	font-weight: 600;
+	color: var(--text);
+}
+
+.vars-fold-set {
+	color: var(--warn);
+}
+
+/* Folded, the labels preview what the hidden inputs are. Expanded, the fields
+   themselves say it, so the preview drops out. JS keeps the class in step. */
+.vars-fold-labels {
+	max-width: 46ch;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	color: var(--muted);
+	font-family: var(--font-mono);
+}
+
+.vars-panel:not(.is-folded) .vars-fold-labels {
+	display: none;
+}
+
+.vars-fields {
+	display: flex;
+	flex: 1 1 100%;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: var(--space-3) var(--space-5);
+}
+
+/* Visibility is decided twice: the server folds by count (the `is-folded`
+   class) so the first paint is right, and a stored preference overrides it
+   through `html[data-vars]` set before paint. The attribute rules carry an
+   extra class so they beat the count default. */
+.vars-panel.is-folded .vars-fields {
+	display: none;
+}
+
+html[data-vars="folded"] .vars-panel .vars-fields {
+	display: none;
+}
+
+html[data-vars="expanded"] .vars-panel.is-folded .vars-fields {
+	display: flex;
 }
 
 .var-field {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-1);
-	min-width: 180px;
+	min-width: 150px;
 }
 
 .var-label-row {

@@ -1,40 +1,78 @@
 package components
 
-import "runbooks/parser"
+import (
+	"strconv"
+	"strings"
 
-// VarsPanel renders the sidebar variables section for a runbook page.
+	"runbooks/parser"
+)
+
+// varsFoldThreshold is how many variables a runbook may carry before its panel
+// starts folded. Below it the row is short enough that folding gains nothing.
+const varsFoldThreshold = 2
+
+// VarsPanel renders a runbook's runtime inputs as a wrapping row — no "Variables"
+// heading — that folds to a one-line summary once there are more than
+// varsFoldThreshold of them.
 templ VarsPanel(fields []parser.VarField) {
-	<div class="vars-panel">
-		<p class="vars-heading">Variables</p>
-		for _, f := range fields {
-			<div class="var-field">
-				<div class="var-label-row">
-					<label class="var-label" for={ f.ID }>{ f.Label }</label>
-					if f.Hint != "" {
-						<button class="hint-btn" data-hint={ f.Hint } type="button" aria-label="How to find this value">?</button>
+	<div class={ varsPanelClass(len(fields)) } data-vars-panel>
+		<button class="vars-fold" type="button" data-vars-toggle aria-expanded="true" aria-controls="vars-fields">
+			<span class="vars-fold-caret" aria-hidden="true">▾</span>
+			<span class="vars-fold-title">Inputs</span>
+			<span class="badge">{ strconv.Itoa(len(fields)) }</span>
+			<span class="vars-fold-set" data-vars-set></span>
+			<span class="vars-fold-labels">{ varsLabels(fields) }</span>
+		</button>
+		<div class="vars-fields" id="vars-fields">
+			for _, f := range fields {
+				<div class="var-field">
+					<div class="var-label-row">
+						<label class="var-label" for={ f.ID }>{ f.Label }</label>
+						if f.Hint != "" {
+							<button class="hint-btn" data-hint={ f.Hint } type="button" aria-label="How to find this value">?</button>
+						}
+					</div>
+					if f.Secret {
+						<input
+							id={ f.ID }
+							class="var-input"
+							type="password"
+							autocomplete="off"
+							spellcheck="false"
+							data-var={ f.VarName }
+						/>
+					} else {
+						<input
+							id={ f.ID }
+							class="var-input"
+							type="text"
+							autocomplete="off"
+							spellcheck="false"
+							data-var={ f.VarName }
+							placeholder={ f.Placeholder }
+						/>
 					}
 				</div>
-				if f.Secret {
-					<input
-						id={ f.ID }
-						class="var-input"
-						type="password"
-						autocomplete="off"
-						spellcheck="false"
-						data-var={ f.VarName }
-					/>
-				} else {
-					<input
-						id={ f.ID }
-						class="var-input"
-						type="text"
-						autocomplete="off"
-						spellcheck="false"
-						data-var={ f.VarName }
-						placeholder={ f.Placeholder }
-					/>
-				}
-			</div>
-		}
+			}
+		</div>
 	</div>
+}
+
+// varsPanelClass folds the panel by default once a runbook carries more than
+// varsFoldThreshold inputs. A stored `runbooks-vars` preference overrides it via
+// the `html[data-vars]` rules, so the default is only the starting point.
+func varsPanelClass(n int) string {
+	if n > varsFoldThreshold {
+		return "vars-panel is-folded"
+	}
+	return "vars-panel"
+}
+
+// varsLabels joins the field labels for the folded summary preview.
+func varsLabels(fields []parser.VarField) string {
+	labels := make([]string, len(fields))
+	for i, f := range fields {
+		labels[i] = f.Label
+	}
+	return strings.Join(labels, " · ")
 }

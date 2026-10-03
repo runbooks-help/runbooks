@@ -40,11 +40,14 @@
 	}
 
 	.notes-panel {
+		position: static !important;
 		display: block !important;
 		width: 100% !important;
+		max-width: none !important;
 		height: auto !important;
 		overflow: visible !important;
 		border: none !important;
+		box-shadow: none !important;
 	}
 
 	.notes-resize,
