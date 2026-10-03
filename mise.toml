@@ -141,7 +141,7 @@ run = """
   # The auth/admin/recovery HTTP layer is in package main; scope the run to the
   # hand-written handlers so it does not mutate generated views, wiring or
   # git-sync. The styleguide is a dev-only surface, deliberately untested.
-  gremlins unleash --exclude-files 'views/|cmd/|parser/|internal/|stores/|identity/|gitsync.go|main.go|styleguide.go|_test.go' .
+  gremlins unleash --exclude-files 'views/|cmd/|parser/|internal/|stores/|identity/|gitsync.go|main.go|config.go|styleguide.go|_test.go' .
 """
 
 [tasks."test:mutation:all"]

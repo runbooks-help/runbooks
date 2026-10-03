@@ -8,9 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 	"sync"
-	"time"
 
 	"runbooks/contentsource"
 	"runbooks/identity"
@@ -28,114 +26,6 @@ var static embed.FS
 
 // version is the build stamp, set with -X main.version=… at build time.
 var version = "dev"
-
-type config struct {
-	GitSyncRepo        string
-	GitSyncBranch      string
-	GitSyncBasePath    string
-	GitSyncAuthorName  string
-	GitSyncAuthorEmail string
-	GitSyncUsername    string
-	GitSyncToken       string
-	GitSyncSSHKey      string
-	GitSyncAPIToken    string
-	GitSyncEnabled     bool
-
-	IdentityEnabled         bool
-	IdentityDriver          string
-	IdentityDSN             string
-	IdentityPublicURL       string
-	IdentityBootstrapToken  string
-	IdentityRecoveryToken   string
-	IdentityTrustProxyAuth  bool
-	IdentityProxyUserHeader string
-	IdentityProxyNameHeader string
-	IdentitySecureCookies   bool
-	IdentitySessionTTL      time.Duration
-	IdentitySessionIdleTTL  time.Duration
-
-	ContentDir        string
-	ContentSource     string
-	ContentGitPath    string
-	ContentGitCache   string
-	StyleGuideEnabled bool
-}
-
-func loadConfig() config {
-	cfg := config{
-		ContentDir:         os.Getenv("CONTENT_DIR"),
-		ContentSource:      os.Getenv("CONTENT_SOURCE"),
-		ContentGitPath:     os.Getenv("CONTENT_GIT_PATH"),
-		ContentGitCache:    os.Getenv("CONTENT_GIT_CACHE"),
-		GitSyncRepo:        os.Getenv("GITSYNC_REPO"),
-		GitSyncBranch:      os.Getenv("GITSYNC_BRANCH"),
-		GitSyncBasePath:    os.Getenv("GITSYNC_BASE_PATH"),
-		GitSyncAuthorName:  os.Getenv("GITSYNC_AUTHOR_NAME"),
-		GitSyncAuthorEmail: os.Getenv("GITSYNC_AUTHOR_EMAIL"),
-		GitSyncUsername:    os.Getenv("GITSYNC_USERNAME"),
-		GitSyncToken:       os.Getenv("GITSYNC_TOKEN"),
-		GitSyncSSHKey:      os.Getenv("GITSYNC_SSH_KEY"),
-		GitSyncAPIToken:    os.Getenv("GITSYNC_API_TOKEN"),
-	}
-	if cfg.ContentDir == "" {
-		cfg.ContentDir = "content"
-	}
-	if cfg.ContentSource == "" {
-		cfg.ContentSource = "local"
-	}
-	if cfg.ContentGitPath == "" {
-		cfg.ContentGitPath = "."
-	}
-	if cfg.ContentGitCache == "" {
-		cfg.ContentGitCache = "data/content"
-	}
-	if cfg.GitSyncBranch == "" {
-		cfg.GitSyncBranch = "main"
-	}
-	if cfg.GitSyncBasePath == "" {
-		cfg.GitSyncBasePath = "runbook_runs"
-	}
-	if cfg.GitSyncUsername == "" {
-		cfg.GitSyncUsername = "oauth2"
-	}
-	// Identity is off unless a database driver is configured.
-	cfg.IdentityDriver = strings.TrimSpace(os.Getenv("IDENTITY_DB_DRIVER"))
-	cfg.IdentityDSN = strings.TrimSpace(os.Getenv("IDENTITY_DB_DSN"))
-	cfg.IdentityPublicURL = strings.TrimRight(strings.TrimSpace(os.Getenv("IDENTITY_PUBLIC_URL")), "/")
-	cfg.IdentityBootstrapToken = os.Getenv("IDENTITY_BOOTSTRAP_TOKEN")
-	cfg.IdentityRecoveryToken = os.Getenv("IDENTITY_RECOVERY_TOKEN")
-	cfg.IdentityTrustProxyAuth = envBool("IDENTITY_TRUST_PROXY_AUTH", false)
-	// A custom identity header keeps no deprecated X- prefix (RFC 6648). The
-	// operator points this at whatever their proxy emits — oauth2-proxy uses
-	// X-Auth-Request-Email, Authelia Remote-Email.
-	cfg.IdentityProxyUserHeader = envOr("IDENTITY_PROXY_USER_HEADER", "Auth-Request-Email")
-	cfg.IdentityProxyNameHeader = os.Getenv("IDENTITY_PROXY_NAME_HEADER")
-	cfg.IdentitySecureCookies = envBool("IDENTITY_SECURE_COOKIES", true)
-	cfg.IdentitySessionTTL = envDuration("IDENTITY_SESSION_TTL", 720*time.Hour)
-	cfg.IdentitySessionIdleTTL = envDuration("IDENTITY_SESSION_IDLE", 168*time.Hour)
-	if cfg.IdentityDriver == "sqlite" && cfg.IdentityDSN == "" {
-		cfg.IdentityDSN = "file:./data/runbooks.db"
-	}
-	cfg.IdentityEnabled = cfg.IdentityDriver != ""
-
-	if cfg.IdentityTrustProxyAuth {
-		log.Printf("IDENTITY_TRUST_PROXY_AUTH is on: the instance must be reachable only through the trusted proxy that sets and strips %s, or the header is an impersonation hole", cfg.IdentityProxyUserHeader)
-	}
-
-	// A repo and a credential are required to do anything, and the write route
-	// must never be reachable unauthenticated: with identity on a user session (or
-	// proxy assertion) authorises the endpoint and an unauthenticated request is
-	// refused; with identity off, the shared API token is the gate. Without one of
-	// those, sync stays off.
-	hasCredential := cfg.GitSyncToken != "" || cfg.GitSyncSSHKey != ""
-	hasEndpointAuth := cfg.GitSyncAPIToken != "" || cfg.IdentityEnabled
-	cfg.GitSyncEnabled = cfg.GitSyncRepo != "" && hasCredential && hasEndpointAuth
-
-	// The styleguide is a dev/self-host surface, off in the default container.
-	cfg.StyleGuideEnabled = envBool("STYLEGUIDE_ENABLED", false)
-
-	return cfg
-}
 
 // gitSyncNeedsBrowserToken reports whether the Sync UI must prompt for the shared
 // bearer token. With identity on, a signed-in session (or proxy assertion)
@@ -416,34 +306,4 @@ func rpID(publicURL string) string {
 		return publicURL
 	}
 	return u.Hostname()
-}
-
-func envBool(name string, def bool) bool {
-	switch strings.ToLower(strings.TrimSpace(os.Getenv(name))) {
-	case "":
-		return def
-	case "true", "1", "yes":
-		return true
-	default:
-		return false
-	}
-}
-
-func envDuration(name string, def time.Duration) time.Duration {
-	raw := strings.TrimSpace(os.Getenv(name))
-	if raw == "" {
-		return def
-	}
-	d, err := time.ParseDuration(raw)
-	if err != nil {
-		log.Fatalf("%s: %v", name, err)
-	}
-	return d
-}
-
-func envOr(name, def string) string {
-	if v := os.Getenv(name); v != "" {
-		return v
-	}
-	return def
 }
