@@ -46,16 +46,16 @@ func TestCSPHashAuthorisesInlineThemeScript(t *testing.T) {
 	}
 	html := buf.String()
 
-	start := strings.Index(html, "<script>")
-	if start < 0 {
+	_, after, ok := strings.Cut(html, "<script>")
+	if !ok {
 		t.Fatal("no inline script in shell head")
 	}
-	rest := html[start+len("<script>"):]
-	end := strings.Index(rest, "</script>")
-	if end < 0 {
+	rest := after
+	before, _, ok := strings.Cut(rest, "</script>")
+	if !ok {
 		t.Fatal("unterminated inline script in shell head")
 	}
-	sum := sha256.Sum256([]byte(rest[:end]))
+	sum := sha256.Sum256([]byte(before))
 	want := "'sha256-" + base64.StdEncoding.EncodeToString(sum[:]) + "'"
 
 	rec := httptest.NewRecorder()
