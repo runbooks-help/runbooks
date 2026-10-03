@@ -1,0 +1,161 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
+package components
+
+import (
+	"fmt"
+	"hash/fnv"
+	"strconv"
+
+	"runbooks/parser"
+)
+
+// shelfBooksPerRow is how many books fit on one row. Every row is drawn at the
+// same width — a partial last row is padded with empty slots, like a real shelf
+// — so the framed bookcases stay uniform.
+const shelfBooksPerRow = 5
+
+// shelfRowsPerBookcase is how many rows stack in one bookcase before the next
+// bookcase is built alongside.
+const shelfRowsPerBookcase = 2
+
+// shelfGlyphs are the shade characters a book can be drawn with. The choice is
+// decorative, never meaningful.
+var shelfGlyphs = [...]string{"░", "▒", "▓"}
+
+// Bookshelf is the index easter egg: the actual runbook catalogue drawn as
+// framed bookcases of shade-character books. It renders hidden and is revealed
+// by clicking the index <h1> (public/js/src/app.js). Categories and systems are
+// deliberately ignored here — flattening to one list is what lets every row stay
+// uniform. Nothing here is a `parser` decision.
+templ Bookshelf(groups []parser.SystemGroup) {
+	{{ runbooks := shelfRunbooks(groups) }}
+	<div class="index-shelf" data-shelf hidden>
+		<div class="shelf-grid">
+			for _, bookcase := range shelfBookcases(runbooks) {
+				<div class="shelf-bookcase">
+					@shelfFrame("┌", "┐")
+					for i, row := range bookcase {
+						@shelfRow(row)
+						if i < len(bookcase)-1 {
+							@shelfFrame("├", "┤")
+						}
+					}
+					@shelfFrame("└", "┘")
+				</div>
+			}
+		</div>
+		<p class="shelf-count">{ strconv.Itoa(len(runbooks)) } runbooks</p>
+	</div>
+}
+
+// shelfFrame is one horizontal rule of the bookcase border: a corner, a run of
+// rule cells, another corner. Drawn as fixed 1ch cells so it lines up with the
+// book rows even if the box glyphs fall back to another font.
+templ shelfFrame(left, right string) {
+	<div class="shelf-line" aria-hidden="true">
+		<span class="shelf-corner">{ left }</span>
+		for i := 0; i < shelfInnerCells(); i++ {
+			<span class="shelf-rule">─</span>
+		}
+		<span class="shelf-corner">{ right }</span>
+	</div>
+}
+
+// shelfRow is one framed row: the side walls, a lead-in space, the books (padded
+// with empty slots to a full row), and the closing wall.
+templ shelfRow(row []parser.RunbookMeta) {
+	<div class="shelf">
+		<span class="shelf-wall" aria-hidden="true">│</span>
+		<span class="shelf-pad" aria-hidden="true"> </span>
+		<div class="shelf-books">
+			for _, rb := range row {
+				<a class="shelf-book" href={ templ.SafeURL("/" + rb.Slug) } aria-label={ rb.Title }>
+					<span class="shelf-spine">{ shadeGlyph(rb.Slug) }</span>
+					<span class="shelf-tip" aria-hidden="true">
+						<span class="shelf-tip-title">{ rb.Title }</span>
+						if breadcrumb := shelfBreadcrumb(rb); breadcrumb != "" {
+							<span class="shelf-tip-meta">{ breadcrumb }</span>
+						}
+						<span class="shelf-tip-dewey">Dewey { shelfDewey(rb.Group, rb.Category) }</span>
+					</span>
+				</a>
+			}
+			for i := len(row); i < shelfBooksPerRow; i++ {
+				<span class="shelf-empty" aria-hidden="true"> </span>
+			}
+		</div>
+		<span class="shelf-wall" aria-hidden="true">│</span>
+	</div>
+}
+
+// shelfRunbooks flattens the groups into one sidebar-ordered list, dropping the
+// category labels the rest of the page uses.
+func shelfRunbooks(groups []parser.SystemGroup) []parser.RunbookMeta {
+	var out []parser.RunbookMeta
+	for _, system := range groups {
+		for _, category := range system.Categories {
+			out = append(out, category.Runbooks...)
+		}
+	}
+	return out
+}
+
+// shelfBookcases groups the rows into bookcases of shelfRowsPerBookcase, so the
+// next bookcase is built alongside once two rows are stacked.
+func shelfBookcases(runbooks []parser.RunbookMeta) [][][]parser.RunbookMeta {
+	rows := shelfRows(runbooks)
+	var bookcases [][][]parser.RunbookMeta
+	for i := 0; i < len(rows); i += shelfRowsPerBookcase {
+		bookcases = append(bookcases, rows[i:min(i+shelfRowsPerBookcase, len(rows))])
+	}
+	return bookcases
+}
+
+// shelfRows chunks the runbooks into shelves of shelfBooksPerRow.
+func shelfRows(runbooks []parser.RunbookMeta) [][]parser.RunbookMeta {
+	var rows [][]parser.RunbookMeta
+	for len(runbooks) > 0 {
+		n := min(len(runbooks), shelfBooksPerRow)
+		rows = append(rows, runbooks[:n])
+		runbooks = runbooks[n:]
+	}
+	return rows
+}
+
+// shelfInnerCells is the width between the side walls: a lead-in cell plus one
+// 2-cell slot per book, so the top/mid/bottom rules span the row exactly.
+func shelfInnerCells() int {
+	return shelfBooksPerRow*2 + 1
+}
+
+// shelfBreadcrumb is the book's place in the taxonomy: "System › Category",
+// either part alone, or empty.
+func shelfBreadcrumb(rb parser.RunbookMeta) string {
+	switch {
+	case rb.GroupTitle != "" && rb.CategoryTitle != "":
+		return rb.GroupTitle + " › " + rb.CategoryTitle
+	case rb.GroupTitle != "":
+		return rb.GroupTitle
+	default:
+		return rb.CategoryTitle
+	}
+}
+
+// shelfDewey invents a Dewey-ish classification number for a runbook. It is
+// derived from the system + category, so every runbook in a category shares a
+// number, the way a real classification would. Decorative, deterministic.
+func shelfDewey(group, category string) string {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(group + "\x00" + category))
+	sum := h.Sum32()
+	return fmt.Sprintf("%03d.%02d", sum%1000, (sum/1000)%100)
+}
+
+// shadeGlyph picks a book's shade from its slug, so the same runbook keeps the
+// same shade on every render.
+func shadeGlyph(slug string) string {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(slug))
+	return shelfGlyphs[h.Sum32()%uint32(len(shelfGlyphs))]
+}

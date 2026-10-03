@@ -1079,6 +1079,9 @@ if (indexSearch) {
 	const symptomLinks = document.querySelector('.search-chips');
 	const searchKey = document.querySelector('[data-search-key]');
 	const searchClear = document.querySelector('[data-search-clear]');
+	const shelf = document.querySelector('[data-shelf]');
+	const shelfTitle = document.querySelector('.index-main .main-header h1');
+	let shelfOn = false;
 	let timer = null;
 	let controller = null;
 
@@ -1094,6 +1097,27 @@ if (indexSearch) {
 			results.replaceChildren();
 		}
 		if (catalogue) catalogue.hidden = false;
+	};
+
+	// Easter egg: the heading toggles the bookshelf served into its own slot.
+	// Any search input drops back to normal filtering; state is page-local.
+	const hideShelf = () => {
+		shelfOn = false;
+		if (shelf) shelf.hidden = true;
+		if (catalogue) catalogue.hidden = false;
+	};
+
+	const showShelf = () => {
+		shelfOn = true;
+		indexSearch.value = '';
+		setChrome('');
+		if (controller) controller.abort();
+		if (results) {
+			results.hidden = true;
+			results.replaceChildren();
+		}
+		if (catalogue) catalogue.hidden = true;
+		if (shelf) shelf.hidden = false;
 	};
 
 	// A message in the results slot; with keepCatalogue the fallback list stays
@@ -1171,6 +1195,7 @@ if (indexSearch) {
 	};
 
 	const onInput = () => {
+		if (shelfOn) hideShelf();
 		const q = indexSearch.value.trim();
 		setChrome(q);
 		clearTimeout(timer);
@@ -1188,6 +1213,15 @@ if (indexSearch) {
 			indexSearch.value = '';
 			onInput();
 			indexSearch.focus();
+		});
+	}
+	if (shelfTitle && shelf) {
+		shelfTitle.addEventListener('click', () => {
+			// A click that ends a text-selection drag is not a toggle.
+			const selection = window.getSelection();
+			if (selection && selection.toString().length > 0) return;
+			if (shelfOn) hideShelf();
+			else showShelf();
 		});
 	}
 }

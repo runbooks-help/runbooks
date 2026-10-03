@@ -71,6 +71,7 @@ templ IndexPage(systems []parser.SystemGroup, isAdmin, identityEnabled bool) {
 							</div>
 							@commonSymptoms(parser.CommonIssues(systems))
 						</section>
+						@components.Bookshelf(systems)
 						<div class="index-results" data-search-results hidden aria-live="polite"></div>
 						<div class="index-catalogue" data-search-catalogue>
 							<p class="section-label index-catalogue-label">All runbooks</p>

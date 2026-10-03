@@ -251,11 +251,171 @@
 	color: var(--text);
 }
 
+/* Easter egg: the runbook catalogue drawn as framed bookcases of shade-character
+   books, five to a row. Revealed by clicking the index <h1> (see
+   public/js/src/app.js). It is a code surface, so it uses the constant --code-*
+   tokens instead of theme roles and stays dark in both themes. Systems and
+   categories are ignored so every row is the same width; two rows stack per
+   bookcase, then the next bookcase is built alongside (and wraps). */
+.index-shelf {
+	margin-top: var(--space-6);
+	padding: var(--space-5);
+	background: var(--code-bg);
+	border: 1px solid var(--code-border);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-md);
+	font-family: var(--font-mono);
+	font-weight: var(--mono-weight);
+	/* The books are the point, so the shelf runs larger than body text; every
+	   cell is a ch unit, so the whole bookcase scales with this one value. */
+	font-size: var(--text-lg);
+	color: var(--code-text);
+}
+
+/* A grid of bookcases. A bookcase is 13ch wide: two 1ch walls, a 1ch lead-in,
+   and five 2ch book slots (shelfInnerCells + the walls); the column tracks that
+   so bookcases wrap once the row is full. */
+.shelf-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, 13ch);
+	column-gap: var(--space-6);
+	row-gap: var(--space-5);
+	justify-content: start;
+}
+
+.shelf-bookcase {
+	display: flex;
+	flex-direction: column;
+}
+
+/* The frame lines and the book rows share one 1ch cell grid, so the walls and
+   rules line up with the books even when the box/shade glyphs fall back to
+   another font. Every structural cell is a fixed 1ch (or 2ch for a book), and
+   nothing shrinks, so the bookcase is always exactly 13ch. */
+.shelf-line,
+.shelf {
+	display: flex;
+	line-height: 1.2;
+}
+
+.shelf-corner,
+.shelf-rule,
+.shelf-wall,
+.shelf-pad {
+	flex: 0 0 1ch;
+	width: 1ch;
+	text-align: center;
+}
+
+.shelf-corner,
+.shelf-wall {
+	color: var(--code-text);
+	opacity: 0.5;
+}
+
+.shelf-rule {
+	color: var(--code-text);
+	opacity: 0.3;
+}
+
+.shelf-books {
+	display: flex;
+	flex: 0 0 10ch;
+}
+
+.shelf-book,
+.shelf-empty {
+	position: relative;
+	display: inline-block;
+	flex: 0 0 2ch;
+	width: 2ch;
+	text-align: left;
+}
+
+.shelf-book {
+	color: var(--code-text);
+	text-decoration: none;
+}
+
+/* Only the spine highlights, not the 1ch gap after it. */
+.shelf-spine {
+	display: inline-block;
+	width: 1ch;
+	text-align: center;
+	border-radius: var(--radius-sm);
+}
+
+.shelf-book:hover .shelf-spine,
+.shelf-book:focus-visible .shelf-spine {
+	background: var(--code-var-filled);
+	color: var(--code-bg);
+}
+
+.shelf-book:focus-visible {
+	outline: none;
+}
+
+/* Immediate tooltip: shown on hover/focus with no transition or delay, unlike
+   a native title. Carries the title, the system/category, and the Dewey-ish
+   number. */
+.shelf-tip {
+	position: absolute;
+	left: 0;
+	bottom: calc(100% + var(--space-2));
+	z-index: 20;
+	display: none;
+	min-width: 12rem;
+	max-width: 18rem;
+	padding: var(--space-2) var(--space-3);
+	background: var(--code-bg);
+	border: 1px solid var(--code-border);
+	border-radius: var(--radius-sm);
+	box-shadow: var(--shadow-md);
+	white-space: normal;
+	pointer-events: none;
+}
+
+.shelf-book:hover .shelf-tip,
+.shelf-book:focus-visible .shelf-tip {
+	display: block;
+}
+
+.shelf-tip-title {
+	display: block;
+	font-size: var(--text-2xs);
+	color: var(--code-text);
+}
+
+.shelf-tip-meta {
+	display: block;
+	margin-top: 2px;
+	font-size: var(--text-2xs);
+	color: var(--code-text);
+	opacity: 0.6;
+}
+
+.shelf-tip-dewey {
+	display: block;
+	margin-top: var(--space-1);
+	font-size: var(--text-2xs);
+	color: var(--code-var-filled);
+}
+
+.shelf-count {
+	margin-top: var(--space-5);
+	padding-top: var(--space-4);
+	border-top: 1px solid var(--code-border);
+	font-size: var(--text-xs);
+	color: var(--code-text);
+	opacity: 0.6;
+}
+
 .runbook-card[hidden],
 .index-group[hidden],
 .index-category[hidden],
 .search-chips[hidden],
 .index-results[hidden],
+.index-shelf[hidden],
 .index-catalogue[hidden] {
 	display: none;
 }

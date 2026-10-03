@@ -152,6 +152,81 @@ test("the index: body search returns snippets and restores the catalogue", async
 	}
 });
 
+test("the index bookshelf: the title toggles a shelf built from the runbooks", async (t) => {
+	const app = await startApp();
+	t.after(() => app.stop());
+	const b = await startBrowser();
+	t.after(() => b.stop());
+	try {
+		await bootAdmin(b.page, app.base);
+		await b.page.goto(app.base + "/");
+		await b.page.locator(".index-catalogue").waitFor({ timeout: uiTimeout });
+
+		const shelf = b.page.locator("[data-shelf]");
+		assert.equal(await shelf.isHidden(), true, "the shelf starts hidden");
+
+		const cards = await b.page.locator(".runbook-card").count();
+		await b.page.locator(".main-header h1").click();
+		await shelf.waitFor({ state: "visible", timeout: uiTimeout });
+		assert.equal(await b.page.locator(".index-catalogue").isHidden(), true, "the shelf replaces the catalogue");
+		assert.equal(await b.page.locator(".shelf-book").count(), cards, "one book per runbook");
+		assert.equal(await shelf.locator(".shelf-count").textContent(), `${cards} runbooks`, "the footer counts the runbooks");
+
+		await snap(b.page, "index-bookshelf");
+
+		// Every framed rule is the same width, so no bookcase goes ragged.
+		const shelves = shelf.locator(".shelf");
+		assert.ok((await shelves.count()) > 0, "there is at least one shelf");
+		const rules = await shelf.locator(".shelf-line").evaluateAll(els => els.map(e => e.querySelectorAll(".shelf-rule").length));
+		assert.equal(new Set(rules).size, 1, "every frame rule is the same width");
+		const perShelf = await shelves.evaluateAll(els => els.map(e => e.querySelectorAll(".shelf-book").length));
+		assert.ok(Math.max(...perShelf) <= 5, "no row holds more than five books");
+		assert.equal(perShelf.reduce((a, c) => a + c, 0), cards, "the shelves hold every runbook");
+		const slots = await shelves.evaluateAll(els =>
+			els.map(e => e.querySelectorAll(".shelf-book, .shelf-empty").length),
+		);
+		assert.ok(
+			slots.every(n => n === 5),
+			"every row is padded to exactly five slots",
+		);
+
+		// Two rows per bookcase, then the next bookcase is built alongside.
+		const perBookcase = await shelf
+			.locator(".shelf-bookcase")
+			.evaluateAll(els => els.map(e => e.querySelectorAll(".shelf").length));
+		assert.ok(Math.max(...perBookcase) <= 2, "a bookcase holds at most two rows");
+		assert.equal(
+			perBookcase.reduce((a, c) => a + c, 0),
+			await shelves.count(),
+			"every row belongs to a bookcase",
+		);
+
+		// Hovering a book shows an immediate tooltip with its class number.
+		const firstBook = b.page.locator(".shelf-book").first();
+		await firstBook.hover();
+		const tip = firstBook.locator(".shelf-tip");
+		await tip.waitFor({ state: "visible", timeout: uiTimeout });
+		assert.match(await tip.textContent(), /Dewey \d{3}\.\d{2}/, "the tooltip carries a Dewey number");
+		await snap(b.page, "index-bookshelf-hover");
+
+		// A search keystroke drops back to normal filtering.
+		await b.page.fill(".index-search", "healthz");
+		await shelf.waitFor({ state: "hidden", timeout: uiTimeout });
+		await b.page.locator(".search-result").first().waitFor({ timeout: uiTimeout });
+
+		// The title toggles it back on, then off again.
+		await b.page.fill(".index-search", "");
+		await b.page.locator(".main-header h1").click();
+		await shelf.waitFor({ state: "visible", timeout: uiTimeout });
+		await b.page.locator(".main-header h1").click();
+		await b.page.locator(".index-catalogue").waitFor({ state: "visible", timeout: uiTimeout });
+		await holdIfAsked();
+	} catch (err) {
+		await reportFailure(b.page, app.logs());
+		throw err;
+	}
+});
+
 test("consecutive rollback steps keep the step gap", async (t) => {
 	const app = await startApp();
 	t.after(() => app.stop());
