@@ -5,6 +5,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { uiTimeout, startApp, startBrowser, bootAdmin, snap, reportFailure, holdIfAsked } from "./harness.mjs";
 
+// The gallery carries more than two inputs, so its fields live in the editor
+// dialog: open it, fill one, and close with Done.
+async function fillVar(page, name, value) {
+	await page.locator("[data-vars-open]").click();
+	await page.locator(`.var-input[data-var="${name}"]`).fill(value);
+	await page.locator("[data-vars-done]").click();
+}
+
 test("the runbook page: step roll-up, the clear dialog, and light mode", async (t) => {
 	const app = await startApp();
 	t.after(() => app.stop());
@@ -13,14 +21,20 @@ test("the runbook page: step roll-up, the clear dialog, and light mode", async (
 	try {
 		await bootAdmin(b.page, app.base);
 		await b.page.goto(app.base + "/gallery");
-		await b.page.fill('.var-input[data-var="HOST"]', "db-2.prod.internal");
+		await fillVar(b.page, "HOST", "db-2.prod.internal");
 		await snap(b.page, "runbook");
+
+		// The notes panel floats over the right edge at every width, covering the
+		// step controls, so close it while the content behind it is driven.
+		const notesPanel = b.page.locator(".notes-panel");
+		await b.page.locator(".notes-close").click();
+		await notesPanel.waitFor({ state: "hidden", timeout: uiTimeout });
 
 		// The roll-up below needs every step open; the default is first-open with
 		// the rest collapsed.
 		await b.page.evaluate(() => localStorage.setItem("runbooks-steps", "all"));
 		await b.page.reload();
-		await b.page.fill('.var-input[data-var="HOST"]', "db-2.prod.internal");
+		await fillVar(b.page, "HOST", "db-2.prod.internal");
 
 		// Ticking every block in a step ticks the step itself.
 		const stepWithBlocks = b.page
@@ -37,21 +51,23 @@ test("the runbook page: step roll-up, the clear dialog, and light mode", async (
 		);
 
 		// The destructive Clear confirmation is a real dialog, not window.confirm(),
-		// and Clear lives behind the notes overflow menu.
+		// and Clear lives behind the notes overflow menu. Reopen the panel first.
+		await b.page.locator("[data-notes-toggle]").click();
+		await notesPanel.waitFor({ state: "visible", timeout: uiTimeout });
 		await b.page.locator("[data-notes-menu]").click();
 		await b.page.locator(".notes-clear").click();
 		await b.page.locator("dialog.dialog").waitFor({ timeout: uiTimeout });
 		await snap(b.page, "dialog");
 		await b.page.locator("dialog.dialog .btn-ghost").click();
 
-		// The notes panel hides and is recalled from the runbook header.
-		const notesToggle = b.page.locator("[data-notes-toggle]");
-		await notesToggle.click();
-		await b.page.locator(".notes-panel").waitFor({ state: "hidden", timeout: uiTimeout });
-		assert.equal(await b.page.locator(".notes-panel").isHidden(), true, "notes panel hides");
-		await notesToggle.click();
-		await b.page.locator(".notes-panel").waitFor({ state: "visible", timeout: uiTimeout });
-		assert.equal(await b.page.locator(".notes-panel").isVisible(), true, "notes panel is recalled");
+		// The notes panel hides from its own close (the floating panel can cover the
+		// header toggle) and is recalled from the runbook header.
+		await b.page.locator(".notes-close").click();
+		await notesPanel.waitFor({ state: "hidden", timeout: uiTimeout });
+		assert.equal(await notesPanel.isHidden(), true, "the panel's close hides it");
+		await b.page.locator("[data-notes-toggle]").click();
+		await notesPanel.waitFor({ state: "visible", timeout: uiTimeout });
+		assert.equal(await notesPanel.isVisible(), true, "notes panel is recalled");
 
 		// Light theme: code surfaces stay dark, the rest inverts.
 		await b.page.evaluate(() => localStorage.setItem("runbooks-theme", "light"));
@@ -60,6 +76,43 @@ test("the runbook page: step roll-up, the clear dialog, and light mode", async (
 		await snap(b.page, "runbook-light-code");
 		await b.page.locator(".rollback-card").first().scrollIntoViewIfNeeded();
 		await snap(b.page, "runbook-light-rollback");
+		await holdIfAsked();
+	} catch (err) {
+		await reportFailure(b.page, app.logs());
+		throw err;
+	}
+});
+
+test("the inputs editor: the bar summarises many inputs and edits them", async (t) => {
+	const app = await startApp();
+	t.after(() => app.stop());
+	const b = await startBrowser();
+	t.after(() => b.stop());
+	try {
+		await bootAdmin(b.page, app.base);
+		await b.page.goto(app.base + "/gallery");
+
+		// The gallery has more than two inputs, so the bar is a one-line summary
+		// rather than a row of fields.
+		const summary = b.page.locator("[data-vars-open]");
+		await summary.waitFor({ timeout: uiTimeout });
+		assert.equal(await b.page.locator(".vars-row").count(), 0, "many inputs do not render inline");
+
+		const dialog = b.page.locator("[data-vars-dialog]");
+		await summary.click();
+		await dialog.waitFor({ state: "visible", timeout: uiTimeout });
+		await b.page.fill('.var-input[data-var="HOST"]', "db-2.prod.internal");
+		assert.equal(await b.page.locator("[data-vars-editor-set]").textContent(), "1 set", "the editor counts set inputs");
+		await b.page.locator("[data-vars-done]").click();
+		await dialog.waitFor({ state: "hidden", timeout: uiTimeout });
+		assert.equal(await b.page.locator("[data-vars-set]").textContent(), "1 set", "the summary reflects the count");
+
+		// The backdrop dismisses like the sidebar scrim.
+		await summary.click();
+		await dialog.waitFor({ state: "visible", timeout: uiTimeout });
+		await b.page.mouse.click(5, 5);
+		await dialog.waitFor({ state: "hidden", timeout: uiTimeout });
+		assert.equal(await dialog.isHidden(), true, "the backdrop dismisses the editor");
 		await holdIfAsked();
 	} catch (err) {
 		await reportFailure(b.page, app.logs());
@@ -190,16 +243,17 @@ test("the notes composer: toolbar, help, links, and the hidden-column fix", asyn
 		await b.page.locator(".notes-panel").waitFor({ state: "visible", timeout: uiTimeout });
 		assert.equal(await b.page.locator(".notes-panel").isVisible(), true, "the header toggle recalls it");
 
-		// A dragged width must not survive hiding the panel as a phantom column.
+		// The panel floats at every width, so a dragged width never survives as a
+		// phantom grid column: the shell stays rail + main with the panel hidden.
+		// Close via the panel's own ✕ (it floats over the header toggle).
 		await b.page.evaluate(() => {
 			document.body.style.setProperty("--notes-width", "300px");
 			localStorage.setItem("runbooks-notes-width", "300");
 		});
-		await b.page.locator("[data-notes-toggle]").click();
+		await b.page.locator(".notes-close").click();
 		await b.page.locator(".notes-panel").waitFor({ state: "hidden", timeout: uiTimeout });
-		await b.page.waitForFunction(() => getComputedStyle(document.body).gridTemplateColumns.trim().endsWith("0px"));
-		const columns = await b.page.evaluate(() => getComputedStyle(document.body).gridTemplateColumns);
-		assert.ok(columns.trim().endsWith("0px"), `hiding notes collapses the third column (got ${columns})`);
+		const columns = (await b.page.evaluate(() => getComputedStyle(document.body).gridTemplateColumns)).trim();
+		assert.equal(columns.split(/\s+/).length, 2, `the notes panel is not a grid column (got ${columns})`);
 	} catch (err) {
 		await reportFailure(b.page, app.logs());
 		throw err;
