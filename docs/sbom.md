@@ -35,8 +35,18 @@ rather than only in the Actions run.
 
 ## Verifying a release
 
-On a tagged release CI attests the SPDX document against the image with
-[cosign](https://github.com/sigstore/cosign), binding it to the image digest:
+On a tagged release CI signs the image and attests the SPDX document against it
+with [cosign](https://github.com/sigstore/cosign), binding both to the image
+digest. Verify the signature:
+
+```bash
+cosign verify \
+  --certificate-identity-regexp '^https://github.com/ladydascalie/runbooks/' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  ghcr.io/ladydascalie/runbooks:<tag>
+```
+
+and the SBOM attestation:
 
 ```bash
 cosign verify-attestation \

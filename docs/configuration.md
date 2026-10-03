@@ -12,6 +12,12 @@ what the container runs with.
 
 `/healthz` is always served, unauthenticated, and returns `200 ok`.
 
+## Content
+
+| Var | Default | Meaning |
+|---|---|---|
+| `CONTENT_DIR` | `content` | Directory the runbooks are read from at startup. The image ships an empty one — mount your own. |
+
 ## Identity
 
 Identity is **off** until `IDENTITY_DB_DRIVER` is set; with no driver the app is

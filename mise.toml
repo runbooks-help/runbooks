@@ -48,7 +48,7 @@ run = "go run ./cmd/js"
 [tasks.build]
 description = "Generate templ components, compile CSS + JS, and build binary"
 depends = ["generate", "css", "js"]
-run = "go build -o runbooks ."
+run = "go build -ldflags \"-X main.version=$(git describe --tags --always --dirty 2>/dev/null || echo dev)\" -o runbooks ."
 
 [tasks.dev]
 description = "Live-reload dev server (templ watch + CSS/JS watch + air)"

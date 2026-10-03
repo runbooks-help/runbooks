@@ -2,8 +2,10 @@
 
 ## Storage
 
-- **Runbooks** are plain markdown under `content/`, read from disk at runtime —
-  not stored in a database, and not part of a backup of it.
+- **Runbooks** are plain markdown in `CONTENT_DIR` (default `content`), read from
+  disk at runtime — not stored in a database, and not part of a backup of it. The
+  image ships an empty directory (it never bundles content); mount yours there, or
+  point `CONTENT_DIR` at wherever your runbooks live.
 - **Identity** (users, passkeys, sessions, invites, audit events) lives in the
   configured database. SQLite is the default and keeps everything in one file at
   `file:./data/runbooks.db`.
@@ -46,3 +48,14 @@ restores identity. Runbook content is unaffected by a database restore.
 
 `GET /healthz` returns `200 ok`, unauthenticated, on an identity-on instance too —
 wire container or load-balancer probes to it.
+
+## Version
+
+`runbooks --version` prints the build stamp — `runbooks vX.Y.Z` for a tagged
+build, the short commit otherwise. Tagged images also carry
+`org.opencontainers.image.version` and `…revision` labels:
+
+```bash
+docker inspect --format '{{index .Config.Labels "org.opencontainers.image.version"}}' \
+  ghcr.io/ladydascalie/runbooks:<tag>
+```

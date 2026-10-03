@@ -23,6 +23,9 @@ import (
 //go:embed public
 var static embed.FS
 
+// version is the build stamp, set with -X main.version=… at build time.
+var version = "dev"
+
 type config struct {
 	GitSyncRepo        string
 	GitSyncBranch      string
@@ -48,11 +51,13 @@ type config struct {
 	IdentitySessionTTL      time.Duration
 	IdentitySessionIdleTTL  time.Duration
 
+	ContentDir        string
 	StyleGuideEnabled bool
 }
 
 func loadConfig() config {
 	cfg := config{
+		ContentDir:         os.Getenv("CONTENT_DIR"),
 		GitSyncRepo:        os.Getenv("GITSYNC_REPO"),
 		GitSyncBranch:      os.Getenv("GITSYNC_BRANCH"),
 		GitSyncBasePath:    os.Getenv("GITSYNC_BASE_PATH"),
@@ -62,6 +67,9 @@ func loadConfig() config {
 		GitSyncToken:       os.Getenv("GITSYNC_TOKEN"),
 		GitSyncSSHKey:      os.Getenv("GITSYNC_SSH_KEY"),
 		GitSyncAPIToken:    os.Getenv("GITSYNC_API_TOKEN"),
+	}
+	if cfg.ContentDir == "" {
+		cfg.ContentDir = "content"
 	}
 	if cfg.GitSyncBranch == "" {
 		cfg.GitSyncBranch = "main"
@@ -121,6 +129,10 @@ func gitSyncNeedsBrowserToken(identityEnabled bool, apiToken string) bool {
 }
 
 func main() {
+	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-version") {
+		fmt.Println("runbooks " + version)
+		return
+	}
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8090"
@@ -132,8 +144,10 @@ func main() {
 	}
 
 	// An empty content/ is not an error: the index renders a welcome that says
-	// how to add runbooks, so a fresh checkout still boots.
-	runbooks, err := parser.LoadDir("content")
+	// how to add runbooks, so a fresh checkout still boots. The directory is
+	// external — the operator mounts it (CONTENT_DIR) — and never bundled in the
+	// image.
+	runbooks, err := parser.LoadDir(cfg.ContentDir)
 	if err != nil {
 		log.Fatalf("load runbooks: %v", err)
 	}

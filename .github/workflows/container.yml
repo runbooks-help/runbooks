@@ -25,6 +25,13 @@ jobs:
           DATETIME=$(date -u '+%Y%m%d%H%M%S')
           SHORT_SHA="${GITHUB_SHA::7}"
           echo "value=ghcr.io/ladydascalie/runbooks:${BRANCH}-${DATETIME}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            # A tag is a release: stamp the version and give it a clean tag.
+            echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+            echo "extra=ghcr.io/ladydascalie/runbooks:${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          fi
           if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" == "main" ]]; then
             echo "extra=ghcr.io/ladydascalie/runbooks:latest" >> $GITHUB_OUTPUT
           fi
@@ -47,6 +54,9 @@ jobs:
           tags: |
             ${{ steps.tag.outputs.value }}
             ${{ steps.tag.outputs.extra }}
+          build-args: |
+            VERSION=${{ steps.tag.outputs.version }}
+            REVISION=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -76,6 +86,10 @@ jobs:
       - name: Install cosign
         if: startsWith(github.ref, 'refs/tags/v')
         uses: sigstore/cosign-installer@v3
+
+      - name: Sign the release image
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: cosign sign --yes "${{ steps.tag.outputs.value }}"
 
       - name: Attest SBOM against the release image
         if: startsWith(github.ref, 'refs/tags/v')
