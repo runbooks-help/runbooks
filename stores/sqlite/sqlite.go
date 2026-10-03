@@ -100,25 +100,44 @@ func (s *store) migrate(ctx context.Context) error {
 			return fmt.Errorf("sqlite: apply %s: %w", entry.Name(), err)
 		}
 	}
-	return s.ensureCredentialFlags(ctx)
+	return s.ensureColumns(ctx)
 }
 
-// ensureCredentialFlags adds the credentials.flags column to a database created
-// before it existed. SQLite has no ADD COLUMN IF NOT EXISTS, so the column list
-// is checked first.
-func (s *store) ensureCredentialFlags(ctx context.Context) error {
-	var exists int
-	if err := s.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM pragma_table_info('credentials') WHERE name = 'flags'`).Scan(&exists); err != nil {
-		return fmt.Errorf("sqlite: check credentials.flags: %w", err)
-	}
-	if exists > 0 {
-		return nil
-	}
-	if _, err := s.db.ExecContext(ctx, `ALTER TABLE credentials ADD COLUMN flags INTEGER NOT NULL DEFAULT 0`); err != nil {
-		return fmt.Errorf("sqlite: add credentials.flags: %w", err)
+// addedColumns are columns a schema file introduced after some databases were
+// already created. CREATE TABLE IF NOT EXISTS leaves an existing table alone, so
+// each is added explicitly when the live table is missing it — otherwise a query
+// that names the column fails on an older database.
+var addedColumns = []struct{ table, column, ddl string }{
+	{"credentials", "flags", `ALTER TABLE credentials ADD COLUMN flags INTEGER NOT NULL DEFAULT 0`},
+	{"auth_events", "detail", `ALTER TABLE auth_events ADD COLUMN detail TEXT`},
+}
+
+// ensureColumns adds every addedColumns entry the live schema is missing.
+func (s *store) ensureColumns(ctx context.Context) error {
+	for _, c := range addedColumns {
+		exists, err := s.columnExists(ctx, c.table, c.column)
+		if err != nil {
+			return err
+		}
+		if exists {
+			continue
+		}
+		if _, err := s.db.ExecContext(ctx, c.ddl); err != nil {
+			return fmt.Errorf("sqlite: add %s.%s: %w", c.table, c.column, err)
+		}
 	}
 	return nil
+}
+
+// columnExists reports whether the table already has the column. SQLite has no
+// ADD COLUMN IF NOT EXISTS, so the column list is checked first.
+func (s *store) columnExists(ctx context.Context, table, column string) (bool, error) {
+	var exists int
+	if err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?`, table, column).Scan(&exists); err != nil {
+		return false, fmt.Errorf("sqlite: check %s.%s: %w", table, column, err)
+	}
+	return exists > 0, nil
 }
 
 // sqliteConstraint is SQLITE_CONSTRAINT. SQLite reports extended codes (e.g.

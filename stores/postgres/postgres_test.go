@@ -88,6 +88,46 @@ func hasCredentialFlags(t *testing.T, s *store) bool {
 	return n > 0
 }
 
+// TestMigrationAddsAuthEventDetail covers upgrading a database created before
+// the auth_events.detail column existed (the audit page 500s otherwise).
+func TestMigrationAddsAuthEventDetail(t *testing.T) {
+	dsn := os.Getenv("STORES_POSTGRES_DSN")
+	if dsn == "" {
+		t.Skip("set STORES_POSTGRES_DSN (or run `mise run test:postgres`)")
+	}
+	ctx := context.Background()
+	s, err := Open(ctx, dsn)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer s.Close()
+	reset(t, s)
+	raw := s.(*store)
+
+	if _, err := raw.db.ExecContext(ctx, `ALTER TABLE auth_events DROP COLUMN detail`); err != nil {
+		t.Fatalf("drop detail: %v", err)
+	}
+	if err := raw.migrate(ctx); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	if !hasAuthEventDetail(t, raw) {
+		t.Fatal("migrate did not re-add the detail column")
+	}
+	if _, err := s.ListAuthEvents(ctx); err != nil {
+		t.Fatalf("ListAuthEvents after migrate: %v", err)
+	}
+}
+
+func hasAuthEventDetail(t *testing.T, s *store) bool {
+	t.Helper()
+	var n int
+	if err := s.db.QueryRowContext(context.Background(),
+		`SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'auth_events' AND column_name = 'detail'`).Scan(&n); err != nil {
+		t.Fatalf("information_schema: %v", err)
+	}
+	return n > 0
+}
+
 func TestMigrationIdempotent(t *testing.T) {
 	dsn := os.Getenv("STORES_POSTGRES_DSN")
 	if dsn == "" {

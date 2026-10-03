@@ -89,6 +89,42 @@ func hasCredentialFlags(t *testing.T, s *store) bool {
 	return n > 0
 }
 
+// TestMigrationAddsAuthEventDetail covers upgrading a database created before
+// the auth_events.detail column existed — without the migration the admin audit
+// page 500s because ListAuthEvents names the column.
+func TestMigrationAddsAuthEventDetail(t *testing.T) {
+	ctx := context.Background()
+	s, err := Open(ctx, "file:"+filepath.Join(t.TempDir(), "stores.db"))
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer s.Close()
+	raw := s.(*store)
+
+	if _, err := raw.db.ExecContext(ctx, `ALTER TABLE auth_events DROP COLUMN detail`); err != nil {
+		t.Fatalf("drop detail: %v", err)
+	}
+	if err := raw.migrate(ctx); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	if !hasAuthEventDetail(t, raw) {
+		t.Fatal("migrate did not re-add the detail column")
+	}
+	if _, err := s.ListAuthEvents(ctx); err != nil {
+		t.Fatalf("ListAuthEvents after migrate: %v", err)
+	}
+}
+
+func hasAuthEventDetail(t *testing.T, s *store) bool {
+	t.Helper()
+	var n int
+	if err := s.db.QueryRowContext(context.Background(),
+		`SELECT COUNT(*) FROM pragma_table_info('auth_events') WHERE name = 'detail'`).Scan(&n); err != nil {
+		t.Fatalf("pragma_table_info: %v", err)
+	}
+	return n > 0
+}
+
 func TestMigrationIdempotent(t *testing.T) {
 	ctx := context.Background()
 	dsn := "file:" + filepath.Join(t.TempDir(), "stores.db")
