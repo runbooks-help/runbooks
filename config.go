@@ -34,12 +34,13 @@ type config struct {
 	IdentitySessionTTL      time.Duration
 	IdentitySessionIdleTTL  time.Duration
 
-	ContentDir          string
-	ContentSource       string
-	ContentGitPath      string
-	ContentGitCache     string
-	ContentRefreshToken string
-	StyleGuideEnabled   bool
+	ContentDir             string
+	ContentSource          string
+	ContentGitPath         string
+	ContentGitCache        string
+	ContentRefreshToken    string
+	ContentRefreshInterval time.Duration
+	StyleGuideEnabled      bool
 }
 
 func loadConfig() config {
@@ -70,6 +71,12 @@ func loadConfig() config {
 	}
 	if cfg.ContentGitCache == "" {
 		cfg.ContentGitCache = "data/content"
+	}
+	// Automatic refresh is opt-in; a sub-minute interval is a footgun against the
+	// remote, so a positive value below the floor is a startup error.
+	cfg.ContentRefreshInterval = envDuration("CONTENT_REFRESH_INTERVAL", 0)
+	if cfg.ContentRefreshInterval > 0 && cfg.ContentRefreshInterval < time.Minute {
+		log.Fatalf("CONTENT_REFRESH_INTERVAL must be at least 1m, got %s", cfg.ContentRefreshInterval)
 	}
 	if cfg.GitSyncBranch == "" {
 		cfg.GitSyncBranch = "main"

@@ -5,10 +5,12 @@ import (
 	"embed"
 	"fmt"
 	"log"
+	"math/rand/v2"
 	"net/http"
 	"net/url"
 	"os"
 	"sync"
+	"time"
 
 	"runbooks/contentsource"
 	"runbooks/identity"
@@ -77,6 +79,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("content: %v", err)
 	}
+	if cfg.ContentRefreshInterval > 0 {
+		log.Printf("content: refreshing every %s", cfg.ContentRefreshInterval)
+		go state.poll(cfg.ContentRefreshInterval)
+	}
 	if cfg.StyleGuideEnabled {
 		log.Printf("styleguide enabled at /styleguide")
 	}
@@ -103,6 +109,10 @@ type contentState struct {
 	cfg   config
 	store stores.Store
 	authn *auth
+
+	// refreshMu serializes refreshes so the poller and the manual endpoint cannot
+	// fetch and reset the same git worktree concurrently.
+	refreshMu sync.Mutex
 
 	// bg tracks the startup background refresh (a reused git cache), so a test
 	// can wait for it to settle before its temp dirs are removed.
@@ -146,7 +156,24 @@ func (cs *contentState) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // reload fetches the source, rebuilds the snapshot and routes, and swaps them
 // in. A failed fetch or parse leaves the current set serving (last-good).
+// Refreshes are serialized; a caller that must not wait uses reloadIfIdle.
 func (cs *contentState) reload() error {
+	cs.refreshMu.Lock()
+	defer cs.refreshMu.Unlock()
+	return cs.reloadLocked()
+}
+
+// reloadIfIdle refreshes unless a refresh is already running, in which case the
+// tick is skipped rather than queued.
+func (cs *contentState) reloadIfIdle() error {
+	if !cs.refreshMu.TryLock() {
+		return nil
+	}
+	defer cs.refreshMu.Unlock()
+	return cs.reloadLocked()
+}
+
+func (cs *contentState) reloadLocked() error {
 	dir, err := contentsource.Refresh(context.Background(), cs.sourceOptions())
 	if err != nil {
 		return err
@@ -160,6 +187,26 @@ func (cs *contentState) reload() error {
 	cs.mux = mux
 	cs.mu.Unlock()
 	return nil
+}
+
+// poll refreshes the content source every interval until the process ends. Each
+// wait is jittered ±10% so instances polling one repo do not beat in lockstep.
+func (cs *contentState) poll(interval time.Duration) {
+	for {
+		time.Sleep(jitter(interval))
+		if err := cs.reloadIfIdle(); err != nil {
+			log.Printf("content: scheduled refresh failed: %v", err)
+		}
+	}
+}
+
+// jitter spreads a wait by ±10%.
+func jitter(interval time.Duration) time.Duration {
+	ten := interval / 10
+	if ten <= 0 {
+		return interval
+	}
+	return interval + time.Duration(rand.Int64N(int64(2*ten)+1)) - ten
 }
 
 // sourceOptions builds the content-source options from the config. Content and

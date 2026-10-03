@@ -106,6 +106,49 @@ func seedGitRepo(t *testing.T) string {
 	return src
 }
 
+// TestJitterWithinTenPercent pins the ±10% spread.
+func TestJitterWithinTenPercent(t *testing.T) {
+	const interval = time.Minute
+	for range 100 {
+		got := jitter(interval)
+		if got < 54*time.Second || got > 66*time.Second {
+			t.Fatalf("jitter(%s) = %s, want within ±10%%", interval, got)
+		}
+	}
+	// A sub-10ns interval has nothing to spread; it is returned unchanged.
+	if got := jitter(time.Nanosecond); got != time.Nanosecond {
+		t.Fatalf("jitter(1ns) = %s, want 1ns", got)
+	}
+}
+
+// TestReloadIfIdleSkipsWhileBusy pins that a colliding tick is dropped, not
+// queued: while a refresh holds the lock, new content is not picked up.
+func TestReloadIfIdleSkipsWhileBusy(t *testing.T) {
+	dir := t.TempDir()
+	writeRunbook(t, dir, "first.md", "First", "first")
+	cs, err := newContentState(config{ContentSource: "local", ContentDir: dir}, nil, nil)
+	if err != nil {
+		t.Fatalf("newContentState: %v", err)
+	}
+
+	writeRunbook(t, dir, "second.md", "Second", "second")
+	cs.refreshMu.Lock()
+	if err := cs.reloadIfIdle(); err != nil {
+		t.Fatalf("reloadIfIdle while busy: %v", err)
+	}
+	cs.refreshMu.Unlock()
+	if code := serve(cs, "/second"); code != http.StatusNotFound {
+		t.Fatalf("/second while a refresh held the lock = %d, want 404 (skipped)", code)
+	}
+
+	if err := cs.reload(); err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+	if code := serve(cs, "/second"); code != http.StatusOK {
+		t.Fatalf("/second after reload = %d, want 200", code)
+	}
+}
+
 func serve(h http.Handler, path string) int {
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))

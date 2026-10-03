@@ -21,6 +21,7 @@ what the container runs with.
 | `CONTENT_GIT_PATH` | `.` | Directory within the repo to read when `CONTENT_SOURCE=git`. |
 | `CONTENT_GIT_CACHE` | `data/content` | Where the git clone lives; reused across restarts. |
 | `CONTENT_REFRESH_TOKEN` | *(unset)* | Bearer token for `POST /api/content/v1/refresh` when identity is off; unset disables the endpoint (it is admin-only when identity is on). |
+| `CONTENT_REFRESH_INTERVAL` | *(unset)* | Opt-in background refresh, e.g. `5m`. Go duration; unset or `0` is off. Values below `1m` are rejected at startup. Applies to any source (`local` re-read, `git` fetch first). |
 
 With `CONTENT_SOURCE=git`, the remote and credential come from the `GITSYNC_*`
 variables below — content at the repo root, notes records in `GITSYNC_BASE_PATH`,

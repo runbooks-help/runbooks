@@ -52,8 +52,14 @@ requests keep the set they started on.
 - With identity off it requires `Authorization: Bearer $CONTENT_REFRESH_TOKEN`,
   and is disabled (`403`) when no token is configured.
 
-A local source is re-read in place; only a git source fetches. Refresh is
-manual — there is no poll interval or webhook.
+A local source is re-read in place; only a git source fetches.
+
+Set `CONTENT_REFRESH_INTERVAL` (e.g. `5m`) to refresh on a timer instead of
+relying on an external scheduler. It is opt-in and requires at least `1m`; each
+wait is jittered ±10% so several instances polling one repo do not beat in
+lockstep. Refreshes are serialized — a tick that lands while a refresh is already
+running is skipped, and the manual endpoint waits its turn — and a failed
+refresh only logs and keeps the last-good snapshot. There is no webhook.
 
 ### Cache
 
