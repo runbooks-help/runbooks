@@ -29,12 +29,6 @@ func initTestRepo(t *testing.T) string {
 	mustGit(t, work, "clone", bare, ".")
 	mustGit(t, work, "config", "user.email", "test@test.com")
 	mustGit(t, work, "config", "user.name", "Test")
-	// The suite must not depend on the developer's GPG agent: apply
-	// commit.gpgsign=false to every Git this test starts, the server's sync
-	// commit included. Production keeps the host's own git config.
-	t.Setenv("GIT_CONFIG_COUNT", "1")
-	t.Setenv("GIT_CONFIG_KEY_0", "commit.gpgsign")
-	t.Setenv("GIT_CONFIG_VALUE_0", "false")
 	mustGit(t, work, "commit", "--allow-empty", "-m", "init")
 	mustGit(t, work, "push", "origin", "main")
 
