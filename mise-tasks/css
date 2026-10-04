@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 #MISE description="Compile CSS bundle (one-shot)"
+#MISE depends=["design-system"]
 go run ./cmd/css

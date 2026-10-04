@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 #MISE description="Regenerate THIRD_PARTY_NOTICES.md from the linked modules and vendored assets"
+#MISE depends=["design-system"]
 go run ./cmd/notices

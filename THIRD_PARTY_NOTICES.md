@@ -7271,8 +7271,9 @@ SOFTWARE.
 
 ## Fonts
 
-The self-hosted fonts are licensed under the SIL Open Font License 1.1,
-each shipped alongside it as `<family>.LICENSE`.
+The self-hosted fonts are vendored from the shared design system and licensed
+under the SIL Open Font License 1.1, each shipped alongside it as
+`<family>.LICENSE`.
 
 ### Atkinson Hyperlegible Next + Mono
 

@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Generate the brand assets into brand/ (needs woff2_decompress, inkscape, rsvg-convert)"
-go run ./cmd/brand

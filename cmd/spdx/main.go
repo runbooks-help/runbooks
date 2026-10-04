@@ -91,7 +91,7 @@ func skipDir(name string) bool {
 // inScope returns the header comment for a file we author, if it needs one.
 func inScope(path string) (string, bool) {
 	path = strings.TrimPrefix(filepath.ToSlash(path), "./")
-	if strings.HasPrefix(path, "public/js/vendor/") || strings.HasPrefix(path, "public/fonts/") {
+	if strings.HasPrefix(path, "public/js/vendor/") || strings.HasPrefix(path, "public/design-system/") {
 		return "", false
 	}
 	if strings.HasSuffix(path, "_templ.go") {

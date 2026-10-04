@@ -8,3 +8,6 @@ mise.local.toml
 # The maintainer's private runbooks never enter the image; the operator mounts
 # their own content (CONTENT_DIR).
 content/
+
+# Fetched from the pinned design-system release by `go run ./cmd/designsystem`.
+public/design-system/

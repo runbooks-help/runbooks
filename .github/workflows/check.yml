@@ -24,6 +24,9 @@ jobs:
       - name: Generate templ components
         run: go tool templ generate ./...
 
+      - name: Fetch the design system
+        run: go run ./cmd/designsystem
+
       - name: Build CSS and JS bundles
         run: |
           go run ./cmd/css

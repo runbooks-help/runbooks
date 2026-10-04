@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="Fetch the pinned design system into public/design-system/ (tokens, fonts, brand)"
+go run ./cmd/designsystem

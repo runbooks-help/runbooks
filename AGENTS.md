@@ -30,7 +30,7 @@ the file.
 | `mise run lintcss` / `mise run fmtcss` | stylelint / Prettier over `public/css/src/**`. |
 | `mise run test` | Go tests + JS unit tests (`node --test`). |
 | `mise run notices` | Regenerate `THIRD_PARTY_NOTICES.md` from the linked modules and vendored assets (`cmd/notices`). |
-| `mise run brand` | Generate the brand assets (logomark, wordmark, lockups, icon) into `brand/` and the mark favicon into `public/favicon.svg`, as outlined SVG + PNG (`cmd/brand`). Needs `woff2_decompress`, `inkscape`, `rsvg-convert`; output is committed. |
+| `mise run design-system` | Fetch the pinned `runbooks-help/design-system` release (tokens, fonts, brand) into `public/design-system/` (`cmd/designsystem`). A dependency of `css`/`dev`/`build`/`notices`, so it runs on its own. |
 | `mise run sbom` / `mise run sbom:image` | SPDX 2.3 + CycloneDX SBOM for the built binary / the container image (syft). |
 | `mise run test:e2e` | Browser E2E behind `e2e/harness.mjs` (shared boot + Chromium + virtual authenticator): `passkey.test.mjs` (identity), `runbook.test.mjs` (page interactions), `styleguide.test.mjs` (design-system screenshots). `E2E_SCREENSHOT_DIR=…` writes the screenshots. Needs a system Chromium (`CHROMIUM=/path` to override); `playwright-core` installs into `e2e/` on demand. |
 | `mise run test:e2e:headed` | The same tests in visible windows. `E2E_SLOWMO=ms` paces the actions, `E2E_HOLD_MS=ms` holds at the end of each test (default: run straight through). |
@@ -92,17 +92,18 @@ views/styleguide.templ  the design system at /styleguide
 views/auth.templ     /login, /setup, /invite/<token>, /recovery
 views/pageconfig.go  PageConfig — the runtime config embedded for the client
 content/<system>/<category>/<file>.md   the runbooks themselves
-public/css/src/      source CSS (bundled → public/css/bundle.css, generated)
-public/fonts/        self-hosted Atkinson Hyperlegible Next + Mono (variable, latin),
-                     plus the Shade Mono subset (Noto, U+2591-2593) for ░▒▓
+public/css/src/      source CSS (bundled → public/css/bundle.css, generated;
+                     imports the shared design system's tokens.css)
+public/design-system/  fetched from the pinned design-system release: tokens.css,
+                     fonts.css + fonts/ (Atkinson + Shade Mono), brand/, favicon.svg
+                     (gitignored; see cmd/designsystem)
 public/js/src/       source JS (bundled → public/js/bundle.js, generated)
 public/js/vendor/    marked, highlight.js, jszip (checked in, not bundled)
 e2e/                 browser E2E: harness.mjs + passkey/runbook/styleguide suites
 cmd/css, cmd/js      esbuild wrappers (see build pipeline below)
 cmd/notices          generates THIRD_PARTY_NOTICES.md (mise run notices)
-cmd/brand            generates the brand assets into brand/ (mise run brand)
+cmd/designsystem     fetches the pinned design system (mise run design-system)
 mise-tasks/          file tasks, one executable per task (see Commands; mise.toml keeps [tools]/[env])
-brand/               generated brand assets: outlined SVG + PNG (committed)
 LICENSE / NOTICE     outbound FSL-1.1-MIT + the third-party notices that must be embedded (OFL, MPL driver)
 DEPENDENCIES.md      dependency inventory + FSL classification
 THIRD_PARTY_NOTICES.md  generated full licence texts (do not hand-edit)

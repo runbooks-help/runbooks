@@ -1,7 +1,9 @@
 /* SPDX-License-Identifier: FSL-1.1-MIT */
 
-@import "fonts.css";
-@import "tokens.css";
+/* The token layer and fonts come from the shared design system, fetched into
+   public/design-system/ (see cmd/designsystem). Fonts are linked separately in
+   the shell, because their @font-face URLs resolve beside that file. */
+@import "../../design-system/tokens.css";
 @import "typography.css";
 @import "layouts.css";
 @import "button.css";

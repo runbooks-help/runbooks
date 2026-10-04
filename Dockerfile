@@ -11,6 +11,7 @@ RUN go mod download
 COPY . .
 
 RUN go tool templ generate ./... && \
+    go run ./cmd/designsystem && \
     go run ./cmd/css && \
     go run ./cmd/js && \
     go run ./cmd/notices -version "${VERSION}" && \

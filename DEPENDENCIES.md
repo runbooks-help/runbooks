@@ -135,7 +135,11 @@ runtime is distributed.
 |---|---|---|
 | bold, italic, code, link, image, list, list-ordered, heading, quote, circle-help, ellipsis | 1.49.0 | ISC (Feather subset MIT) |
 
-## 4. Fonts (`public/fonts/`)
+## 4. Fonts (vendored from the shared design system)
+
+The fonts are fetched from the pinned `runbooks-help/design-system` release into
+`public/design-system/fonts/` (`mise run design-system`); the Shade Mono subset
+ships there too.
 
 | File | Font | Licence |
 |---|---|---|
