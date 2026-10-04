@@ -75,6 +75,10 @@ deployment or CI job that mounts a key and points the variable at its path. See
 | `GITSYNC_SSH_KEY` | *(unset)* | Private key path for SSH remotes; omit to use the ambient SSH agent. |
 | `GITSYNC_API_TOKEN` | *(unset)* | Shared bearer that gates the sync endpoint, for CI/automation and for identity-off deployments. |
 
+Each sync writes a new, immutable snapshot directory under the base path —
+`<GITSYNC_BASE_PATH>/<YYYY-MM-DD>T<HHMMSSZ>-<slug>/` (UTC) — so every state of
+play stays in the record tree; a re-sync with no changes is skipped.
+
 With identity on, a signed-in user's commit is authored as that user
 (`DisplayName <Email>`); `GITSYNC_AUTHOR_*` applies only when the user has no
 email, and `GITSYNC_API_TOKEN` is the non-human fallback.

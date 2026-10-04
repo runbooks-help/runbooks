@@ -606,14 +606,16 @@ if (notesPrint) {
 	});
 }
 
-// Record path for the exported ZIP: <base>/<YYYY-MM-DD>-<slug>/. Mirrors the
-// server's git-sync layout so a manual commit produces the same artifact, which
-// is what makes Export the no-repo-credential path.
+// Record path for the exported ZIP: <base>/<YYYY-MM-DD>T<HHMMSSZ>-<slug>/. Mirrors
+// the server's git-sync snapshot so a manual commit produces the same artifact,
+// which is what makes Export the no-repo-credential path.
 function exportRecordDir() {
-	const base = (pageConfig.recordsBasePath || 'runs').replace(/\/+$/, '');
-	const date = new Date().toISOString().slice(0, 10); // UTC, matches the server
+	const base = (pageConfig.recordsBasePath || 'runbook_runs').replace(/\/+$/, '');
+	// UTC, second precision — the same snapshot directory the server writes, so a
+	// ZIP drops into the record tree unchanged.
+	const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
 	const slug = location.pathname.slice(1).replace(/\//g, '-') || 'runbook';
-	const name = `${date}-${slug}`;
+	const name = `${stamp}-${slug}`;
 	return { dir: base ? `${base}/${name}` : name, name };
 }
 

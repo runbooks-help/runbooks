@@ -3,10 +3,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -163,51 +165,35 @@ func doGitSync(ctx context.Context, cfg config, job gitSyncJob) (string, bool, e
 		return "", false, fmt.Errorf("clone failed")
 	}
 
-	date := time.Now().UTC().Format("2006-01-02")
-	dir := filepath.Join(ws, cfg.GitSyncBasePath, date, req.RunbookSlug)
+	files := snapshotFiles(req)
+	base := filepath.Join(ws, cfg.GitSyncBasePath)
+	now := time.Now().UTC()
+
+	// A record is one immutable snapshot per sync, so a re-sync that changes
+	// nothing is a no-op: compare against the latest snapshot of the same day
+	// rather than letting a fresh timestamp mint a duplicate directory.
+	prev, err := latestSnapshot(base, now.Format("20060102"), req.RunbookSlug)
+	if err != nil {
+		return "", false, fmt.Errorf("read records failed")
+	}
+	if prev != "" && sameSnapshot(prev, files) {
+		return "", false, nil
+	}
+
+	dir, err := newSnapshotDir(base, now, req.RunbookSlug)
+	if err != nil {
+		return "", false, fmt.Errorf("snapshot path failed")
+	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", false, fmt.Errorf("mkdir failed")
 	}
-
-	imgNames := make(map[string]string, len(req.Images))
-	for _, img := range req.Images {
-		subtype := strings.TrimPrefix(img.MimeType, "image/")
-		ext, ok := mimeToExt[subtype]
-		if !ok {
-			ext = subtype
-		}
-		fname := img.Name + "." + ext
-		imgNames[img.Name] = fname
-
-		data, err := base64.StdEncoding.DecodeString(img.DataB64)
-		if err != nil {
-			continue
-		}
-		if err := os.WriteFile(filepath.Join(dir, fname), data, 0o644); err != nil {
-			return "", false, fmt.Errorf("write image failed")
+	for name, data := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), data, 0o644); err != nil {
+			return "", false, fmt.Errorf("write %s failed", name)
 		}
 	}
 
-	notes := imgRefRe.ReplaceAllStringFunc(req.Notes, func(match string) string {
-		sub := imgRefRe.FindStringSubmatch(match)
-		if len(sub) < 3 {
-			return match
-		}
-		alt, name := sub[1], "img-"+sub[2]
-		if fname, ok := imgNames[name]; ok {
-			return fmt.Sprintf("![%s](%s)", alt, fname)
-		}
-		return match
-	})
-
-	if err := os.WriteFile(filepath.Join(dir, "notes.md"), []byte(notes), 0o644); err != nil {
-		return "", false, fmt.Errorf("write notes failed")
-	}
-	if err := os.WriteFile(filepath.Join(dir, "runbook.md"), []byte(req.RunbookSource), 0o644); err != nil {
-		return "", false, fmt.Errorf("write runbook failed")
-	}
-
-	msg := fmt.Sprintf("sync: %s %s", req.RunbookTitle, date)
+	msg := fmt.Sprintf("notes: %s (%s)", req.RunbookTitle, req.RunbookSlug)
 	hash, changed, err := gitrepo.Commit(repo, msg, gitrepo.Author{Name: job.author.name, Email: job.author.email})
 	if err != nil {
 		log.Printf("gitsync: commit failed: %v", err)
@@ -223,4 +209,113 @@ func doGitSync(ctx context.Context, cfg config, job gitSyncJob) (string, bool, e
 		return "", false, fmt.Errorf("git push failed")
 	}
 	return hash.String(), true, nil
+}
+
+// snapshotFiles renders the record's files in memory: the notes body with image
+// refs rewritten to local filenames, the runbook source, and each pasted image.
+func snapshotFiles(req gitSyncRequest) map[string][]byte {
+	files := make(map[string][]byte, len(req.Images)+2)
+
+	imgNames := make(map[string]string, len(req.Images))
+	for _, img := range req.Images {
+		subtype := strings.TrimPrefix(img.MimeType, "image/")
+		ext, ok := mimeToExt[subtype]
+		if !ok {
+			ext = subtype
+		}
+		fname := img.Name + "." + ext
+		imgNames[img.Name] = fname
+
+		data, err := base64.StdEncoding.DecodeString(img.DataB64)
+		if err != nil {
+			continue
+		}
+		files[fname] = data
+	}
+
+	notes := imgRefRe.ReplaceAllStringFunc(req.Notes, func(match string) string {
+		sub := imgRefRe.FindStringSubmatch(match)
+		if len(sub) < 3 {
+			return match
+		}
+		alt, name := sub[1], "img-"+sub[2]
+		if fname, ok := imgNames[name]; ok {
+			return fmt.Sprintf("![%s](%s)", alt, fname)
+		}
+		return match
+	})
+
+	files["notes.md"] = []byte(notes)
+	files["runbook.md"] = []byte(req.RunbookSource)
+	return files
+}
+
+// latestSnapshot returns the newest record directory for a UTC date and slug, or
+// "" when none exists. The timestamp prefixes sort lexically, so the greatest
+// name is the most recent.
+func latestSnapshot(base, date, slug string) (string, error) {
+	entries, err := os.ReadDir(base)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return "", nil
+		}
+		return "", err
+	}
+	prefix, suffix := date+"T", "-"+slug
+	latest := ""
+	for _, e := range entries {
+		name := e.Name()
+		if !e.IsDir() || !strings.HasPrefix(name, prefix) || !strings.HasSuffix(name, suffix) {
+			continue
+		}
+		if name > latest {
+			latest = name
+		}
+	}
+	if latest == "" {
+		return "", nil
+	}
+	return filepath.Join(base, latest), nil
+}
+
+// sameSnapshot reports whether a record directory holds exactly the given files
+// and nothing else.
+func sameSnapshot(dir string, files map[string][]byte) bool {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	seen := 0
+	for _, e := range entries {
+		if e.IsDir() {
+			return false
+		}
+		want, ok := files[e.Name()]
+		if !ok {
+			return false
+		}
+		got, err := os.ReadFile(filepath.Join(dir, e.Name()))
+		if err != nil || !bytes.Equal(got, want) {
+			return false
+		}
+		seen++
+	}
+	return seen == len(files)
+}
+
+// newSnapshotDir names a fresh record directory. The timestamp has second
+// precision, so two syncs in the same second bump forward rather than collide.
+func newSnapshotDir(base string, now time.Time, slug string) (string, error) {
+	ts := now.Truncate(time.Second)
+	for {
+		dir := filepath.Join(base, ts.Format("20060102T150405Z")+"-"+slug)
+		switch _, err := os.Stat(dir); {
+		case err == nil:
+			ts = ts.Add(time.Second)
+		case errors.Is(err, os.ErrNotExist):
+			return dir, nil
+		default:
+			return "", err
+		}
+	}
 }

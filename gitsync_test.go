@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -59,6 +60,31 @@ func testCfg(repoURL string) config {
 	}
 }
 
+// snapshotDirs lists the record directories under base in a clone.
+func snapshotDirs(t *testing.T, clone, base string) []string {
+	t.Helper()
+	entries, err := os.ReadDir(filepath.Join(clone, base))
+	if err != nil {
+		t.Fatalf("read %s: %v", base, err)
+	}
+	var dirs []string
+	for _, e := range entries {
+		if e.IsDir() {
+			dirs = append(dirs, e.Name())
+		}
+	}
+	return dirs
+}
+
+// assertSnapshotDir checks a record directory name is <YYYYMMDD>T<HHMMSSZ>-<slug>.
+func assertSnapshotDir(t *testing.T, name, slug string) {
+	t.Helper()
+	re := regexp.MustCompile(`^\d{8}T\d{6}Z-` + regexp.QuoteMeta(slug) + `$`)
+	if !re.MatchString(name) {
+		t.Errorf("snapshot dir %q does not match %s", name, re)
+	}
+}
+
 func doRequest(t *testing.T, handler http.HandlerFunc, req gitSyncRequest) *httptest.ResponseRecorder {
 	t.Helper()
 	body, err := json.Marshal(req)
@@ -95,22 +121,24 @@ func TestGitSync_Success(t *testing.T) {
 		t.Error("expected non-empty commit_sha")
 	}
 
-	// Verify files exist in the remote by cloning it
+	// Verify files exist in the remote by cloning it.
 	clone := t.TempDir()
 	mustGit(t, clone, "clone", repoURL, ".")
 
-	today := nowDate()
-	notesPath := filepath.Join(clone, "runs", today, "my-runbook", "notes.md")
-	if _, err := os.Stat(notesPath); err != nil {
-		t.Errorf("notes.md not found: %v", err)
+	dirs := snapshotDirs(t, clone, "runs")
+	if len(dirs) != 1 {
+		t.Fatalf("want 1 snapshot dir, got %v", dirs)
 	}
-	runbookPath := filepath.Join(clone, "runs", today, "my-runbook", "runbook.md")
-	if _, err := os.Stat(runbookPath); err != nil {
-		t.Errorf("runbook.md not found: %v", err)
+	assertSnapshotDir(t, dirs[0], "my-runbook")
+	dir := filepath.Join(clone, "runs", dirs[0])
+	for _, name := range []string{"notes.md", "runbook.md"} {
+		if _, err := os.Stat(filepath.Join(dir, name)); err != nil {
+			t.Errorf("%s not found: %v", name, err)
+		}
 	}
 }
 
-func TestGitSync_Resync_SameDay_NewCommit(t *testing.T) {
+func TestGitSync_Resync_Changed_CreatesSnapshot(t *testing.T) {
 	repoURL := initTestRepo(t)
 	handler := handleGitSync(testCfg(repoURL))
 
@@ -139,17 +167,27 @@ func TestGitSync_Resync_SameDay_NewCommit(t *testing.T) {
 		t.Error("re-sync should produce a new commit")
 	}
 
-	// Verify only one directory exists (not duplicated)
+	// A changed re-sync is a new immutable snapshot, not an overwrite.
 	clone := t.TempDir()
 	mustGit(t, clone, "clone", repoURL, ".")
-	entries, _ := os.ReadDir(filepath.Join(clone, "runs", nowDate(), "resync-test"))
-	// Should have notes.md and runbook.md only (no duplicates)
-	names := make(map[string]bool)
-	for _, e := range entries {
-		if names[e.Name()] {
-			t.Errorf("duplicate file found: %s", e.Name())
+	dirs := snapshotDirs(t, clone, "runs")
+	if len(dirs) != 2 {
+		t.Fatalf("want 2 snapshot dirs, got %v", dirs)
+	}
+	var bodies strings.Builder
+	for _, d := range dirs {
+		assertSnapshotDir(t, d, "resync-test")
+		b, err := os.ReadFile(filepath.Join(clone, "runs", d, "notes.md"))
+		if err != nil {
+			t.Fatalf("read notes in %s: %v", d, err)
 		}
-		names[e.Name()] = true
+		bodies.Write(b)
+		bodies.WriteByte('\n')
+	}
+	for _, want := range []string{"First sync", "Second sync — same day"} {
+		if !strings.Contains(bodies.String(), want) {
+			t.Errorf("snapshots must preserve %q", want)
+		}
 	}
 }
 
@@ -222,7 +260,12 @@ func TestGitSync_Images_WrittenWithCorrectExtension(t *testing.T) {
 	clone := t.TempDir()
 	mustGit(t, clone, "clone", repoURL, ".")
 
-	imgPath := filepath.Join(clone, "runs", nowDate(), "img-test", "img-1.png")
+	dirs := snapshotDirs(t, clone, "runs")
+	if len(dirs) != 1 {
+		t.Fatalf("want 1 snapshot dir, got %v", dirs)
+	}
+	dir := filepath.Join(clone, "runs", dirs[0])
+	imgPath := filepath.Join(dir, "img-1.png")
 	if _, err := os.Stat(imgPath); err != nil {
 		t.Errorf("img-1.png not found: %v", err)
 	}
@@ -238,7 +281,7 @@ func TestGitSync_Images_WrittenWithCorrectExtension(t *testing.T) {
 	}
 
 	// Verify notes.md has local filename reference, not bracket token
-	notesBytes, _ := os.ReadFile(filepath.Join(clone, "runs", nowDate(), "img-test", "notes.md"))
+	notesBytes, _ := os.ReadFile(filepath.Join(dir, "notes.md"))
 	notes := string(notesBytes)
 	if strings.Contains(notes, "[img-1]") {
 		t.Error("notes.md should rewrite [img-1] token to local filename")
@@ -324,6 +367,13 @@ func TestGitSync_NoChange_UpToDate(t *testing.T) {
 	if r2["commit_sha"] != "" {
 		t.Errorf("no-op sync must not create a commit, got %s", r2["commit_sha"])
 	}
+
+	// The no-op must not mint a second snapshot directory either.
+	clone := t.TempDir()
+	mustGit(t, clone, "clone", repoURL, ".")
+	if dirs := snapshotDirs(t, clone, "runs"); len(dirs) != 1 {
+		t.Errorf("no-op sync must not add a snapshot, got %v", dirs)
+	}
 }
 
 func TestLoadConfig_GitSyncEnabled(t *testing.T) {
@@ -376,12 +426,6 @@ func TestLoadConfig_GitSyncEnabled(t *testing.T) {
 			}
 		})
 	}
-}
-
-// nowDate returns the current UTC date in YYYY-MM-DD format, matching doGitSync.
-func nowDate() string {
-	out, _ := exec.Command("date", "-u", "+%Y-%m-%d").Output()
-	return strings.TrimSpace(string(out))
 }
 
 // mustGitOutput runs git and returns its trimmed stdout.
