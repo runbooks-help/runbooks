@@ -39,6 +39,10 @@ Every setting is an environment variable — see
 [docs/configuration.md](docs/configuration.md) for the full reference, and
 [docs/operations.md](docs/operations.md) for storage, backups and upgrading.
 
+Serving a public, crawler-friendly site: set `PUBLIC_URL` to the absolute base
+(no trailing slash) to enable canonical/OpenGraph tags and a generated
+`/sitemap.xml`, and `SITE_DESCRIPTION` as the fallback meta description.
+
 ## Identity
 
 Identity — passkey sign-in, or delegation to an upstream proxy/SSO gateway — is
@@ -121,6 +125,19 @@ ssh root@{{SERVER_IP}}
 ` ``
 ```
 
+### Sections
+
+A `##` heading is a **step** by default: numbered, tickable and collapsible.
+Add `layout: sections` to the frontmatter to render headings as **sections**
+instead — anchored, unnumbered and always open — or switch mid-page with
+`---sections` / `---steps` on their own line. The GitHub-safe comment forms
+(`<!-- sections -->` / `<!-- steps -->`) do the same and stay invisible in a
+rendered Markdown view.
+
+The two mix freely: a page can explain, hand you a numbered procedure, then keep
+explaining. Numbering counts steps only, the page lead renders either way, and
+the Contents list shows both.
+
 ### Code blocks
 
 Optionally add a language and a label after the opening fence:
@@ -160,6 +177,22 @@ Add `---rollback` on its own line to start a separate rollback steps section. Ev
 SET GLOBAL read_only = 0;
 ` ``
 ```
+
+### Glossary
+
+Terms live in one file at the content root, `content/_glossary.yml`. A configured
+term highlights wherever prose renders — step and section titles, notices, lists,
+tables — and shows its expansion, detail and optional link on hover or focus.
+Code is never touched.
+
+```yaml
+- term: MTS
+  expansion: Multi-Threaded Replica
+  description: MySQL replica applying transactions in parallel workers.
+  link: https://internal/glossary#mts   # optional
+```
+
+`term` and `expansion` are required; a missing one fails startup.
 
 ## Agent access
 
