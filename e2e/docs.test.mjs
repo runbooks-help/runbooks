@@ -92,7 +92,35 @@ test("the public docs: sections, lead, prev/next and the crawler surface", async
 		// The agent surface still resolves on the public instance.
 		assert.equal((await fetch(app.base + "/llms.txt")).status, 200, "llms.txt");
 		assert.equal((await fetch(app.base + "/configuration.md")).status, 200, "raw markdown");
-		await snap(b.page, "docs-sections");
+
+		// Opt-in full-page captures of the docs tree for visual review
+		// (E2E_SCREENSHOT_DIR=… writes them).
+		if (process.env.E2E_SCREENSHOT_DIR) {
+			// Hide the floating notes panel so it does not occlude the page.
+			await b.page.evaluate(() => localStorage.setItem("runbooks-notes", "off"));
+			for (const slug of ["overview", "install", "writing-runbooks", "configuration", "deployment", "identity", "agent-access", "layout", "brand", "sbom", "troubleshooting"]) {
+				await b.page.goto(`${app.base}/${slug}`, { waitUntil: "load" });
+				await b.page.locator(".section, .step-card").first().waitFor({ timeout: uiTimeout });
+				// The page scrolls inside .content, so fullPage alone captures only the
+				// viewport; let the container grow for the capture.
+				await b.page.evaluate(() => {
+					for (const sel of [".content", ".main"]) {
+						const el = document.querySelector(sel);
+						if (el) Object.assign(el.style, { height: "auto", maxHeight: "none", overflow: "visible" });
+					}
+				});
+				await snap(b.page, `docs-${slug}`, { fullPage: true });
+			}
+			await b.page.evaluate(() => localStorage.setItem("runbooks-theme", "light"));
+			await b.page.goto(app.base + "/writing-runbooks", { waitUntil: "load" });
+			await snap(b.page, "docs-writing-runbooks-light", { fullPage: true });
+			await b.page.evaluate(() => localStorage.removeItem("runbooks-theme"));
+			await b.page.setViewportSize({ width: 390, height: 844 });
+			await b.page.goto(app.base + "/overview", { waitUntil: "load" });
+			await snap(b.page, "docs-overview-mobile", { fullPage: true });
+		} else {
+			await snap(b.page, "docs-sections");
+		}
 		await holdIfAsked();
 	} catch (err) {
 		await reportFailure(b.page, app.logs());

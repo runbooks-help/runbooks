@@ -33,11 +33,12 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export const atPath = (base, pathname) => (url) => url.origin === new URL(base).origin && url.pathname === pathname;
 
 // snap saves a screenshot when E2E_SCREENSHOT_DIR is set — for eyeballing UI
-// changes the assertions cannot judge.
-export async function snap(page, name) {
+// changes the assertions cannot judge. Pass { fullPage: true } to capture the
+// whole page rather than the viewport.
+export async function snap(page, name, opts = {}) {
 	if (!shotDir) return;
 	mkdirSync(shotDir, { recursive: true });
-	await page.screenshot({ path: join(shotDir, name + ".png") });
+	await page.screenshot({ path: join(shotDir, name + ".png"), ...opts });
 }
 
 function freePort() {
