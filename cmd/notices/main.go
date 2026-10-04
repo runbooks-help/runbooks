@@ -178,8 +178,11 @@ func writeVendors(b *bytes.Buffer) error {
 	}
 
 	fmt.Fprint(b, "\n## Fonts\n")
-	fmt.Fprint(b, "\nBoth self-hosted fonts are licensed under the SIL Open Font License 1.1,\nreproduced here and shipped alongside them at `public/fonts/OFL.txt`.\n")
-	return writeBlock(b, "", "public/fonts/OFL.txt")
+	fmt.Fprint(b, "\nThe self-hosted fonts are licensed under the SIL Open Font License 1.1,\neach shipped alongside it as `<family>.LICENSE`.\n")
+	if err := writeBlock(b, "### Atkinson Hyperlegible Next + Mono", "public/fonts/atkinson-hyperlegible.LICENSE"); err != nil {
+		return err
+	}
+	return writeBlock(b, "### Shade Mono (subset of Noto Sans Mono)", "public/fonts/noto-sans-mono-shades.LICENSE")
 }
 
 func writeBlock(b *bytes.Buffer, heading, path string) error {

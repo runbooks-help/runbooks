@@ -83,6 +83,10 @@
 	/* Type — Atkinson Hyperlegible Next (UI) + Mono (commands) */
 	--font-sans: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, -apple-system, sans-serif;
 	--font-mono: "Atkinson Hyperlegible Mono", ui-monospace, monospace;
+	/* The shade glyphs (░▒▓) are not in Atkinson; a tiny pinned subset keeps the
+	   brand mark and the bookshelf identical everywhere instead of the OS
+	   fallback. See public/fonts/noto-sans-mono-shades.woff2. */
+	--font-shade: "Shade Mono", "Atkinson Hyperlegible Mono", ui-monospace, monospace;
 	/* Light-on-dark strokes read thinner, so code sits above regular; the
 	   appearance preference switches this to 500. */
 	--mono-weight: 450;

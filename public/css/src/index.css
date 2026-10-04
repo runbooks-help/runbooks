@@ -281,6 +281,9 @@
 	column-gap: var(--space-6);
 	row-gap: var(--space-5);
 	justify-content: start;
+	/* One font for the whole bookcase: the cells, the 13ch track and the frame
+	   rules all measure `ch` in the same face, so they line up exactly. */
+	font-family: var(--font-shade);
 }
 
 .shelf-bookcase {
@@ -373,6 +376,8 @@
 	box-shadow: var(--shadow-md);
 	white-space: normal;
 	pointer-events: none;
+	/* The panel font is the glyph face; the tooltip is real text. */
+	font-family: var(--font-mono);
 }
 
 .shelf-book:hover .shelf-tip,
@@ -388,7 +393,7 @@
 
 .shelf-tip-meta {
 	display: block;
-	margin-top: 2px;
+	margin-top: var(--space-hair);
 	font-size: var(--text-2xs);
 	color: var(--code-text);
 	opacity: 0.6;

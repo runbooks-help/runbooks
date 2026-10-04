@@ -17,3 +17,17 @@
 	font-display: swap;
 	src: url(../fonts/atkinson-hyperlegible-mono-latin-wght-normal.woff2) format("woff2");
 }
+
+/* Shade Mono — a glyph subset of Noto Sans Mono (SIL OFL) covering box drawing
+   + shade blocks (U+2500–U+2593). Pins the open-book mark (░▓) and the
+   bookshelf's spines and frame so they render identically on every machine.
+   Rebuild with:
+   pyftsubset NotoSansMono-Regular.ttf --unicodes=U+2500-2593 ... (family
+   renamed to "Shade Mono"); see public/fonts/noto-sans-mono-shades.LICENSE. */
+@font-face {
+	font-family: "Shade Mono";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url(../fonts/noto-sans-mono-shades.woff2) format("woff2");
+}

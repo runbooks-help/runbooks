@@ -75,8 +75,8 @@ body {
    cells aligned at every size; the denser glyph gets the brighter green. */
 .book-mark {
 	display: inline-flex;
-	font-family: var(--font-mono);
-	font-weight: var(--mono-weight);
+	font-family: var(--font-shade);
+	font-weight: 400;
 	line-height: 1;
 }
 

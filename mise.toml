@@ -166,6 +166,10 @@ run = "podman compose down -v"
 description = "Regenerate THIRD_PARTY_NOTICES.md from the linked modules and vendored assets"
 run = "go run ./cmd/notices"
 
+[tasks.brand]
+description = "Generate the brand assets into brand/ (needs woff2_decompress, inkscape, rsvg-convert)"
+run = "go run ./cmd/brand"
+
 [tasks."lint:spdx"]
 description = "Verify every authored source file carries the FSL SPDX header (use `go run ./cmd/spdx -fix` to apply)"
 run = "go run ./cmd/spdx"

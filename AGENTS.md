@@ -25,6 +25,7 @@ All tasks are mise tasks (`mise install` once to pull Go, templ, gofumpt, Node).
 | `mise run lintcss` / `mise run fmtcss` | stylelint / Prettier over `public/css/src/**`. |
 | `mise run test` | Go tests + JS unit tests (`node --test`). |
 | `mise run notices` | Regenerate `THIRD_PARTY_NOTICES.md` from the linked modules and vendored assets (`cmd/notices`). |
+| `mise run brand` | Generate the brand assets (logomark, wordmark, lockups, icon) into `brand/` and the mark favicon into `public/favicon.svg`, as outlined SVG + PNG (`cmd/brand`). Needs `woff2_decompress`, `inkscape`, `rsvg-convert`; output is committed. See `docs/brand.md`. |
 | `mise run sbom` / `mise run sbom:image` | SPDX 2.3 + CycloneDX SBOM for the built binary / the container image (syft). See `docs/sbom.md`. |
 | `mise run test:e2e` | Browser E2E behind `e2e/harness.mjs` (shared boot + Chromium + virtual authenticator): `passkey.test.mjs` (identity), `runbook.test.mjs` (page interactions), `styleguide.test.mjs` (design-system screenshots). `E2E_SCREENSHOT_DIR=…` writes the screenshots. Needs a system Chromium (`CHROMIUM=/path` to override); `playwright-core` installs into `e2e/` on demand. |
 | `mise run test:e2e:headed` | The same tests in visible windows. `E2E_SLOWMO=ms` paces the actions, `E2E_HOLD_MS=ms` holds at the end of each test (default: run straight through). |
@@ -47,7 +48,10 @@ The living reference is `/styleguide` (dev-gated by `STYLEGUIDE_ENABLED`, set in
 - **Palette** — seeded from the mallard, dark-first (`:root` is dark;
   `html[data-theme="light"]` overrides). Roles, never raw colour; status is never the
   brand accent. See `tokens.css`.
-- **Fonts** — self-hosted Atkinson Hyperlegible Next + Mono (variable, latin).
+- **Fonts** — self-hosted Atkinson Hyperlegible Next + Mono (variable, latin), plus a
+  tiny `Shade Mono` subset (Noto Sans Mono, U+2500–U+2593) that pins the `░▒▓`
+  brand mark and the bookshelf glyphs and frame — Atkinson does not contain them,
+  so without it they render through the OS fallback. See `docs/brand.md`.
   `--mono-weight` is 450, or 600 under `html[data-code-weight="bold"]`.
 - **Radii** — squared (4/6/8px); tickboxes are square, not circles.
 - **Badges** — bracketed `[ label ]`, not filled pills.
@@ -85,12 +89,15 @@ views/auth.templ     /login, /setup, /invite/<token>, /recovery
 views/pageconfig.go  PageConfig — the runtime config embedded for the client
 content/<system>/<category>/<file>.md   the runbooks themselves
 public/css/src/      source CSS (bundled → public/css/bundle.css, generated)
-public/fonts/        self-hosted Atkinson Hyperlegible Next + Mono (variable, latin)
+public/fonts/        self-hosted Atkinson Hyperlegible Next + Mono (variable, latin),
+                     plus the Shade Mono subset (Noto, U+2591-2593) for ░▒▓
 public/js/src/       source JS (bundled → public/js/bundle.js, generated)
 public/js/vendor/    marked, highlight.js, jszip (checked in, not bundled)
 e2e/                 browser E2E: harness.mjs + passkey/runbook/styleguide suites
 cmd/css, cmd/js      esbuild wrappers (see build pipeline below)
 cmd/notices          generates THIRD_PARTY_NOTICES.md (mise run notices)
+cmd/brand            generates the brand assets into brand/ (mise run brand)
+brand/               generated brand assets: outlined SVG + PNG (committed; see docs/brand.md)
 LICENSE / NOTICE     outbound FSL-1.1-MIT + the third-party notices that must be embedded (OFL, MPL driver)
 DEPENDENCIES.md      dependency inventory + FSL classification
 THIRD_PARTY_NOTICES.md  generated full licence texts (do not hand-edit)
