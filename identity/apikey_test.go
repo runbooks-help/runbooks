@@ -59,6 +59,44 @@ func TestMintAPIKey(t *testing.T) {
 	}
 }
 
+func TestAPIKeyTouchThrottled(t *testing.T) {
+	ctx := context.Background()
+	svc, st := newTestService(t)
+	seedUser(t, st, "u1")
+
+	base := time.Date(2026, 9, 30, 12, 0, 0, 0, time.UTC)
+	svc.now = func() time.Time { return base }
+	raw, key, err := svc.MintAPIKey(ctx, "u1", "on-call bot")
+	if err != nil {
+		t.Fatalf("MintAPIKey: %v", err)
+	}
+
+	// First use is far past the zero timestamp, so it touches once.
+	if _, err := svc.AuthenticateAPIKey(ctx, raw); err != nil {
+		t.Fatalf("AuthenticateAPIKey: %v", err)
+	}
+	got, err := st.GetAPIKey(ctx, key.ID)
+	if err != nil {
+		t.Fatalf("GetAPIKey: %v", err)
+	}
+	if !got.LastUsedAt.Equal(base) {
+		t.Fatalf("first-use last-used = %v, want %v", got.LastUsedAt, base)
+	}
+
+	// Within the interval, a second use must not write.
+	svc.now = func() time.Time { return base.Add(time.Minute) }
+	if _, err := svc.AuthenticateAPIKey(ctx, raw); err != nil {
+		t.Fatalf("AuthenticateAPIKey second: %v", err)
+	}
+	got, err = st.GetAPIKey(ctx, key.ID)
+	if err != nil {
+		t.Fatalf("GetAPIKey: %v", err)
+	}
+	if !got.LastUsedAt.Equal(base) {
+		t.Errorf("last-used refreshed within interval: got %v, want %v", got.LastUsedAt, base)
+	}
+}
+
 func TestAuthenticateAPIKey(t *testing.T) {
 	ctx := context.Background()
 	svc, st := newTestService(t)

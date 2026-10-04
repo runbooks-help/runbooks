@@ -29,6 +29,12 @@ var (
 	ErrInvite = errors.New("identity: invite missing, used or expired")
 )
 
+// defaultTouchInterval throttles last-seen/last-used refreshes on the hot read
+// path: a session or API key is only written back once its timestamp is older
+// than this, so ordinary reads stay reads. The idle window is days, so a
+// timestamp stale by minutes loses nothing.
+const defaultTouchInterval = 5 * time.Minute
+
 // Config configures a Service. RPID, RPDisplayName and RPOrigins come from the
 // deployment's public URL.
 type Config struct {
@@ -58,6 +64,7 @@ type Service struct {
 	challengeTTL   time.Duration
 	sessionTTL     time.Duration
 	sessionIdleTTL time.Duration
+	touchInterval  time.Duration
 
 	now func() time.Time
 }
@@ -108,6 +115,7 @@ func New(cfg Config, st stores.Store) (*Service, error) {
 		challengeTTL:   cfg.ChallengeTTL,
 		sessionTTL:     cfg.SessionTTL,
 		sessionIdleTTL: cfg.SessionIdleTTL,
+		touchInterval:  defaultTouchInterval,
 		now:            time.Now,
 	}, nil
 }

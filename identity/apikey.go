@@ -68,10 +68,10 @@ func (s *Service) MintAPIKey(ctx context.Context, userID, label string) (string,
 	return raw, key, nil
 }
 
-// AuthenticateAPIKey resolves a raw key to its owning user and touches the key's
-// last-used time. A revoked key, an unknown user, or a disabled owner is
-// ErrAPIKey. The lookup is by the key's hash, an exact primary-key match, so no
-// constant-time comparison is needed.
+// AuthenticateAPIKey resolves a raw key to its owning user and, on a throttled
+// interval, touches the key's last-used time. A revoked key, an unknown user, or
+// a disabled owner is ErrAPIKey. The lookup is by the key's hash, an exact
+// primary-key match, so no constant-time comparison is needed.
 func (s *Service) AuthenticateAPIKey(ctx context.Context, raw string) (stores.User, error) {
 	key, err := s.apiKeys.GetAPIKey(ctx, hashToken(raw))
 	if err != nil {
@@ -93,9 +93,14 @@ func (s *Service) AuthenticateAPIKey(ctx context.Context, raw string) (stores.Us
 	if !u.Enabled() {
 		return stores.User{}, ErrAPIKey
 	}
-	key.LastUsedAt = s.now()
-	if err := s.apiKeys.UpdateAPIKey(ctx, key); err != nil {
-		return stores.User{}, err
+	// Refresh last-used only when it is stale enough to matter, so a gated read
+	// stays a read instead of becoming a write on every request.
+	now := s.now()
+	if now.Sub(key.LastUsedAt) > s.touchInterval {
+		key.LastUsedAt = now
+		if err := s.apiKeys.UpdateAPIKey(ctx, key); err != nil {
+			return stores.User{}, err
+		}
 	}
 	return u, nil
 }

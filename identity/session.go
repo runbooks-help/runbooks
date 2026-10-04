@@ -32,8 +32,9 @@ func (s *Service) Create(ctx context.Context, userID, userAgent, ip string) (str
 	return raw, nil
 }
 
-// Authenticate resolves a raw cookie value to a user, refreshing last-seen. An
-// absolute- or idle-expired session is deleted and reported as ErrSession.
+// Authenticate resolves a raw cookie value to a user, refreshing last-seen on a
+// throttled interval. An absolute- or idle-expired session is deleted and
+// reported as ErrSession.
 func (s *Service) Authenticate(ctx context.Context, raw string) (stores.User, error) {
 	hash := hashToken(raw)
 	sess, err := s.sessions.GetSession(ctx, hash)
@@ -49,9 +50,13 @@ func (s *Service) Authenticate(ctx context.Context, raw string) (stores.User, er
 		_ = s.sessions.DeleteSession(ctx, hash)
 		return stores.User{}, ErrSession
 	}
-	sess.LastSeenAt = now
-	if err := s.sessions.UpdateSession(ctx, sess); err != nil {
-		return stores.User{}, err
+	// Refresh last-seen only when it is stale enough to matter, so a gated read
+	// stays a read instead of becoming a write on every request.
+	if now.Sub(sess.LastSeenAt) > s.touchInterval {
+		sess.LastSeenAt = now
+		if err := s.sessions.UpdateSession(ctx, sess); err != nil {
+			return stores.User{}, err
+		}
 	}
 
 	user, err := s.users.GetUser(ctx, sess.UserID)

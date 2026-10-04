@@ -385,6 +385,46 @@ func TestSessionExpiry(t *testing.T) {
 	}
 }
 
+func TestSessionTouchThrottled(t *testing.T) {
+	svc, st := newTestService(t)
+	seedUser(t, st, "u1")
+	ctx := context.Background()
+
+	base := time.Date(2026, 9, 30, 12, 0, 0, 0, time.UTC)
+	svc.now = func() time.Time { return base }
+	raw, err := svc.Create(ctx, "u1", "curl/8", "127.0.0.1")
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	// Within the touch interval a request must not write the session back.
+	svc.now = func() time.Time { return base.Add(time.Minute) }
+	if _, err := svc.Authenticate(ctx, raw); err != nil {
+		t.Fatalf("Authenticate: %v", err)
+	}
+	sess, err := st.GetSession(ctx, hashToken(raw))
+	if err != nil {
+		t.Fatalf("GetSession: %v", err)
+	}
+	if !sess.LastSeenAt.Equal(base) {
+		t.Errorf("last-seen refreshed within interval: got %v, want %v", sess.LastSeenAt, base)
+	}
+
+	// Past the interval it refreshes to now.
+	now := base.Add(svc.touchInterval + time.Minute)
+	svc.now = func() time.Time { return now }
+	if _, err := svc.Authenticate(ctx, raw); err != nil {
+		t.Fatalf("Authenticate past interval: %v", err)
+	}
+	sess, err = st.GetSession(ctx, hashToken(raw))
+	if err != nil {
+		t.Fatalf("GetSession: %v", err)
+	}
+	if !sess.LastSeenAt.Equal(now) {
+		t.Errorf("last-seen not refreshed past interval: got %v, want %v", sess.LastSeenAt, now)
+	}
+}
+
 func TestDisabledUserSessionRejected(t *testing.T) {
 	svc, st := newTestService(t)
 	seedUser(t, st, "u1")
