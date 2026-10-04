@@ -1,7 +1,7 @@
 ---
 title: Agent access
 slug: agent-access
-order: 5
+order: 3
 layout: sections
 description: Read-only access for LLM and automation clients — API keys, raw markdown and llms.txt.
 ---

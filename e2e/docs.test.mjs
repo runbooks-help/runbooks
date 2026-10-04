@@ -38,6 +38,13 @@ test("the public docs: sections, lead, prev/next and the crawler surface", async
 		await b.page.goto(app.base + "/configuration", { waitUntil: "load" });
 		await b.page.locator(".section").first().waitFor({ timeout: uiTimeout });
 
+		// The docs tree groups by audience, in _meta.yml order.
+		assert.deepEqual(
+			await b.page.locator(".nav-sys-name").allTextContents(),
+			["Get started", "Guides", "Reference", "Operations", "Internals"],
+			"sidebar groups render in order",
+		);
+
 		// A sections page: every ## is an anchored, unnumbered section with no
 		// completion affordance, and the intro prose renders as a lead.
 		assert.ok((await b.page.locator(".section").count()) >= 2, "configuration has sections");

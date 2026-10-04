@@ -11,7 +11,7 @@ import (
 )
 
 // config is the full runtime configuration, read once from the environment at
-// startup. See docs/configuration.md for the operator-facing reference.
+// startup. See docs/reference/configuration.md for the operator-facing reference.
 type config struct {
 	GitSyncRepo        string
 	GitSyncBranch      string

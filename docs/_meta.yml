@@ -1,5 +1,12 @@
-# The docs are served from the content root, so the reserved `_root` entry names
-# the single sidebar group. Without it, a file directly in the content root
-# groups under the default "Playbooks".
-- _root:
-    title: Documentation
+# The docs tree's sidebar groups, in order. Position is the order; a directory
+# not listed is appended alphabetically. See specs/runbooks/docs-content.
+- get-started:
+    title: Get started
+- guides:
+    title: Guides
+- reference:
+    title: Reference
+- operations:
+    title: Operations
+- internals:
+    title: Internals

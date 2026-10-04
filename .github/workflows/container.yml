@@ -112,7 +112,7 @@ jobs:
           Container image: ghcr.io/ladydascalie/runbooks@${IMAGE_DIGEST}
 
           Attached: the SPDX 2.3 and CycloneDX SBOMs for that exact image.
-          See docs/sbom.md for the cosign verification steps.
+          See docs/internals/sbom.md for the cosign verification steps.
           EOF
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --notes-file "$NOTES"

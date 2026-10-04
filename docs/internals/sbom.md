@@ -1,7 +1,7 @@
 ---
 title: SBOM
 slug: sbom
-order: 6
+order: 3
 layout: sections
 description: SPDX and CycloneDX bills of materials for the binary and the container image.
 ---

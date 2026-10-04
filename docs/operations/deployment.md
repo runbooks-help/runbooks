@@ -1,7 +1,7 @@
 ---
-title: Operations
-slug: operations
-order: 3
+title: Deployment
+slug: deployment
+order: 1
 layout: sections
 description: Storage, backups, content sources and upgrading a deployment.
 ---

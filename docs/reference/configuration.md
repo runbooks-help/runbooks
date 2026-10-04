@@ -69,7 +69,7 @@ agent. With no key and no token, `go-git` authenticates SSH remotes through
 `$SSH_AUTH_SOCK` (ssh-agent, 1Password, …), so the common local setup needs no
 credential variable at all. Set `GITSYNC_SSH_KEY` only where there is no agent: a
 deployment or CI job that mounts a key and points the variable at its path. See
-[docs/operations.md](operations.md#ssh-credentials) for the container recipe.
+[docs/operations/deployment.md](../operations/deployment.md#ssh-credentials) for the container recipe.
 
 | Var | Default | Meaning |
 |---|---|---|

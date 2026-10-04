@@ -1,7 +1,7 @@
 ---
 title: Brand assets
 slug: brand
-order: 7
+order: 2
 layout: sections
 description: Regenerating the logomark, wordmark and lockups via mise run brand.
 ---
