@@ -119,7 +119,7 @@ func buildSearchDoc(def RunbookDef) searchDoc {
 			case KindHeading:
 				add(weightHeading, si, b.Text)
 			case KindList:
-				add(weightProse, si, strings.Join(b.Items, "\n"))
+				add(weightProse, si, itemsText(b.Items))
 			case KindTable:
 				rows := make([]string, 0, len(b.Rows))
 				for _, row := range b.Rows {

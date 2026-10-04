@@ -57,26 +57,32 @@ func rewriteDocLinks(defs []RunbookDef, rels []string) {
 // rewriteBlocks applies rewrite to every text-bearing field of blocks.
 func rewriteBlocks(blocks []Block, rewrite func(string) string) {
 	for i := range blocks {
-		b := &blocks[i]
-		switch b.Kind {
-		case KindProse:
-			b.Text = rewrite(b.Text)
-		case KindNotice:
-			b.Message = rewrite(b.Message)
-		case KindBranch:
-			b.Body = rewrite(b.Body)
-		case KindList:
-			for j := range b.Items {
-				b.Items[j] = rewrite(b.Items[j])
+		rewriteBlock(&blocks[i], rewrite)
+	}
+}
+
+func rewriteBlock(b *Block, rewrite func(string) string) {
+	switch b.Kind {
+	case KindProse:
+		b.Text = rewrite(b.Text)
+	case KindNotice:
+		b.Message = rewrite(b.Message)
+	case KindBranch:
+		b.Body = rewrite(b.Body)
+	case KindList:
+		for j := range b.Items {
+			b.Items[j].Text = rewrite(b.Items[j].Text)
+			if b.Items[j].Child != nil {
+				rewriteBlock(b.Items[j].Child, rewrite)
 			}
-		case KindTable:
-			for j := range b.Headers {
-				b.Headers[j] = rewrite(b.Headers[j])
-			}
-			for j := range b.Rows {
-				for k := range b.Rows[j] {
-					b.Rows[j][k] = rewrite(b.Rows[j][k])
-				}
+		}
+	case KindTable:
+		for j := range b.Headers {
+			b.Headers[j] = rewrite(b.Headers[j])
+		}
+		for j := range b.Rows {
+			for k := range b.Rows[j] {
+				b.Rows[j][k] = rewrite(b.Rows[j][k])
 			}
 		}
 	}

@@ -38,6 +38,9 @@ A step body can hold plain prose, bullet lists and tables. The prose here is del
 - First bullet — plain text.
 - Second bullet with `inline code` and a **bold** run.
 - Third bullet — a longer one that wraps onto a second line so spacing between items is visible.
+- A bullet that contains a nested list:
+  - Nested bullet one.
+  - Nested bullet two with `inline code`.
 
 | Column | Meaning | Example |
 | --- | --- | --- |

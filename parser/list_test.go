@@ -22,11 +22,11 @@ func TestParseMultiLineListItem(t *testing.T) {
 	if b.Kind != KindList || len(b.Items) != 2 {
 		t.Fatalf("got %#v, want a 2-item list", b)
 	}
-	if want := "first line indented continuation lazy continuation"; b.Items[0] != want {
-		t.Errorf("item 0 = %q, want %q", b.Items[0], want)
+	if want := "first line indented continuation lazy continuation"; b.Items[0].Text != want {
+		t.Errorf("item 0 = %q, want %q", b.Items[0].Text, want)
 	}
-	if b.Items[1] != "second item" {
-		t.Errorf("item 1 = %q", b.Items[1])
+	if b.Items[1].Text != "second item" {
+		t.Errorf("item 1 = %q", b.Items[1].Text)
 	}
 }
 
@@ -47,8 +47,8 @@ func TestParseOrderedList(t *testing.T) {
 	if blocks[0].Kind != KindList || !blocks[0].Ordered || len(blocks[0].Items) != 2 {
 		t.Errorf("block 0 = %#v, want an ordered 2-item list", blocks[0])
 	}
-	if want := "first"; blocks[0].Items[0] != want {
-		t.Errorf("item 0 = %q, want %q", blocks[0].Items[0], want)
+	if want := "first"; blocks[0].Items[0].Text != want {
+		t.Errorf("item 0 = %q, want %q", blocks[0].Items[0].Text, want)
 	}
 	if blocks[1].Kind != KindList || blocks[1].Ordered || len(blocks[1].Items) != 1 {
 		t.Errorf("block 1 = %#v, want an unordered 1-item list", blocks[1])

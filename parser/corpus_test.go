@@ -121,14 +121,22 @@ func dumpBlocks(b *strings.Builder, blocks []Block) {
 			fmt.Fprintf(b, "  branch %q\n", blk.Body)
 		case KindList:
 			fmt.Fprintf(b, "  list ordered=%v\n", blk.Ordered)
-			for _, item := range blk.Items {
-				fmt.Fprintf(b, "    item %q\n", item)
-			}
+			dumpListItems(b, blk.Items, "    ")
 		case KindTable:
 			fmt.Fprintf(b, "  table headers=%q\n", blk.Headers)
 			for _, row := range blk.Rows {
 				fmt.Fprintf(b, "    row %q\n", row)
 			}
+		}
+	}
+}
+
+func dumpListItems(b *strings.Builder, items []ListItem, indent string) {
+	for _, item := range items {
+		fmt.Fprintf(b, "%sitem %q\n", indent, item.Text)
+		if item.Child != nil {
+			fmt.Fprintf(b, "%schild ordered=%v\n", indent, item.Child.Ordered)
+			dumpListItems(b, item.Child.Items, indent+"  ")
 		}
 	}
 }

@@ -26,6 +26,11 @@ test("the runbook page: step roll-up, the clear dialog, and light mode", async (
 		await fillVar(b.page, "HOST", "db-2.prod.internal");
 		await snap(b.page, "runbook");
 
+		// A nested list renders inside its parent <li>, not as a sibling list.
+		const nestedStep = b.page.locator(".step-card").filter({ hasText: "A bullet that contains a nested list:" });
+		assert.equal(await nestedStep.locator("li > .prose-list").count(), 1, "nested list inside its parent item");
+		assert.equal(await nestedStep.locator("li > .prose-list > li").count(), 2, "two nested items");
+
 		// The notes panel floats over the right edge at every width, covering the
 		// step controls, so close it while the content behind it is driven.
 		const notesPanel = b.page.locator(".notes-panel");

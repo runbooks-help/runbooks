@@ -353,7 +353,14 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 
 					<section class="sg-section" id="table">
 						<h3>List &amp; table <span class="sg-atom">molecule</span></h3>
-						@components.ListBlock([]string{"First item — plain text", "Second item with `inline code` and **bold**", "Third item, long enough to wrap onto a second line"}, false, nil)
+						@components.ListBlock([]parser.ListItem{
+							{Text: "First item — plain text"},
+							{Text: "Second item with `inline code` and **bold**"},
+							{Text: "Third item, with a nested list:", Child: &parser.Block{Kind: parser.KindList, Items: []parser.ListItem{
+								{Text: "A nested bullet."},
+								{Text: "Another nested bullet."},
+							}}},
+						}, false, nil)
 						@components.TableBlock([]string{"Column", "Meaning", "Example"}, [][]string{
 							{"`HOST`", "Target host", "`db-2.prod.internal`"},
 							{"`PROCESSLIST_ID`", "Blocked worker", "`4123`"},

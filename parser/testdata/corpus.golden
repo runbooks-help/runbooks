@@ -16,6 +16,10 @@ step: "Prose, lists and tables" section=false
     item "First bullet — plain text."
     item "Second bullet with `inline code` and a **bold** run."
     item "Third bullet — a longer one that wraps onto a second line so spacing between items is visible."
+    item "A bullet that contains a nested list:"
+    child ordered=false
+      item "Nested bullet one."
+      item "Nested bullet two with `inline code`."
   table headers=["Column" "Meaning" "Example"]
     row ["`HOST`" "Target host" "`db-2.prod.internal`"]
     row ["`PROCESSLIST_ID`" "Blocked worker" "`4123`"]

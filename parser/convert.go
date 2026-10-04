@@ -304,39 +304,97 @@ func convertList(src []byte, n *ast.List) Block {
 		if !ok {
 			continue
 		}
-		b.Items = append(b.Items, itemText(src, item))
+		b.Items = append(b.Items, convertListItem(src, item))
 	}
 	return b
 }
 
-// itemText is a list item's inline text: its own paragraph(s), with any
-// nested list flattened after them. The flat Block model has no nesting, so
-// nested items are appended as marker-prefixed text rather than dropped.
-func itemText(src []byte, item *ast.ListItem) string {
-	var parts []string
+// convertListItem keeps an item's own paragraph(s) as Text and a nested list as
+// Child. Any other block (a code block, a blockquote, a second nested list) has
+// no structural slot, so its text is folded into Text — lossy in structure, but
+// never silently dropped.
+func convertListItem(src []byte, item *ast.ListItem) ListItem {
+	var li ListItem
+	var extra []string
 	for c := item.FirstChild(); c != nil; c = c.NextSibling() {
 		switch n := c.(type) {
 		case *ast.Paragraph:
-			parts = append(parts, rawLines(src, n.Lines()))
+			li.Text = joinText(li.Text, rawLines(src, n.Lines()))
 		case *ast.TextBlock:
-			parts = append(parts, rawLines(src, n.Lines()))
+			li.Text = joinText(li.Text, rawLines(src, n.Lines()))
 		case *ast.List:
-			parts = append(parts, nestedItems(src, n)...)
+			if li.Child == nil {
+				child := convertList(src, n)
+				li.Child = &child
+				continue
+			}
+			extra = append(extra, listText(src, n))
+		default:
+			if t := strings.TrimSpace(blockPlainText(src, c)); t != "" {
+				extra = append(extra, t)
+			}
 		}
 	}
-	return strings.Join(parts, " ")
+	if len(extra) > 0 {
+		li.Text = joinText(li.Text, strings.Join(extra, " "))
+	}
+	return li
 }
 
-func nestedItems(src []byte, list *ast.List) []string {
-	var out []string
+// listText is the plain text of a nested list, used only for the fallback when
+// an item already has a Child.
+func listText(src []byte, list *ast.List) string {
+	var parts []string
 	for c := list.FirstChild(); c != nil; c = c.NextSibling() {
 		item, ok := c.(*ast.ListItem)
 		if !ok {
 			continue
 		}
-		out = append(out, "- "+itemText(src, item))
+		li := convertListItem(src, item)
+		parts = append(parts, li.Text)
+		if li.Child != nil {
+			parts = append(parts, itemsText(li.Child.Items))
+		}
 	}
-	return out
+	return strings.Join(parts, " ")
+}
+
+func itemsText(items []ListItem) string {
+	parts := make([]string, 0, len(items))
+	for _, li := range items {
+		parts = append(parts, li.Text)
+		if li.Child != nil {
+			parts = append(parts, itemsText(li.Child.Items))
+		}
+	}
+	return strings.Join(parts, " ")
+}
+
+// blockPlainText is a best-effort plain text of a block goldmark parsed inside a
+// list item but our model cannot place.
+func blockPlainText(src []byte, n ast.Node) string {
+	if ln, ok := n.(interface{ Lines() *text.Segments }); ok {
+		if t := rawLines(src, ln.Lines()); t != "" {
+			return t
+		}
+	}
+	var parts []string
+	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+		if t := blockPlainText(src, c); t != "" {
+			parts = append(parts, t)
+		}
+	}
+	return strings.Join(parts, " ")
+}
+
+func joinText(a, b string) string {
+	if a == "" {
+		return b
+	}
+	if b == "" {
+		return a
+	}
+	return a + " " + b
 }
 
 func convertTable(src []byte, n *extensionast.Table) Block {

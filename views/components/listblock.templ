@@ -2,23 +2,35 @@
 
 package components
 
-import "runbooks/views/markup"
+import (
+	"strings"
+
+	"runbooks/parser"
+	"runbooks/views/markup"
+)
 
 // ListBlock renders a bullet list (ordered=false) or a numbered list
 // (ordered=true). Items go through the inline renderer, so glossary terms and
-// `code` still apply.
-templ ListBlock(items []string, ordered bool, terms []string) {
+// `code` still apply; a nested list renders inside its parent <li>.
+templ ListBlock(items []parser.ListItem, ordered bool, terms []string) {
+	@templ.Raw(listHTML(items, ordered, terms))
+}
+
+func listHTML(items []parser.ListItem, ordered bool, terms []string) string {
+	tag := "ul"
 	if ordered {
-		<ol class="prose-list">
-			for _, item := range items {
-				<li>@templ.Raw(markup.ProseGlossary(item, terms))</li>
-			}
-		</ol>
-	} else {
-		<ul class="prose-list">
-			for _, item := range items {
-				<li>@templ.Raw(markup.ProseGlossary(item, terms))</li>
-			}
-		</ul>
+		tag = "ol"
 	}
+	var b strings.Builder
+	b.WriteString("<" + tag + ` class="prose-list">`)
+	for _, item := range items {
+		b.WriteString("<li>")
+		b.WriteString(markup.ProseGlossary(item.Text, terms))
+		if item.Child != nil {
+			b.WriteString(listHTML(item.Child.Items, item.Child.Ordered, terms))
+		}
+		b.WriteString("</li>")
+	}
+	b.WriteString("</" + tag + ">")
+	return b.String()
 }

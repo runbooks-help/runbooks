@@ -46,8 +46,17 @@ type Block struct {
 	Message string     // KindNotice
 	Headers []string   // KindTable
 	Rows    [][]string // KindTable
-	Items   []string   // KindList
+	Items   []ListItem // KindList
 	Ordered bool       // KindList: render as <ol> rather than <ul>
+}
+
+// ListItem is one entry in a list. Text is the item's own inline markdown;
+// Child is an optional nested list (KindList) drawn inside the item. The flat
+// Block model has no slot for other item blocks (a second paragraph, a code
+// block), so the converter folds their text into Text rather than dropping it.
+type ListItem struct {
+	Text  string
+	Child *Block
 }
 
 type Step struct {
