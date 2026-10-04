@@ -16,23 +16,26 @@ Every page renders inside the shell (`shell.css`): `<aside class="rail">` +
 scrolling `.content`. `.content` sets `scroll-padding-top` so anchored section links
 do not land flush against the header.
 
-The grid is `rail | main | notes`. The rail is the only persistent left chrome
-(`--size-app-rail`): the brand mark plus a full-height hit area that summons the
-sidebar. The sidebar is never a column — it overlays the rail and main at every
-width, driven by `data-drawer="sidebar"` on `<body>` and closed on the scrim, Esc,
-✕ or navigation. The brand keeps its own link home.
+The grid is `rail | main` — two columns. The rail is the only persistent left
+chrome (`--size-app-rail`): the brand mark plus a full-height hit area that
+summons the sidebar. The sidebar is never a column — it overlays the rail and main
+at every width, driven by `data-drawer="sidebar"` on `<body>` and closed on the
+scrim, Esc, ✕ or navigation. The brand keeps its own link home.
 
-A page with no notes column marks its main `.main--full`, collapsing the grid to
-`rail | main`. `body.notes-hidden` does the same for the reading preference, and
-`body.zen` drops to a single column. `.main` always centres itself with
-`max-width: 1440px; margin-inline: auto` — at every width, zen or not — so an
-ultrawide splits the dead space either side of the reading column instead of
-piling it all on the right.
+The notes panel is a **floating overlay**, not a grid track: `.notes-panel` is
+`position: fixed` at `width: var(--notes-width)`. While it is shown at ≥1200px,
+`.main` reserves its width with `padding-right: var(--notes-width)`, so the reading
+column and the sticky bar end at the panel's left edge instead of running under it.
+`body.notes-hidden` and `body.zen` drop the reservation and reclaim the space. The
+prose measure is capped by `--measure` (72ch); tables and code blocks keep the full
+column width. `.main` always centres itself with `max-width: 1440px;
+margin-inline: auto` — at every width, zen or not — so an ultrawide splits the dead
+space either side of the reading column instead of piling it all on the right.
 
-Below **1200px** (`responsive.css`) the notes panel becomes an off-canvas drawer
-too — a 460px column starves main on a portrait monitor or in a split window. It is
-the same `data-drawer` mechanism; `responsive.css` is the override layer, imports
-last, and is the one place allowed to use `!important`.
+Below **1200px** (`responsive.css`) the notes panel becomes a full-width off-canvas
+drawer too, and no space is reserved. It is the same `data-drawer` mechanism;
+`responsive.css` is the override layer, imports last, and is the one place allowed
+to use `!important`.
 
 ## Primitives
 

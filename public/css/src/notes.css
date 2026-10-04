@@ -6,7 +6,7 @@
 	position: fixed;
 	inset-block: 0;
 	right: 0;
-	width: var(--notes-width, 460px);
+	width: var(--notes-width);
 	max-width: 92vw;
 	z-index: 40;
 	border-left: 1px solid var(--border);

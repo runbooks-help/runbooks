@@ -75,6 +75,7 @@
 	--size-app-sidebar: 220px; /* the summoned sidebar drawer */
 	--size-detail-min: 380px;
 	--size-detail-max: 480px;
+	--notes-width: 460px; /* the notes overlay's width; JS overrides it when dragged */
 
 	/* Component sizing */
 	--ctrl-pad-y: 7px; /* vertical padding that sets interactive control height — btn, input, select */
@@ -103,6 +104,8 @@
 	--text-lg: calc(21px * var(--text-scale));
 	--text-xl: calc(25px * var(--text-scale));
 	--text-2xl: calc(32px * var(--text-scale));
+	/* The prose measure: long-form text caps here; tables and code keep the column. */
+	--measure: 72ch;
 
 	/* Line heights */
 	--leading-tight: 1.25;

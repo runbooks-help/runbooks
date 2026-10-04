@@ -446,6 +446,16 @@ nav a.active {
 	margin-inline: auto;
 }
 
+/* While the notes panel is shown at desktop widths, reserve its width so nothing
+   sits under the floating overlay — content, tables and the Notes toggle all end
+   at the panel's left edge. Hiding it (body.notes-hidden) or entering zen
+   reclaims the space; below 1200px the panel is a drawer (responsive.css). */
+@media (min-width: 1200px) {
+	body:not(.notes-hidden):not(.zen) .main {
+		padding-right: var(--notes-width);
+	}
+}
+
 .main-header {
 	position: relative;
 	padding: var(--space-4) var(--space-6) var(--space-3);

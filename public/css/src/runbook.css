@@ -382,6 +382,14 @@ body.zen .zen-bar {
 	line-height: var(--leading-normal);
 }
 
+/* Cap the prose measure; tables and code blocks keep the full column width. */
+.step-body p,
+.doc-lead p,
+.doc-body p,
+.prose-list {
+	max-width: var(--measure);
+}
+
 .doc-nav {
 	display: flex;
 	justify-content: space-between;
