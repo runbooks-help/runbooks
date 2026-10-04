@@ -54,7 +54,10 @@ jobs:
           version: v2.63.0
           access-key: ${{ secrets.SCW_ACCESS_KEY }}
           secret-key: ${{ secrets.SCW_SECRET_KEY }}
+          # This account's default organisation shares its id with the default
+          # project; the SDK requires a non-empty default organisation id.
           default-project-id: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+          default-organization-id: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
           export-config: true
 
       # Point the container at the immutable build tag so a rollout is forced and
