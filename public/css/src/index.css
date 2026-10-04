@@ -266,9 +266,9 @@
 	box-shadow: var(--shadow-md);
 	font-family: var(--font-mono);
 	font-weight: var(--mono-weight);
-	/* The books are the point, so the shelf runs larger than body text; every
-	   cell is a ch unit, so the whole bookcase scales with this one value. */
-	font-size: var(--text-lg);
+	/* The books are the point, so the shelf runs well larger than body text;
+	   every cell is a ch unit, so the whole bookcase scales with this value. */
+	font-size: var(--text-2xl);
 	color: var(--code-text);
 }
 
