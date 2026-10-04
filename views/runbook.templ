@@ -87,6 +87,13 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 						inert
 					}
 				>
+					if len(rb.Intro) > 0 {
+						<div class="doc-lead">
+							for _, block := range rb.Intro {
+								@renderBlock(block)
+							}
+						</div>
+					}
 					if len(rb.Steps) >= 3 {
 						<nav class="toc" aria-label="Contents" hidden>
 							<p class="toc-label">Contents</p>
@@ -94,7 +101,9 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 								for i, step := range rb.Steps {
 									<li>
 										<a href={ "#" + markup.Slug(step.Title) }>
-											<span class="toc-num">{ strconv.Itoa(i + 1) }</span>
+											if !step.Doc {
+												<span class="toc-num">{ strconv.Itoa(stepNumber(rb.Steps, i)) }</span>
+											}
 											{ step.Title }
 										</a>
 									</li>
@@ -111,14 +120,16 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 								<button class="contents-btn" type="button" aria-pressed="false" title="Show a contents list">Contents</button>
 							}
 							<span class="spacer"></span>
-							<button type="button" data-steps-action="expand">Expand all</button>
-							<button type="button" data-steps-action="collapse">Collapse all</button>
-							<button type="button" data-zen-action="enter">Zen</button>
+							if hasRunbookSteps(rb.Steps) {
+								<button type="button" data-steps-action="expand">Expand all</button>
+								<button type="button" data-steps-action="collapse">Collapse all</button>
+								<button type="button" data-zen-action="enter">Zen</button>
+							}
 						</div>
 					}
 					<div class="steps">
 						for i, step := range rb.Steps {
-							@stepCard(i+1, step, false)
+							@stepCard(stepNumber(rb.Steps, i), step, false)
 						}
 						if len(rb.Rollback) > 0 {
 							<div id="rollback">
@@ -136,7 +147,13 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 }
 
 templ stepCard(n int, step parser.Step, rollback bool) {
-	if rollback {
+	if step.Doc {
+		@components.DocSection(step.Title) {
+			for _, block := range step.Blocks {
+				@renderBlock(block)
+			}
+		}
+	} else if rollback {
 		@components.RollbackStep(step.Title) {
 			for _, block := range step.Blocks {
 				@renderBlock(block)
@@ -160,7 +177,7 @@ templ renderBlock(b parser.Block) {
 		case parser.KindBranch:
 			@components.BranchBlock(b.Body)
 		case parser.KindHeading:
-			<h3 class="step-subheading">{ b.Text }</h3>
+			<h3 class="step-subheading" id={ markup.Slug(b.Text) }>{ b.Text }</h3>
 		case parser.KindList:
 			@components.ListBlock(b.Items)
 		case parser.KindTable:
@@ -185,6 +202,29 @@ func pageConfigJSON(c PageConfig) string {
 		"recordsBasePath":      c.RecordsBasePath,
 	})
 	return string(b)
+}
+
+// stepNumber is the display number for the step at index i. Only runbook steps
+// are numbered, so a doc section does not offset the sequence.
+func stepNumber(steps []parser.Step, i int) int {
+	n := 0
+	for _, step := range steps[:i+1] {
+		if !step.Doc {
+			n++
+		}
+	}
+	return n
+}
+
+// hasRunbookSteps reports whether any step is a numbered procedure step, so the
+// bulk step controls (expand/collapse, zen) are only shown when they apply.
+func hasRunbookSteps(steps []parser.Step) bool {
+	for _, step := range steps {
+		if !step.Doc {
+			return true
+		}
+	}
+	return false
 }
 
 // stepPreview is the one-line summary shown in place of a step's body while the

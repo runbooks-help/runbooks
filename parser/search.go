@@ -105,34 +105,43 @@ func buildSearchDoc(def RunbookDef) searchDoc {
 	add(weightGroup, -1, def.GroupTitle)
 	add(weightGroup, -1, def.CategoryTitle)
 
+	addBlocks := func(si int, blocks []Block) {
+		for _, b := range blocks {
+			switch b.Kind {
+			case KindCode:
+				add(weightCode, si, b.Body)
+			case KindProse:
+				add(weightProse, si, b.Text)
+			case KindNotice:
+				add(weightProse, si, b.Message)
+			case KindBranch:
+				add(weightProse, si, b.Body)
+			case KindHeading:
+				add(weightHeading, si, b.Text)
+			case KindList:
+				add(weightProse, si, strings.Join(b.Items, "\n"))
+			case KindTable:
+				rows := make([]string, 0, len(b.Rows))
+				for _, row := range b.Rows {
+					rows = append(rows, strings.Join(row, " "))
+				}
+				add(weightProse, si, strings.Join(b.Headers, " ")+"\n"+strings.Join(rows, "\n"))
+			}
+		}
+	}
+
 	addSteps := func(steps []Step) {
 		for _, step := range steps {
 			si := len(d.steps)
 			d.steps = append(d.steps, step.Title)
 			add(weightStepTitle, si, step.Title)
-			for _, b := range step.Blocks {
-				switch b.Kind {
-				case KindCode:
-					add(weightCode, si, b.Body)
-				case KindProse:
-					add(weightProse, si, b.Text)
-				case KindNotice:
-					add(weightProse, si, b.Message)
-				case KindBranch:
-					add(weightProse, si, b.Body)
-				case KindHeading:
-					add(weightHeading, si, b.Text)
-				case KindList:
-					add(weightProse, si, strings.Join(b.Items, "\n"))
-				case KindTable:
-					rows := make([]string, 0, len(b.Rows))
-					for _, row := range b.Rows {
-						rows = append(rows, strings.Join(row, " "))
-					}
-					add(weightProse, si, strings.Join(b.Headers, " ")+"\n"+strings.Join(rows, "\n"))
-				}
-			}
+			addBlocks(si, step.Blocks)
 		}
+	}
+	if len(def.Intro) > 0 {
+		si := len(d.steps)
+		d.steps = append(d.steps, "")
+		addBlocks(si, def.Intro)
 	}
 	addSteps(def.Steps)
 	addSteps(def.Rollback)

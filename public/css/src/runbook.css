@@ -343,6 +343,45 @@ body.zen .zen-bar {
 	padding-top: var(--space-2);
 }
 
+/* Doc mode: unnumbered, always-expanded sections instead of step cards. */
+.doc-section {
+	padding-top: var(--space-5);
+	border-top: 1px solid var(--border);
+}
+
+.doc-section:first-child {
+	border-top: 0;
+	padding-top: 0;
+}
+
+.doc-title {
+	font-size: var(--text-lg);
+	font-weight: 600;
+	line-height: var(--leading-snug);
+}
+
+.doc-body,
+.doc-lead {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+}
+
+.doc-body {
+	padding-top: var(--space-3);
+}
+
+.doc-lead {
+	padding-bottom: var(--space-4);
+}
+
+.doc-body p,
+.doc-lead p {
+	font-size: var(--text-sm);
+	color: var(--muted);
+	line-height: var(--leading-normal);
+}
+
 .prose-list {
 	padding-left: var(--space-5);
 	display: flex;

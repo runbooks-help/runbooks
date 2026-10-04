@@ -51,6 +51,7 @@ type Block struct {
 
 type Step struct {
 	Title  string
+	Doc    bool // a documentation section, not a numbered step (layout: doc / ---docs)
 	Blocks []Block
 }
 
@@ -61,6 +62,7 @@ type RunbookMeta struct {
 	Symptoms    []string `yaml:"symptoms"`
 	Common      bool     `yaml:"common"` // opt in to the index "Common issues" shortlist
 	Order       int      `yaml:"order"`  // optional: lower sorts first within its category
+	Layout      string   `yaml:"layout"` // "doc": render ## as unnumbered sections (default: runbook)
 	Group       string   `yaml:"-"`      // top-level system, set from directory name
 	Category    string   `yaml:"-"`      // subcategory, set from directory name
 
@@ -309,6 +311,7 @@ type RunbookDef struct {
 	Notice      string     `yaml:"notice"`
 	Acknowledge string     `yaml:"acknowledge"`
 	Vars        []VarField `yaml:"vars"`
+	Intro       []Block    // lead blocks before the first heading
 	Steps       []Step
 	Rollback    []Step
 	Source      string // raw source markdown (frontmatter included)
@@ -471,6 +474,7 @@ func Parse(data []byte) (RunbookDef, error) {
 	var (
 		currentSteps = &def.Steps
 		currentStep  *Step
+		regionDoc    = def.Layout == "doc"
 		proseLines   []string
 		inFence      bool
 		fenceLabel   string
@@ -488,15 +492,19 @@ func Parse(data []byte) (RunbookDef, error) {
 	)
 
 	flushProse := func() {
-		if len(proseLines) == 0 || currentStep == nil {
-			proseLines = nil
+		if len(proseLines) == 0 {
 			return
 		}
 		text := strings.TrimSpace(strings.Join(proseLines, " "))
-		if text != "" {
-			currentStep.Blocks = append(currentStep.Blocks, Block{Kind: KindProse, Text: text})
-		}
 		proseLines = nil
+		if text == "" {
+			return
+		}
+		if currentStep == nil {
+			def.Intro = append(def.Intro, Block{Kind: KindProse, Text: text})
+			return
+		}
+		currentStep.Blocks = append(currentStep.Blocks, Block{Kind: KindProse, Text: text})
 	}
 
 	commitStep := func() {
@@ -630,6 +638,16 @@ func Parse(data []byte) (RunbookDef, error) {
 			continue
 		}
 
+		if line == "---docs" || line == "---runbook" {
+			flushProse()
+			flushNotice()
+			flushList()
+			flushTable()
+			commitStep()
+			regionDoc = line == "---docs"
+			continue
+		}
+
 		if line == "---rollback" {
 			flushProse()
 			flushNotice()
@@ -646,7 +664,7 @@ func Parse(data []byte) (RunbookDef, error) {
 			flushList()
 			flushTable()
 			commitStep()
-			currentStep = &Step{Title: strings.TrimPrefix(line, "## ")}
+			currentStep = &Step{Title: strings.TrimPrefix(line, "## "), Doc: regionDoc}
 			continue
 		}
 
