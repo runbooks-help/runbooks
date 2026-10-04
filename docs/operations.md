@@ -101,18 +101,32 @@ just means a fresh clone at boot.
 
 ## Backing up SQLite
 
-Online, with the app running, take a consistent snapshot with `VACUUM INTO`:
+Identity lives in the configured database — SQLite by default — and can be backed
+up while the app runs.
+
+<!-- runbook -->
+
+## Take a snapshot
+
+`VACUUM INTO` writes a consistent, self-contained copy:
 
 ```bash
 sqlite3 ./data/runbooks.db "VACUUM INTO '/backup/runbooks-$(date +%F).db'"
 ```
 
-The result is a single, self-contained database file. Restore by pointing
-`IDENTITY_DB_DSN` at the copy and restarting. With the app stopped, a plain file
-copy of `data/runbooks.db` is equally valid.
+## Restore it
 
+Stop the app, point `IDENTITY_DB_DSN` at the copy, and restart:
+
+```bash
+IDENTITY_DB_DSN=file:/backup/runbooks-2026-10-04.db ./runbooks
+```
+
+A plain file copy of `data/runbooks.db` is equally valid with the app stopped.
 Verified once against this procedure: create a database, `VACUUM INTO` a copy,
 open the copy and read a row back — the snapshot restores cleanly.
+
+<!-- docs -->
 
 ## MySQL and PostgreSQL
 

@@ -46,10 +46,23 @@ Authorization: Bearer rbk_…
 
 ## Creating an API key
 
+Keys are minted from your own account page and are read-only by construction.
+
+<!-- runbook -->
+
+## Create the key
+
 On an identity-enabled instance, open `/account` → **API keys**, give the key a
-label and choose **Create key**. The raw key (`rbk_…`) is shown **once** — copy
-it then; only its SHA-256 hash is stored and it cannot be recovered. Revoke a key
-from the same table.
+label and choose **Create key**.
+
+## Copy it once
+
+The raw key (`rbk_…`) is shown **once** — copy it then; only its SHA-256 hash is
+stored and it cannot be recovered. Revoke a key from the same table.
+
+<!-- docs -->
+
+## What a key can do
 
 A key is **read-only by construction**: it can call the three endpoints above and
 nothing else. It cannot view the HTML pages, reach the admin area, use git sync,

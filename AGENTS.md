@@ -195,11 +195,19 @@ vars:
 - ` ```lang [Label] ` → code block; the bracket label renders a header with a
   per-block "done" checkbox. `lang` must match the parser's fence regex
   (`[a-z]*` — lowercase only).
-- `> [!info]` / `> [!warn]` / `> [!danger]` → notices.
+- `> [!info]` / `> [!warn]` / `> [!danger]` → notices. The marker is
+  case-insensitive, and the GitHub alert keywords (`NOTE`, `TIP`, `IMPORTANT`,
+  `WARNING`, `CAUTION`) are accepted and mapped onto info/warn/danger.
 - `> [!branch]` + `> - item` → decision callout.
 - `- item` lists, `| a | b |` tables.
-- `---rollback` on its own line → everything after it is a separate rollback
-  section (danger-styled, unnumbered).
+- `---rollback` (or the GitHub-safe `<!-- rollback -->`) on its own line →
+  everything after it is a separate rollback section (danger-styled, unnumbered).
+- `layout: doc` in frontmatter renders `##` as unnumbered doc sections; the
+  separators `---docs` / `---runbook` (or `<!-- docs -->` / `<!-- runbook -->`)
+  switch the mode for the headings that follow, so one page can mix reference
+  prose and a numbered procedure. The comment form is invisible when the Markdown
+  is rendered (GitHub, any CommonMark renderer), which is why the repo's own
+  `docs/` use it.
 
 Authoring conventions that have bitten us:
 

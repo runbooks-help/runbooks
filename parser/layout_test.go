@@ -58,6 +58,47 @@ section
 	}
 }
 
+// TestParseCommentDirectives pins the GitHub-safe separator form: an HTML
+// comment is invisible when the Markdown is rendered, so docs can mix regions
+// without artifacts.
+func TestParseCommentDirectives(t *testing.T) {
+	src := "---\ntitle: X\nslug: x\nlayout: doc\n---\n\n## A\n\nbody\n\n<!-- runbook -->\n\n## One\n\nbody\n\n## Two\n\nbody\n\n<!-- docs -->\n\n## B\n\nbody\n"
+	def, err := Parse([]byte(src))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	want := []struct {
+		title string
+		doc   bool
+	}{
+		{"A", true},
+		{"One", false},
+		{"Two", false},
+		{"B", true},
+	}
+	if len(def.Steps) != len(want) {
+		t.Fatalf("got %d steps, want %d", len(def.Steps), len(want))
+	}
+	for i, w := range want {
+		if def.Steps[i].Title != w.title || def.Steps[i].Doc != w.doc {
+			t.Errorf("step %d = %q doc=%v, want %q doc=%v",
+				i, def.Steps[i].Title, def.Steps[i].Doc, w.title, w.doc)
+		}
+	}
+}
+
+// TestParseCommentRollback pins the comment form of the rollback directive.
+func TestParseCommentRollback(t *testing.T) {
+	src := "---\ntitle: X\nslug: x\n---\n\n## Step\n\nbody\n\n<!-- rollback -->\n\n## Undo\n\nbody\n"
+	def, err := Parse([]byte(src))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if len(def.Steps) != 1 || len(def.Rollback) != 1 || def.Rollback[0].Title != "Undo" {
+		t.Fatalf("steps=%d rollback=%#v, want one step and one rollback", len(def.Steps), def.Rollback)
+	}
+}
+
 // TestParseRunbookLayoutIsDefault guards the existing behaviour: with no
 // layout, every ## is a numbered step and nothing is a doc section.
 func TestParseRunbookLayoutIsDefault(t *testing.T) {

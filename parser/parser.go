@@ -240,6 +240,33 @@ func loadManifest(path string) (manifest, error) {
 	return m, nil
 }
 
+// parseDirective recognises a region directive on its own line, in either the
+// app's bare form (---runbook) or the GitHub-safe comment form
+// (<!-- runbook -->), which is invisible in a rendered Markdown document.
+func parseDirective(line string) (string, bool) {
+	m := directiveRe.FindStringSubmatch(line)
+	if m == nil {
+		return "", false
+	}
+	if m[1] != "" {
+		return m[1], true
+	}
+	return m[2], true
+}
+
+// noticeVariant maps an alert keyword (case-insensitive, with the GitHub alert
+// aliases) onto the three rendered variants.
+func noticeVariant(kind string) string {
+	switch strings.ToLower(kind) {
+	case "warn", "warning", "important", "caution":
+		return "warn"
+	case "danger", "error":
+		return "danger"
+	default: // info, note, tip
+		return "info"
+	}
+}
+
 // titleCase turns a hyphenated directory name into a display label. The empty name
 // is a runbook directly under content/.
 func titleCase(dir string) string {
@@ -323,10 +350,11 @@ type RunbookDef struct {
 }
 
 var (
-	noticeRe      = regexp.MustCompile(`^>\s+\[!(warn|danger|info)\]\s*(.*)$`)
+	noticeRe      = regexp.MustCompile(`^>\s+\[!(?i)(info|note|tip|warn|warning|important|caution|danger|error)\]\s*(.*)$`)
 	branchStartRe = regexp.MustCompile(`^>\s+\[!branch\]\s*$`)
 	blockquoteRe  = regexp.MustCompile(`^>\s?(.*)$`)
 	fenceInfoRe   = regexp.MustCompile(`^([a-z]*)\s*(?:\[([^\]]*)\])?$`)
+	directiveRe   = regexp.MustCompile(`^(?:---(rollback|docs|runbook)|<!--\s*(rollback|docs|runbook)\s*-->)\s*$`)
 )
 
 // parseTableLine splits a markdown table row into trimmed cell strings.
@@ -651,23 +679,20 @@ func Parse(data []byte) (RunbookDef, error) {
 			continue
 		}
 
-		if line == "---docs" || line == "---runbook" {
+		if dir, ok := parseDirective(line); ok {
 			flushProse()
 			flushNotice()
 			flushList()
 			flushTable()
 			commitStep()
-			regionDoc = line == "---docs"
-			continue
-		}
-
-		if line == "---rollback" {
-			flushProse()
-			flushNotice()
-			flushList()
-			flushTable()
-			commitStep()
-			currentSteps = &def.Rollback
+			switch dir {
+			case "rollback":
+				currentSteps = &def.Rollback
+			case "docs":
+				regionDoc = true
+			case "runbook":
+				regionDoc = false
+			}
 			continue
 		}
 
@@ -711,7 +736,7 @@ func Parse(data []byte) (RunbookDef, error) {
 			flushList()
 			flushTable()
 			inNotice = true
-			noticeVar = m[1]
+			noticeVar = noticeVariant(m[1])
 			noticeLines = []string{m[2]}
 			continue
 		}
