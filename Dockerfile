@@ -16,7 +16,7 @@ RUN go tool templ generate ./... && \
     go run ./cmd/notices -version "${VERSION}" && \
     CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.version=${VERSION}" -o runbooks .
 
-FROM alpine:3
+FROM alpine:3 AS runtime
 
 # OCI labels so an image traces back to the release it was built from.
 ARG VERSION=dev
@@ -43,3 +43,15 @@ EXPOSE 8090
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget -q -O /dev/null http://127.0.0.1:8090/healthz || exit 1
 CMD ["./runbooks"]
+
+# Derived docs-site image: the runtime plus a build-time seed of the public docs
+# repo. The app reads it with CONTENT_SOURCE=git (CONTENT_GIT_PATH=docs) and
+# refreshes in the background; the seed keeps cold start offline-safe and
+# independent of the remote. Build with `--target docs`. See
+# specs/runbooks/docs-hosting/README.md.
+FROM alpine:3 AS docs-seed
+RUN apk add --no-cache git && \
+    git clone --branch main https://github.com/runbooks-help/runbooks-docs /seed
+
+FROM runtime AS docs
+COPY --from=docs-seed --chown=runbooks:runbooks /seed /app/data/content

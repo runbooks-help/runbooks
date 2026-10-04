@@ -49,6 +49,7 @@ jobs:
         id: build
         with:
           context: .
+          target: runtime
           load: true
           push: ${{ github.event_name == 'push' }}
           tags: |
