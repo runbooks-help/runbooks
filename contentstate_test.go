@@ -63,12 +63,12 @@ func TestContentStateServesGitCacheWhenRemoteIsDown(t *testing.T) {
 	}
 
 	cs, err := newContentState(config{
-		ContentSource:   "git",
-		ContentDir:      "content",
-		GitSyncRepo:     "file:///nonexistent-repo",
-		GitSyncBranch:   "main",
-		ContentGitPath:  ".",
-		ContentGitCache: cache,
+		ContentSource:    "git",
+		ContentDir:       "content",
+		ContentGitRepo:   "file:///nonexistent-repo",
+		ContentGitBranch: "main",
+		ContentGitPath:   ".",
+		ContentGitCache:  cache,
 	}, nil, nil)
 	if err != nil {
 		t.Fatalf("boot with a cache must succeed: %v", err)

@@ -219,12 +219,12 @@ func (cs *contentState) sourceOptions() contentsource.Options {
 	return contentsource.Options{
 		Source: cfg.ContentSource,
 		Dir:    cfg.ContentDir,
-		Repo:   cfg.GitSyncRepo,
-		Branch: cfg.GitSyncBranch,
+		Repo:   cfg.ContentGitRepo,
+		Branch: cfg.ContentGitBranch,
 		Creds: gitrepo.Credentials{
-			Username: cfg.GitSyncUsername,
-			Token:    cfg.GitSyncToken,
-			SSHKey:   cfg.GitSyncSSHKey,
+			Username: cfg.ContentGitUsername,
+			Token:    cfg.ContentGitToken,
+			SSHKey:   cfg.ContentGitSSHKey,
 		},
 		Path:  cfg.ContentGitPath,
 		Cache: cfg.ContentGitCache,

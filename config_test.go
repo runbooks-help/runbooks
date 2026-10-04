@@ -18,6 +18,59 @@ func TestLoadConfigExpandsSSHKeyHome(t *testing.T) {
 	}
 }
 
+// TestLoadConfigContentGit pins that the git content source is configured by
+// CONTENT_GIT_*, not by GITSYNC_*.
+func TestLoadConfigContentGit(t *testing.T) {
+	t.Setenv("CONTENT_SOURCE", "git")
+	t.Setenv("CONTENT_GIT_REPO", "https://example.com/docs.git")
+	t.Setenv("CONTENT_GIT_BRANCH", "release")
+	t.Setenv("CONTENT_GIT_TOKEN", "tok")
+	t.Setenv("CONTENT_GIT_PATH", "docs")
+	t.Setenv("GITSYNC_REPO", "git@example.com:notes.git")
+
+	cfg := loadConfig()
+	if cfg.ContentGitRepo != "https://example.com/docs.git" || cfg.ContentGitBranch != "release" || cfg.ContentGitToken != "tok" {
+		t.Fatalf("content git = %q/%q/token=%q", cfg.ContentGitRepo, cfg.ContentGitBranch, cfg.ContentGitToken)
+	}
+	opts := (&contentState{cfg: cfg}).sourceOptions()
+	if opts.Repo != cfg.ContentGitRepo || opts.Branch != "release" || opts.Creds.Token != "tok" || opts.Path != "docs" {
+		t.Fatalf("sourceOptions = %+v, want the CONTENT_GIT_* values", opts)
+	}
+}
+
+// TestLoadConfigContentGitDefaults pins the branch and username fallbacks.
+func TestLoadConfigContentGitDefaults(t *testing.T) {
+	t.Setenv("CONTENT_SOURCE", "git")
+	t.Setenv("CONTENT_GIT_REPO", "https://example.com/docs.git")
+
+	cfg := loadConfig()
+	if cfg.ContentGitBranch != "main" || cfg.ContentGitUsername != "oauth2" {
+		t.Errorf("defaults = %q/%q, want main/oauth2", cfg.ContentGitBranch, cfg.ContentGitUsername)
+	}
+}
+
+// TestContentSyncConflict pins the guard that keeps the content repo out of the
+// notes sync write path.
+func TestContentSyncConflict(t *testing.T) {
+	cases := []struct {
+		source, sync, content string
+		want                  bool
+	}{
+		{"git", "https://x/notes.git", "https://x/docs.git", false},
+		{"git", "https://x/notes.git", "https://x/notes", true},
+		{"git", "https://x/notes", "https://x/notes.git", true},
+		{"local", "https://x/notes.git", "https://x/notes.git", false},
+		{"git", "https://x/notes.git", "", false},
+		{"git", "", "https://x/docs.git", false},
+	}
+	for _, tc := range cases {
+		got := contentSyncConflict(config{ContentSource: tc.source, GitSyncRepo: tc.sync, ContentGitRepo: tc.content})
+		if got != tc.want {
+			t.Errorf("contentSyncConflict(%q, %q, %q) = %v, want %v", tc.source, tc.sync, tc.content, got, tc.want)
+		}
+	}
+}
+
 func TestSSHRemote(t *testing.T) {
 	cases := []struct {
 		repo string

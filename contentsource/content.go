@@ -89,7 +89,7 @@ func (opts *Options) applyDefaults() error {
 		return fmt.Errorf("unknown CONTENT_SOURCE %q (want local or git)", opts.Source)
 	}
 	if opts.Repo == "" {
-		return fmt.Errorf("CONTENT_SOURCE=git requires GITSYNC_REPO")
+		return fmt.Errorf("CONTENT_SOURCE=git requires CONTENT_GIT_REPO")
 	}
 	if opts.Branch == "" {
 		opts.Branch = "main"

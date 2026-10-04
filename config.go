@@ -40,6 +40,11 @@ type config struct {
 
 	ContentDir             string
 	ContentSource          string
+	ContentGitRepo         string
+	ContentGitBranch       string
+	ContentGitUsername     string
+	ContentGitToken        string
+	ContentGitSSHKey       string
 	ContentGitPath         string
 	ContentGitCache        string
 	ContentRefreshToken    string
@@ -57,6 +62,11 @@ func loadConfig() config {
 	cfg := config{
 		ContentDir:          os.Getenv("CONTENT_DIR"),
 		ContentSource:       os.Getenv("CONTENT_SOURCE"),
+		ContentGitRepo:      os.Getenv("CONTENT_GIT_REPO"),
+		ContentGitBranch:    os.Getenv("CONTENT_GIT_BRANCH"),
+		ContentGitUsername:  os.Getenv("CONTENT_GIT_USERNAME"),
+		ContentGitToken:     os.Getenv("CONTENT_GIT_TOKEN"),
+		ContentGitSSHKey:    expandHome(os.Getenv("CONTENT_GIT_SSH_KEY")),
 		ContentGitPath:      os.Getenv("CONTENT_GIT_PATH"),
 		ContentGitCache:     os.Getenv("CONTENT_GIT_CACHE"),
 		ContentRefreshToken: os.Getenv("CONTENT_REFRESH_TOKEN"),
@@ -75,6 +85,12 @@ func loadConfig() config {
 	}
 	if cfg.ContentSource == "" {
 		cfg.ContentSource = "local"
+	}
+	if cfg.ContentGitBranch == "" {
+		cfg.ContentGitBranch = "main"
+	}
+	if cfg.ContentGitUsername == "" {
+		cfg.ContentGitUsername = "oauth2"
 	}
 	if cfg.ContentGitPath == "" {
 		cfg.ContentGitPath = "."
@@ -134,6 +150,13 @@ func loadConfig() config {
 	hasEndpointAuth := cfg.GitSyncAPIToken != "" || cfg.IdentityEnabled
 	cfg.GitSyncEnabled = cfg.GitSyncRepo != "" && hasCredential && hasEndpointAuth
 
+	// The content source is read-only to the app. Refuse a config where the notes
+	// sync target is the same repo as the content source: that would put the
+	// content repo behind the app's write endpoint.
+	if contentSyncConflict(cfg) {
+		log.Fatalf("GITSYNC_REPO must differ from CONTENT_GIT_REPO: %q is used as both the content source and the notes sync target", cfg.ContentGitRepo)
+	}
+
 	// The styleguide is a dev/self-host surface, off in the default container.
 	cfg.StyleGuideEnabled = envBool("STYLEGUIDE_ENABLED", false)
 
@@ -168,6 +191,23 @@ func envOr(name, def string) string {
 		return v
 	}
 	return def
+}
+
+// sameRepo reports whether two remote URLs point at the same repository,
+// ignoring a trailing slash and a .git suffix.
+func sameRepo(a, b string) bool {
+	norm := func(s string) string {
+		s = strings.TrimRight(strings.TrimSpace(s), "/")
+		return strings.TrimSuffix(s, ".git")
+	}
+	return norm(a) == norm(b)
+}
+
+// contentSyncConflict reports whether the notes sync target and the content git
+// source are the same repo, which would expose the read-only content repo to the
+// app's write endpoint.
+func contentSyncConflict(cfg config) bool {
+	return cfg.ContentSource == "git" && cfg.GitSyncRepo != "" && sameRepo(cfg.GitSyncRepo, cfg.ContentGitRepo)
 }
 
 // sshRemote reports whether a remote URL uses SSH, where the ambient SSH agent

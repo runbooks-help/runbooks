@@ -45,7 +45,7 @@ func TestOpenUnknownSource(t *testing.T) {
 
 func TestOpenGitRequiresRepo(t *testing.T) {
 	if _, _, err := Open(context.Background(), Options{Source: "git"}); err == nil {
-		t.Fatal("want an error when GITSYNC_REPO is unset")
+		t.Fatal("want an error when CONTENT_GIT_REPO is unset")
 	}
 }
 
