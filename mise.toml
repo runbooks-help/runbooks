@@ -15,13 +15,13 @@ PORT = "8091"
 _.file = ".env"
 
 # Git sync dev config (see the configuration reference at
-# https://runbooks.help/configuration).
+# https://docs.runbooks.help/configuration).
 # The repo, commit identity and credential live in .env; only the structural
 # defaults are tracked here.
 GITSYNC_BRANCH = "main"
 GITSYNC_BASE_PATH = "runs"
 
-# Identity dev config (see https://runbooks.help/identity).
+# Identity dev config (see https://docs.runbooks.help/identity).
 # An empty driver leaves the app PUBLIC (no passkeys, no gating) — used to share
 # the dev UI for feedback. To exercise passkeys again, set the driver to sqlite and
 # uncomment the rest: open http://localhost:8091/setup and paste the bootstrap token.

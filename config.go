@@ -11,7 +11,7 @@ import (
 )
 
 // config is the full runtime configuration, read once from the environment at
-// startup. See https://runbooks.help/configuration for the operator-facing
+// startup. See https://docs.runbooks.help/configuration for the operator-facing
 // reference.
 type config struct {
 	GitSyncRepo        string

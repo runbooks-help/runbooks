@@ -106,7 +106,7 @@ brand/               generated brand assets: outlined SVG + PNG (committed)
 LICENSE / NOTICE     outbound FSL-1.1-MIT + the third-party notices that must be embedded (OFL, MPL driver)
 DEPENDENCIES.md      dependency inventory + FSL classification
 THIRD_PARTY_NOTICES.md  generated full licence texts (do not hand-edit)
-runbooks-docs/       (separate repo) the public docs content; see https://runbooks.help
+runbooks-docs/       (separate repo) the public docs content; see https://docs.runbooks.help
 tmp/                 air build output
 ```
 
@@ -226,7 +226,7 @@ by `requireRead` — session **or a read-scoped API key** — with identity on.
 
 API keys are minted self-service at `/account`, owned by a user, stored as
 `sha256(raw)` under an `rbk_` prefix, and revocable; a key is read-only by
-construction and never authenticates a write. See https://runbooks.help/agent-access.
+construction and never authenticates a write. See https://docs.runbooks.help/agent-access.
 
 **Never add a signpost `.md` under `content/`** (e.g. `content/AGENTS.md`):
 `parser.LoadDir` treats every `*.md` there as a runbook and a file without
