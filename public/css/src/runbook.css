@@ -382,6 +382,40 @@ body.zen .zen-bar {
 	line-height: var(--leading-normal);
 }
 
+.doc-nav {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--space-4);
+	margin-top: var(--space-6);
+	padding-top: var(--space-4);
+	border-top: 1px solid var(--border);
+}
+
+.doc-nav a {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-hair);
+	text-decoration: none;
+}
+
+.doc-nav-next {
+	margin-left: auto;
+	text-align: right;
+}
+
+.doc-nav-dir {
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--muted);
+}
+
+.doc-nav-title {
+	font-size: var(--text-sm);
+	color: var(--link);
+}
+
 .prose-list {
 	padding-left: var(--space-5);
 	display: flex;

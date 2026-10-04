@@ -25,6 +25,28 @@ func TestStepNumber(t *testing.T) {
 	}
 }
 
+// TestDocPrevNext pins the sidebar-order neighbours, including the ends.
+func TestDocPrevNext(t *testing.T) {
+	groups := []parser.SystemGroup{{Categories: []parser.CategoryGroup{
+		{Runbooks: []parser.RunbookMeta{{Slug: "a"}, {Slug: "b"}, {Slug: "c"}}},
+	}}}
+	if docPrev(groups, "a") != nil {
+		t.Error("first page should have no prev")
+	}
+	if got := docNext(groups, "a"); got == nil || got.Slug != "b" {
+		t.Errorf("docNext(a) = %v, want b", got)
+	}
+	if got := docPrev(groups, "b"); got == nil || got.Slug != "a" {
+		t.Errorf("docPrev(b) = %v, want a", got)
+	}
+	if docNext(groups, "c") != nil {
+		t.Error("last page should have no next")
+	}
+	if docPrev(groups, "missing") != nil {
+		t.Error("unknown slug should have no prev")
+	}
+}
+
 func TestHasRunbookSteps(t *testing.T) {
 	if hasRunbookSteps([]parser.Step{{Title: "A", Doc: true}}) {
 		t.Error("doc-only page should have no runbook steps")

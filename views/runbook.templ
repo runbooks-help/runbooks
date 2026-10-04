@@ -140,6 +140,9 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 							</div>
 						}
 					</div>
+					if rb.Layout == "doc" {
+						@components.DocNav(docPrev(groups, rb.Slug), docNext(groups, rb.Slug))
+					}
 				</div>
 			</div>
 		</div>
@@ -202,6 +205,44 @@ func pageConfigJSON(c PageConfig) string {
 		"recordsBasePath":      c.RecordsBasePath,
 	})
 	return string(b)
+}
+
+// docPrev and docNext return the neighbouring runbook in sidebar order, or nil.
+func docPrev(groups []parser.SystemGroup, slug string) *parser.RunbookMeta {
+	metas := flattenRunbooks(groups)
+	for i := range metas {
+		if metas[i].Slug == slug {
+			if i == 0 {
+				return nil
+			}
+			return &metas[i-1]
+		}
+	}
+	return nil
+}
+
+func docNext(groups []parser.SystemGroup, slug string) *parser.RunbookMeta {
+	metas := flattenRunbooks(groups)
+	for i := range metas {
+		if metas[i].Slug == slug {
+			if i+1 >= len(metas) {
+				return nil
+			}
+			return &metas[i+1]
+		}
+	}
+	return nil
+}
+
+// flattenRunbooks lists every runbook in sidebar order.
+func flattenRunbooks(groups []parser.SystemGroup) []parser.RunbookMeta {
+	var metas []parser.RunbookMeta
+	for _, g := range groups {
+		for _, c := range g.Categories {
+			metas = append(metas, c.Runbooks...)
+		}
+	}
+	return metas
 }
 
 // stepNumber is the display number for the step at index i. Only runbook steps

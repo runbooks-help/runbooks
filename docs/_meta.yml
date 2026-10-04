@@ -1,0 +1,5 @@
+# The docs are served from the content root, so the reserved `_root` entry names
+# the single sidebar group. Without it, a file directly in the content root
+# groups under the default "Playbooks".
+- _root:
+    title: Documentation

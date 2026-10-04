@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
+package components
+
+import "runbooks/parser"
+
+// DocNav renders previous/next links between documentation pages in sidebar
+// order. Either side is omitted when there is no neighbour.
+templ DocNav(prev, next *parser.RunbookMeta) {
+	if prev != nil || next != nil {
+		<nav class="doc-nav" aria-label="Documentation navigation">
+			if prev != nil {
+				<a class="doc-nav-prev" href={ templ.SafeURL("/" + prev.Slug) }>
+					<span class="doc-nav-dir">← Previous</span>
+					<span class="doc-nav-title">{ prev.Title }</span>
+				</a>
+			}
+			if next != nil {
+				<a class="doc-nav-next" href={ templ.SafeURL("/" + next.Slug) }>
+					<span class="doc-nav-dir">Next →</span>
+					<span class="doc-nav-title">{ next.Title }</span>
+				</a>
+			}
+		</nav>
+	}
+}

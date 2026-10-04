@@ -205,6 +205,7 @@ type dirMeta struct {
 type manifest struct {
 	systems    map[string]dirMeta
 	categories map[string]dirMeta
+	rootTitle  string // reserved `_root` entry: title for content at the root
 }
 
 func loadManifest(path string) (manifest, error) {
@@ -222,6 +223,10 @@ func loadManifest(path string) (manifest, error) {
 	}
 	for i, e := range entries {
 		if e.Name == "" {
+			continue
+		}
+		if e.Name == "_root" {
+			m.rootTitle = e.Title
 			continue
 		}
 		m.systems[e.Name] = dirMeta{title: e.Title, order: i + 1}
@@ -370,6 +375,7 @@ func LoadDir(dir string, exclude ...string) ([]RunbookDef, error) {
 	}
 
 	var defs []RunbookDef
+	var rels []string
 	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -422,14 +428,21 @@ func LoadDir(dir string, exclude ...string) ([]RunbookDef, error) {
 			def.CategoryTitle = resolveTitle(catKey, cm)
 			def.CategoryOrder = cm.order
 		default:
-			def.GroupTitle = titleCase("")
+			title := titleCase("")
+			if man.rootTitle != "" {
+				title = man.rootTitle
+			}
+			def.GroupTitle = title
 		}
 		defs = append(defs, def)
+		rels = append(rels, strings.TrimSuffix(slashRel, ".md"))
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
+
+	rewriteDocLinks(defs, rels)
 
 	sort.Slice(defs, func(i, j int) bool {
 		a, b := defs[i], defs[j]
