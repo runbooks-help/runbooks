@@ -14,12 +14,13 @@ import (
 var updateGolden = flag.Bool("update", false, "rewrite the corpus golden files")
 
 // trackedCorpus lists the committed documents whose parsed Block model is
-// pinned: the playground runbooks and the docs tree. The gitignored testdata
-// runbooks are private and deliberately excluded.
+// pinned: the playground runbooks. The gitignored testdata runbooks are private
+// and deliberately excluded, and the public docs moved to the separate
+// runbooks-docs repo.
 func trackedCorpus(t *testing.T) []string {
 	t.Helper()
 	var files []string
-	for _, dir := range []string{filepath.Join("..", "content"), filepath.Join("..", "docs")} {
+	for _, dir := range []string{filepath.Join("..", "content")} {
 		err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 			if err != nil || d.IsDir() || !strings.HasSuffix(d.Name(), ".md") {
 				return err
@@ -37,15 +38,6 @@ func trackedCorpus(t *testing.T) []string {
 	return files
 }
 
-// withFrontmatter lets the docs tree (plain markdown, no frontmatter) go
-// through Parse like a runbook.
-func withFrontmatter(data []byte) []byte {
-	if strings.HasPrefix(string(data), "---\n") {
-		return data
-	}
-	return append([]byte("---\ntitle: Docs\nslug: docs\n---\n\n"), data...)
-}
-
 // TestCorpusGolden pins the parsed Block model of the committed corpus. It is
 // the broad regression net for the goldmark converter: any change to the model
 // (a kind, an order, a text run) shows up as a golden diff. Run with
@@ -61,7 +53,7 @@ func TestCorpusGolden(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		def, err := Parse(withFrontmatter(data))
+		def, err := Parse(data)
 		if err != nil {
 			t.Fatalf("%s: %v", f, err)
 		}

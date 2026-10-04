@@ -1,0 +1,11 @@
+# The docs E2E fixture's sidebar groups, in order. Mirrors the real docs tree's
+# shape so the test exercises the sections layout, prev/next and the crawler
+# surface without depending on the external docs repo.
+- get-started:
+    title: Get started
+- guides:
+    title: Guides
+- reference:
+    title: Reference
+- operations:
+    title: Operations

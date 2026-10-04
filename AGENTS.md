@@ -109,10 +109,7 @@ brand/               generated brand assets: outlined SVG + PNG (committed; see 
 LICENSE / NOTICE     outbound FSL-1.1-MIT + the third-party notices that must be embedded (OFL, MPL driver)
 DEPENDENCIES.md      dependency inventory + FSL classification
 THIRD_PARTY_NOTICES.md  generated full licence texts (do not hand-edit)
-docs/                the public docs tree, grouped: get-started/ (overview, install),
-                     guides/ (writing-runbooks), reference/ (configuration),
-                     operations/ (deployment, identity, agent-access)
-                     (see specs/runbooks/docs-content)
+runbooks-docs/       (separate repo) the public docs content; see specs/runbooks/docs-site
 tmp/                 air build output
 ```
 
@@ -210,7 +207,7 @@ vars:
   separators `---sections` / `---steps` (or the GitHub-safe `<!-- sections -->` /
   `<!-- steps -->`) switch how the headings that follow render. The comment form is
   invisible in a rendered Markdown document (GitHub, any CommonMark renderer), which
-  is why the repo's own `docs/` use it.
+  is why the docs pages use it.
 
 Authoring conventions that have bitten us:
 
@@ -232,8 +229,7 @@ by `requireRead` — session **or a read-scoped API key** — with identity on.
 
 API keys are minted self-service at `/account`, owned by a user, stored as
 `sha256(raw)` under an `rbk_` prefix, and revocable; a key is read-only by
-construction and never authenticates a write. See `docs/operations/agent-access.md` and
-`specs/runbooks/agent-access`.
+construction and never authenticates a write. See `specs/runbooks/agent-access`.
 
 **Never add a signpost `.md` under `content/`** (e.g. `content/AGENTS.md`):
 `parser.LoadDir` treats every `*.md` there as a runbook and a file without

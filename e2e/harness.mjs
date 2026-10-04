@@ -78,7 +78,7 @@ async function waitForReady(base, child, logs, readyPath) {
 // startApp boots the built binary on a free port. Options:
 //   identity   — SQLite identity on (default true); false boots a public,
 //                no-database instance (a docs deployment).
-//   contentDir — CONTENT_DIR override (e.g. the repo's docs/ tree).
+//   contentDir — CONTENT_DIR override (e.g. a fixture docs tree).
 //   publicURL  — set PUBLIC_URL to the instance base (canonical, sitemap).
 //   env        — extra environment variables.
 export async function startApp({ identity = true, contentDir, publicURL = false, env = {} } = {}) {

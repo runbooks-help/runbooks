@@ -22,7 +22,7 @@ import {
 } from "./harness.mjs";
 
 const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)));
-const docsDir = join(repoRoot, "docs");
+const docsDir = join(repoRoot, "e2e", "testdata", "docs");
 
 test("the public docs: sections, lead, prev/next and the crawler surface", async (t) => {
 	const app = await startApp({

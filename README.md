@@ -36,10 +36,10 @@ Produces a single `runbooks` binary with all assets embedded.
 ## Install & operate
 
 The app runs from the container image and reads your runbooks from a mounted
-directory — see [docs/get-started/install.md](docs/get-started/install.md) for
-the quickstart. Every setting is an environment variable:
-[docs/reference/configuration.md](docs/reference/configuration.md) is the full
-reference, and [docs/operations/deployment.md](docs/operations/deployment.md)
+directory — see the [install quickstart](https://runbooks.help/install) for
+the quickstart. Every setting is an environment variable: the
+[configuration reference](https://runbooks.help/configuration) is the full
+reference, and [deployment](https://runbooks.help/deployment)
 covers storage, backups and upgrading.
 
 Serving a public, crawler-friendly site: set `PUBLIC_URL` to the absolute base
@@ -50,7 +50,7 @@ Serving a public, crawler-friendly site: set `PUBLIC_URL` to the absolute base
 
 Identity — passkey sign-in, or delegation to an upstream proxy/SSO gateway — is
 optional and off by default. To gate reads and attribute writes to named users, see
-[docs/operations/identity.md](docs/operations/identity.md).
+[identity](https://runbooks.help/identity).
 
 ## Writing a runbook
 
@@ -86,7 +86,7 @@ sent to the server. `---rollback` starts a rollback section, and
 
 The full format — every frontmatter field, code labels, branch blocks, the
 glossary, and the authoring conventions — is
-[docs/guides/writing-runbooks.md](docs/guides/writing-runbooks.md).
+[Writing a runbook](https://runbooks.help/writing-runbooks).
 
 ### Index page
 
@@ -106,7 +106,7 @@ repo and reading `content/` directly — no API, no credentials. For a remote
 agent, an identity-enabled instance exposes a read-only surface (`/llms.txt`,
 `/<slug>.md`, `/api/runbooks/v1/search`) authorised by a read-scoped API key
 created at `/account`. See
-[docs/operations/agent-access.md](docs/operations/agent-access.md).
+[Agent access](https://runbooks.help/agent-access).
 
 ## Licence
 
