@@ -24,16 +24,16 @@ jobs:
           BRANCH="${GITHUB_REF_NAME//\//-}"
           DATETIME=$(date -u '+%Y%m%d%H%M%S')
           SHORT_SHA="${GITHUB_SHA::7}"
-          echo "value=ghcr.io/ladydascalie/runbooks:${BRANCH}-${DATETIME}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "value=ghcr.io/runbooks-help/runbooks:${BRANCH}-${DATETIME}-${SHORT_SHA}" >> $GITHUB_OUTPUT
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             # A tag is a release: stamp the version and give it a clean tag.
             echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
-            echo "extra=ghcr.io/ladydascalie/runbooks:${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+            echo "extra=ghcr.io/runbooks-help/runbooks:${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
           else
             echo "version=${SHORT_SHA}" >> $GITHUB_OUTPUT
           fi
           if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" == "main" ]]; then
-            echo "extra=ghcr.io/ladydascalie/runbooks:latest" >> $GITHUB_OUTPUT
+            echo "extra=ghcr.io/runbooks-help/runbooks:latest" >> $GITHUB_OUTPUT
           fi
 
       - uses: docker/setup-buildx-action@v3
@@ -109,10 +109,11 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           NOTES="$(mktemp)"
           cat > "$NOTES" <<EOF
-          Container image: ghcr.io/ladydascalie/runbooks@${IMAGE_DIGEST}
+          Container image: ghcr.io/runbooks-help/runbooks@${IMAGE_DIGEST}
 
           Attached: the SPDX 2.3 and CycloneDX SBOMs for that exact image.
-          See docs/internals/sbom.md for the cosign verification steps.
+          Verify the signature and the SBOM attestation with cosign
+          (`cosign verify` / `cosign verify-attestation`).
           EOF
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --notes-file "$NOTES"

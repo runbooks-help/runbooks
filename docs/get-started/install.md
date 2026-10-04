@@ -15,7 +15,7 @@ docker run -d --name runbooks \
   -p 8090:8090 \
   -v "$PWD/content:/app/content" \
   -v runbooks-data:/app/data \
-  ghcr.io/ladydascalie/runbooks:latest
+  ghcr.io/runbooks-help/runbooks:latest
 ```
 
 Open [localhost:8090](http://localhost:8090).

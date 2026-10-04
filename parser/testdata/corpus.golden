@@ -99,7 +99,7 @@ rollback: "Undo the example restart" section=false
 ===== ../docs/get-started/install.md =====
 step: "Run the container" section=true
   prose "The app ships as a container image and carries no content. You mount a directory of Markdown runbooks."
-  code lang="bash" label="Start Runbooks" body="docker run -d --name runbooks \\\n  -p 8090:8090 \\\n  -v \"$PWD/content:/app/content\" \\\n  -v runbooks-data:/app/data \\\n  ghcr.io/ladydascalie/runbooks:latest"
+  code lang="bash" label="Start Runbooks" body="docker run -d --name runbooks \\\n  -p 8090:8090 \\\n  -v \"$PWD/content:/app/content\" \\\n  -v runbooks-data:/app/data \\\n  ghcr.io/runbooks-help/runbooks:latest"
   prose "Open [localhost:8090](http://localhost:8090)."
   list ordered=false
     item "`/app/content` is the content root (`CONTENT_DIR`). If it is empty the index renders a welcome page; add a `.md` file to populate it."
@@ -260,7 +260,7 @@ step: "Content" section=true
   heading "SSH credentials"
   prose "SSH remotes authenticate with the **ambient SSH agent** by default: with no `GITSYNC_SSH_KEY` and no `GITSYNC_TOKEN`, `go-git` connects through `$SSH_AUTH_SOCK`, so a running `ssh-agent`, 1Password, or equivalent is enough on a workstation; there is nothing to configure. Host keys are verified against `SSH_KNOWN_HOSTS`, then `~/.ssh/known_hosts` / `/etc/ssh/ssh_known_hosts`; there is no `accept-new`, so the host must already be known."
   prose "A **deployment or CI job has no agent**, so supply the key explicitly. Mount the private key and a `known_hosts` file read-only, then point the variables at them:"
-  code lang="bash" label="" body="docker run -d \\\n  -e GITSYNC_REPO=git@github.com:org/notes.git \\\n  -e GITSYNC_SSH_KEY=/run/secrets/gitsync_key \\\n  -e SSH_KNOWN_HOSTS=/run/secrets/known_hosts \\\n  -v /host/gitsync_key:/run/secrets/gitsync_key:ro \\\n  -v /host/known_hosts:/run/secrets/known_hosts:ro \\\n  ghcr.io/ladydascalie/runbooks:<tag>"
+  code lang="bash" label="" body="docker run -d \\\n  -e GITSYNC_REPO=git@github.com:org/notes.git \\\n  -e GITSYNC_SSH_KEY=/run/secrets/gitsync_key \\\n  -e SSH_KNOWN_HOSTS=/run/secrets/known_hosts \\\n  -v /host/gitsync_key:/run/secrets/gitsync_key:ro \\\n  -v /host/known_hosts:/run/secrets/known_hosts:ro \\\n  ghcr.io/runbooks-help/runbooks:<tag>"
   prose "The key is read as a file path, not a value, so an orchestrator secret mounted as a file works directly. HTTPS remotes need `GITSYNC_TOKEN` instead and no agent."
   heading "Startup order"
   list ordered=false
@@ -293,7 +293,7 @@ step: "Health and readiness" section=true
   prose "`GET /healthz` returns `200 ok`, unauthenticated, on an identity-on instance too: wire container or load-balancer probes to it."
 step: "Version" section=true
   prose "`runbooks --version` prints the build stamp: `runbooks vX.Y.Z` for a tagged build, the short commit otherwise. Tagged images also carry `org.opencontainers.image.version` and `…revision` labels:"
-  code lang="bash" label="" body="docker inspect --format '{{index .Config.Labels \"org.opencontainers.image.version\"}}' \\\n  ghcr.io/ladydascalie/runbooks:<tag>"
+  code lang="bash" label="" body="docker inspect --format '{{index .Config.Labels \"org.opencontainers.image.version\"}}' \\\n  ghcr.io/runbooks-help/runbooks:<tag>"
 ===== ../docs/operations/identity.md =====
 intro:
   prose "Runbooks can require named users, so that reads are gated and writes are attributed to a person. It is **off by default**: with no identity database configured the app is public and the sync API is gated by `GITSYNC_API_TOKEN`."

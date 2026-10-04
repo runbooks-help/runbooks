@@ -34,7 +34,7 @@ docker run -d \
   -e SSH_KNOWN_HOSTS=/run/secrets/known_hosts \
   -v /host/gitsync_key:/run/secrets/gitsync_key:ro \
   -v /host/known_hosts:/run/secrets/known_hosts:ro \
-  ghcr.io/ladydascalie/runbooks:<tag>
+  ghcr.io/runbooks-help/runbooks:<tag>
 ```
 
 The key is read as a file path, not a value, so an orchestrator secret mounted as a file works directly. HTTPS remotes need `GITSYNC_TOKEN` instead and no agent.
@@ -107,5 +107,5 @@ There are no foreign keys, so the set is self-contained; restoring the database 
 
 ```bash
 docker inspect --format '{{index .Config.Labels "org.opencontainers.image.version"}}' \
-  ghcr.io/ladydascalie/runbooks:<tag>
+  ghcr.io/runbooks-help/runbooks:<tag>
 ```

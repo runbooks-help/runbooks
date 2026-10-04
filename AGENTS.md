@@ -4,7 +4,7 @@ A small Go web app that renders operational runbooks as interactive step-by-step
 pages. Runbooks are plain Markdown files with YAML frontmatter — **no database, no
 CMS**. One page per runbook, served by slug.
 
-- **Repo:** `github.com/ladydascalie/runbooks` (private), local `~/Code/Personal/runbooks`.
+- **Repo:** `github.com/runbooks-help/runbooks` (private), local `~/Code/Personal/runbooks`.
 - **Licence:** FSL-1.1-MIT (source-available, no competing use, converts to MIT after
   2y). Governance, positioning and the commercial model live in the spec library:
   `~/openspec/plans/specs/runbooks/governance/README.md`,
@@ -317,7 +317,7 @@ frontmatter is a startup error, so it breaks boot. This file is the signpost.
 ## Deploy
 
 - CI `.github/workflows/container.yml` builds on PRs and pushes on `main` to
-  `ghcr.io/ladydascalie/runbooks:<branch>-<utc-datetime>-<sha>`, plus `…:latest` on
+  `ghcr.io/runbooks-help/runbooks:<branch>-<utc-datetime>-<sha>`, plus `…:latest` on
   `main` only. It generates SPDX + CycloneDX SBOMs for the image, uploads them as
   the `sbom` artifact, and on `v*` tags keyless-attests the SPDX document with cosign.
 - Deployment is not yet defined for this personal repo (the previous ArgoCD/gitops

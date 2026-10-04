@@ -22,7 +22,7 @@ FROM alpine:3
 ARG VERSION=dev
 ARG REVISION=
 LABEL org.opencontainers.image.title="Runbooks" \
-      org.opencontainers.image.source="https://github.com/ladydascalie/runbooks" \
+      org.opencontainers.image.source="https://github.com/runbooks-help/runbooks" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}"
 
