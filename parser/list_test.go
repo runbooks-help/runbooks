@@ -55,11 +55,21 @@ func TestParseOrderedList(t *testing.T) {
 	}
 }
 
-// TestParseListThenTable pins that a table line still ends the list rather than
-// being swallowed as a continuation.
+// TestParseListThenTable pins that a table line directly after a list item is
+// a lazy continuation (CommonMark: a table cannot interrupt a paragraph), so it
+// stays part of the list item. A blank line between them yields a real table.
 func TestParseListThenTable(t *testing.T) {
 	src := "---\ntitle: X\nslug: x\n---\n\n## Step\n\n- item\n| a | b |\n|---|---|\n| 1 | 2 |\n"
 	def, err := Parse([]byte(src))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if blocks := def.Steps[0].Blocks; len(blocks) != 1 || blocks[0].Kind != KindList {
+		t.Fatalf("block kinds = %#v, want one list (table swallowed as continuation)", blocks)
+	}
+
+	src = "---\ntitle: X\nslug: x\n---\n\n## Step\n\n- item\n\n| a | b |\n|---|---|\n| 1 | 2 |\n"
+	def, err = Parse([]byte(src))
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}

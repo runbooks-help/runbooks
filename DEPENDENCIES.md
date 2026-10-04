@@ -5,7 +5,7 @@ project's outbound licence, **FSL-1.1-MIT** (Functional Source License 1.1, MIT
 future licence). Spec: `runbooks-commercial-model.md`; governance:
 `runbooks-governance.md`.
 
-- Date: 2026-10-03
+- Date: 2026-10-04
 - Scope: what actually ships — the Go binary, the vendored browser JS and
   icons, the self-hosted fonts, and the container base. Build/test-only tooling
   is recorded too, because it affects CI and reproducibility.
@@ -23,11 +23,11 @@ or rewriting.
 
 | Class | Count | Licences |
 |---|---|---|
-| Distributed Go modules (linked into the binary) | 46 | Apache-2.0 (8), BSD-2-Clause (2), BSD-3-Clause (19), MIT (16), **MPL-2.0 (1)** |
+| Distributed Go modules (linked into the binary) | 47 | Apache-2.0 (8), BSD-2-Clause (2), BSD-3-Clause (19), MIT (17), **MPL-2.0 (1)** |
 | Vendored browser JS | 4 | BSD-3-Clause, MIT, MIT-or-GPLv3 (elect MIT), Apache-2.0 (DOMPurify) |
 | Vendored icons | 1 | ISC (Feather-derived subset MIT) |
 | Self-hosted fonts | 2 | OFL-1.1 |
-| Build/test-only Go modules | 59 | MIT, BSD-2/3-Clause, Apache-2.0, ISC, MPL-2.0 (1, not linked) |
+| Build/test-only Go modules | 58 | MIT, BSD-2/3-Clause, Apache-2.0, ISC, MPL-2.0 (1, not linked) |
 | Build tooling (non-Go) | — | MIT, Apache-2.0 |
 
 ### The one weak-copyleft dependency
@@ -97,6 +97,7 @@ bare-binary self-host needs git installed.
 | `github.com/tinylib/msgp` | v1.6.4 | MIT |
 | `github.com/x448/float16` | v0.8.4 | MIT |
 | `github.com/xanzy/ssh-agent` | v0.3.3 | Apache-2.0 |
+| `github.com/yuin/goldmark` | v1.8.6 | MIT |
 | `golang.org/x/crypto` | v0.57.0 | BSD-3-Clause |
 | `golang.org/x/net` | v0.59.0 | BSD-3-Clause |
 | `golang.org/x/sync` | v0.23.0 | BSD-3-Clause |
@@ -178,7 +179,6 @@ binary**. Recorded for CI and reproducibility; all are permissive except
 | `github.com/rs/cors` | v1.11.0 | MIT |
 | `github.com/stretchr/objx` | v0.1.0 | MIT |
 | `github.com/stretchr/testify` | v1.12.1 | MIT |
-| `github.com/yuin/goldmark` | v1.4.13 | MIT |
 | `go.uber.org/mock` | v0.6.0 | Apache-2.0 |
 | `go.yaml.in/yaml/v3` | v3.0.5 | MIT OR Apache-2.0 |
 | `golang.org/x/mod` | v0.41.0 | BSD-3-Clause |

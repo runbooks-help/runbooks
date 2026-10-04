@@ -1,0 +1,484 @@
+===== ../content/playground/destructive-demo.md =====
+intro:
+  prose "This runbook exists to show the acknowledgement gate. If you can read this without a dialog first, something is wrong."
+step: "Confirm the target" section=false
+  prose "Check you are pointing at the replica you meant to rebuild."
+  code lang="bash" label="Check the target" body="mysql -h db-replica -e \"SELECT @@hostname, @@read_only;\""
+step: "Rebuild the replica" section=false
+  prose "The destructive step, reached only after the acknowledgement."
+  code lang="bash" label="Rebuild" body="mysql -h db-replica -e \"STOP REPLICA; RESET REPLICA ALL;\""
+===== ../content/playground/gallery.md =====
+intro:
+  prose "This opening paragraph is intro prose before the first step. It can carry **bold**, *italic*, `inline code`, and a [link](https://example.com) — all inline-markdown forms."
+step: "Prose, lists and tables" section=false
+  prose "A step body can hold plain prose, bullet lists and tables. The prose here is deliberately long enough to wrap a few lines, so line-height and measure are visible."
+  list ordered=false
+    item "First bullet — plain text."
+    item "Second bullet with `inline code` and a **bold** run."
+    item "Third bullet — a longer one that wraps onto a second line so spacing between items is visible."
+  table headers=["Column" "Meaning" "Example"]
+    row ["`HOST`" "Target host" "`db-2.prod.internal`"]
+    row ["`PROCESSLIST_ID`" "Blocked worker" "`4123`"]
+    row ["Status" "Whether a step is done" "`done` / `pending`"]
+  heading "A subheading inside a step"
+  prose "Subheadings split a long step without starting a new numbered card, as above."
+step: "Code blocks" section=false
+  prose "Code blocks take a language and an optional bracketed label; the label renders a header with a per-block done checkbox. Variables substituted from the panel are highlighted."
+  code lang="bash" label="Promote the replica" body="export HOST=\"{{HOST}}\"\nmysql -h \"$HOST\" -e \"STOP SLAVE; RESET SLAVE ALL;\""
+  code lang="sql" label="Inspect the worker" body="SELECT id, time, state FROM information_schema.processlist WHERE id = {{PROCESSLIST_ID}};"
+  code lang="text" label="A label-less fence" body="Any lower-case language tag is accepted; this fence has no bracketed label."
+  code lang="bash" label="Uses the secret" body="curl -H \"Authorization: Bearer {{API_TOKEN}}\" \"https://{{HOST}}/healthz\""
+step: "Notices and branch" section=false
+  prose "All three notice variants, then a decision callout."
+  notice variant="info" message="This is an info notice — context, links and read-only remarks."
+  notice variant="warn" message="This is a warning — a step that briefly stops writes, or a value to double-check."
+  notice variant="danger" message="This is a danger notice — destructive. READ EVERY STEP BEFORE DOING ANYTHING."
+  branch "- If the replica's IO thread is running, continue to the next step.\n- If it has stopped, rebuild from the nightly snapshot instead.\n- If neither, page the on-call DBA."
+rollback: "Roll back the promotion" section=false
+  prose "Rollback steps render after `---rollback`, in the danger styling and without a number."
+  code lang="bash" label="Demote the node" body="mysql -h \"{{HOST}}\" -e \"SET GLOBAL read_only = ON;\""
+rollback: "Confirm the rollback held" section=false
+  prose "A second rollback step, so the spacing between consecutive danger cards is rendered and reviewable."
+===== ../content/playground/writing-runbooks.md =====
+intro:
+  prose "This page is a runbook about writing runbooks. Read it, copy the patterns, then delete it."
+step: "Where runbooks live" section=false
+  prose "The filesystem is the taxonomy — there is no database and no CMS. A runbook is a Markdown file with YAML frontmatter:"
+  code lang="text" label="Content layout" body="content/<system>/<category>/<file>.md"
+  list ordered=false
+    item "`<system>` becomes a top-level sidebar group (the directory name, title-cased)."
+    item "`<category>` becomes a subheading under the system."
+    item "A file directly under the system (`content/<system>/<file>.md`) has no subheading."
+    item "The URL is `/<slug>`, and `slug` comes from frontmatter — not the filename."
+  prose "Directory names map to display names and sidebar order in `parser/parser.go` (`systemLabels`, `systemOrder`, `categoryOrder`). Within a category, runbooks sort by the optional `order:` field, then by title. Content is read from disk at runtime, so edits need no rebuild — just refresh."
+step: "Frontmatter" section=false
+  prose "Only `title` and `slug` are required; everything else is optional."
+  table headers=["Field" "What it does"]
+    row ["`title`" "Sidebar label and `<h1>`."]
+    row ["`slug`" "The URL, `/<slug>`."]
+    row ["`order`" "Position within its category (lower first; absent sorts last)."]
+    row ["`description`" "One-line summary under the `<h1>`."]
+    row ["`symptoms`" "Extra keywords the index search matches."]
+    row ["`common`" "`true` pins it into the \"Common issues\" shortlist."]
+    row ["`notice`" "A passive banner above the body."]
+    row ["`acknowledge`" "Marks the runbook destructive: the page is gated behind an \"I understand\" dialog until accepted (once per session)."]
+    row ["`vars`" "Runtime inputs — see the next step."]
+step: "Inputs with `vars`" section=false
+  prose "`vars` render a panel of inputs. Each value substitutes into code blocks as a `{{TOKEN}}`, where the token is uppercase A–Z and underscore only:"
+  code lang="bash" label="Use the inputs" body="ssh \"{{HOST}}\"\nsystemctl --user restart \"{{SERVICE}}\""
+  list ordered=false
+    item "Give the diagnostic lookup to a `hint` rather than a literal `<placeholder>` in the code — angle brackets inside a fence look like real syntax."
+    item "Set `secret: true` to render a password field."
+    item "Substitution happens in the browser, so values **never leave the page**."
+step: "Steps, subheadings and prose" section=false
+  prose "`## Heading` starts a numbered step. `### Heading` splits a long step without starting a new card. A step body takes ordinary Markdown: **bold**, *italic*, `inline code`, [links](https://example.com), bullet lists and tables."
+  notice variant="info" message="Titles lead with the symptom, not the mechanism — a runbook is read under duress."
+  prose "For a destructive runbook, don't rely on a banner: add `acknowledge:` and the reader must accept it before the page is usable."
+  code lang="yaml" label="Frontmatter" body="acknowledge: \"This drops and rebuilds the replica. Take it out of the load balancer first.\""
+step: "Code blocks and checkoffs" section=false
+  prose "A fenced block takes a lowercase language tag and an optional bracketed label. The label renders a header with a per-block **done** checkbox, and a step ticks itself once all its blocks are ticked."
+  code lang="sql" label="Inspect the target" body="SELECT id, state FROM information_schema.processlist WHERE user = '{{SERVICE}}';"
+step: "Notices and decisions" section=false
+  prose "Three notice variants carry different weight:"
+  notice variant="info" message="Context, links and read-only remarks."
+  notice variant="warn" message="A step that briefly stops writes, or a value to double-check."
+  notice variant="danger" message="Destructive. READ EVERY STEP BEFORE DOING ANYTHING."
+  prose "A branch callout lists the decisions a reader might make:"
+  branch "- If the check passed, continue.\n- If it failed, rebuild instead.\n- If neither, page the on-call."
+step: "Rollback" section=false
+  prose "`---rollback` on its own line closes the numbered steps and starts a separate, danger-styled, unnumbered section. This page ends with one, so you can see the styling:"
+  code lang="text" label="The marker" body="---rollback"
+  prose "That is the whole format — delete this file, and any other content you don't need, from `content/` when you are done."
+rollback: "Undo the example restart" section=false
+  prose "Rollback steps are unnumbered and danger-styled. A real runbook puts the actual undo commands here."
+  code lang="bash" label="Stop the example service" body="systemctl --user stop \"{{SERVICE}}\""
+===== ../docs/get-started/install.md =====
+step: "Run the container" section=true
+  prose "The app ships as a container image and carries no content — you mount a directory of Markdown runbooks."
+  code lang="bash" label="Start Runbooks" body="docker run -d --name runbooks \\\n  -p 8090:8090 \\\n  -v \"$PWD/content:/app/content\" \\\n  -v runbooks-data:/app/data \\\n  ghcr.io/ladydascalie/runbooks:latest"
+  prose "Open [localhost:8090](http://localhost:8090)."
+  list ordered=false
+    item "`/app/content` is the content root (`CONTENT_DIR`). If it is empty the index renders a welcome page — add a `.md` file to populate it."
+    item "`/app/data` holds the SQLite identity database when identity is on. It is unused otherwise, but mount it so a later upgrade keeps its data."
+    item "The container runs as a non-root user and exposes `/healthz`."
+  prose "Pin a version tag (`:vX.Y.Z`) rather than `:latest` for a production deployment."
+step: "Your first runbook" section=true
+  prose "Create `content/mysql/backup/verify-backup.md`:"
+  code lang="markdown" label="" body="---\ntitle: Verify the nightly backup\nslug: verify-backup\ndescription: Check that last night's dump exists and restores.\n---\n\n## Check the dump\n\nThe dump should be from tonight and non-trivial in size."
+  prose "The path puts it under **MySQL › Backup** in the sidebar, and the URL is `/verify-backup` (from the slug, not the filename). Content is read from disk at startup — no rebuild, no restart. Add a code block, a notice or `vars` as you need them: see [Writing a runbook](../guides/writing-runbooks.md)."
+step: "Configuration" section=true
+  prose "Every setting is an environment variable; the full list is [Configuration](../reference/configuration.md). The common ones:"
+  table headers=["Var" "Default" "Meaning"]
+    row ["`PORT`" "`8090`" "HTTP listen port."]
+    row ["`CONTENT_DIR`" "`content`" "Directory the runbooks are read from."]
+    row ["`PUBLIC_URL`" "*(unset)*" "Absolute site base; enables canonical/OpenGraph tags and `/sitemap.xml`."]
+    row ["`IDENTITY_DB_DRIVER`" "*(unset)*" "`sqlite`, `mysql` or `postgres`; unset leaves the app public."]
+step: "Build from source" section=true
+  prose "The image is the supported distributable, but the FSL always permits building:"
+  code lang="bash" label="Build and run" body="mise install\nmise run build\n./runbooks            # serves on :8090, reads ./content"
+step: "Where next" section=true
+  list ordered=false
+    item "[Writing a runbook](../guides/writing-runbooks.md)"
+    item "[Deployment](../operations/deployment.md)"
+    item "[Identity](../operations/identity.md)"
+===== ../docs/get-started/overview.md =====
+intro:
+  prose "Runbooks is a small, self-hosted web app that turns a directory of Markdown files into interactive, step-by-step operational runbooks. **Prod broke? Runbooks help.**"
+step: "What it is" section=true
+  list ordered=false
+    item "**Files are the content.** A runbook is a Markdown file with YAML frontmatter. The directory path decides the sidebar. There is no database, no CMS and no authoring UI — you edit files in your editor and commit them."
+    item "**One binary, one container.** The app reads a content directory at runtime, so content changes need no rebuild and no redeploy."
+    item "**Procedures and documentation in one tool.** A `##` heading renders as a numbered, tickable, collapsible **step** (a procedure) or an unnumbered **section** (reference prose) — and one page can mix both."
+    item "**Built for reading under duress.** Symptom-first titles, collapsible steps, code blocks with a per-block \"done\" box, decision callouts, a rollback section, inline variables, notes, and a Zen mode that shows one step at a time."
+step: "The mental model" section=true
+  table headers=["Thing" "How it works"]
+    row ["Taxonomy" "`content/<system>/<category>/<file>.md` → sidebar groups and subheadings"]
+    row ["URL" "the frontmatter `slug`, not the filename: `/<slug>`"]
+    row ["Ordering" "`_meta.yml` at the content root, then per-file `order:`"]
+    row ["Steps vs sections" "a `##` heading; `layout: sections` or `---sections` / `---steps`"]
+    row ["Inputs" "frontmatter `vars`, substituted into code as `{{NAME}}` — client-side only"]
+    row ["Search" "in-memory, full-body, served at `/api/runbooks/v1/search`"]
+    row ["Agents" "`/llms.txt`, `/<slug>.md` (raw Markdown), and the search API"]
+step: "Identity is optional" section=true
+  prose "By default the app is public: no accounts, no database. Turn on passkey (WebAuthn) identity — or delegate to an upstream proxy/SSO gateway — to gate reads and attribute writes to named users. It is off until you configure it, and when it is on the instance is private (crawlers are disallowed)."
+step: "Who it is for" section=true
+  prose "Solo operators, small teams and studios who keep their operational knowledge in files and want it readable in the moment. It is deliberately **not** for large enterprises: no procurement process, no on-prem SSO tier, no \"Contact Sales\"."
+step: "Licence" section=true
+  prose "Runbooks is **source-available** under FSL-1.1-MIT: free to self-host, modify and use commercially, with no competing-use right, and each release converts to MIT two years after publication."
+step: "Where next" section=true
+  list ordered=false
+    item "[Install & quickstart](install.md)"
+    item "[Writing a runbook](../guides/writing-runbooks.md)"
+===== ../docs/guides/writing-runbooks.md =====
+intro:
+  prose "A runbook is a Markdown file with YAML frontmatter, under the content root. The file path and the frontmatter decide where it appears and at what URL."
+step: "Where files live" section=true
+  prose "`content/<system>/<category>/<file>.md`:"
+  code lang="text" label="Content layout" body="content/\n  mysql/\n    replication/\n      mts-deadlock-recovery.md   → MySQL ▸ Replication\n  kubernetes/\n    networking/\n      k3s-log-proxy-502.md"
+  list ordered=false
+    item "`<system>` is a top-level sidebar group (the directory name, title-cased)."
+    item "`<category>` is a subheading under the system."
+    item "A file directly in `content/<system>/` renders under the system with no subheading."
+  prose "Display names and order live in `content/_meta.yml` at the top of the tree — an ordered list where position is the order:"
+  code lang="yaml" label="" body="- mysql:\n    title: MySQL\n    categories: [replication, failover, backup]\n- kubernetes\n- backend"
+  prose "An item is a bare directory name or `name: {title, categories}`; a category may carry a title the same way. Unlisted directories are appended after the listed ones, alphabetically. Within a category, runbooks sort by the optional frontmatter `order:` (lower first; absent sorts last), then by title. Use `order:` to pull the most likely on-call runbook to the top of its category."
+step: "Frontmatter" section=true
+  prose "Only `title` and `slug` are required; everything else is optional."
+  code lang="yaml" label="" body="---\ntitle: Replication Lag (MTS Deadlock)\nslug: mts-deadlock-recovery\norder: 1\ndescription: One-line summary under the title and on index cards.\nsymptoms:\n  - Last_SQL_Error\n  - duplicate entry error 1062\ncommon: true\nnotice: \"READ EVERY STEP BEFORE DOING ANYTHING!\"\nacknowledge: \"This drops and rebuilds the replica.\"\nvars:\n  - id: some-ip\n    label: Server IP\n    var: SERVER_IP\n    placeholder: \"e.g. 10.0.0.5\"\n    hint: How to find this value (plain-text popover on hover)\n  - id: db-password\n    label: DB password\n    var: DB_PASS\n    secret: true\n---"
+  table headers=["Field" "What it does"]
+    row ["`title`" "Sidebar label and `<h1>`."]
+    row ["`slug`" "The URL, `/<slug>` — **not** the filename."]
+    row ["`order`" "Position within its category (lower first)."]
+    row ["`description`" "One-line summary under the `<h1>` and on index cards."]
+    row ["`symptoms`" "Extra keywords the index filter and search match."]
+    row ["`common`" "`true` pins it into the \"Common issues\" shortlist."]
+    row ["`notice`" "A passive banner above the body."]
+    row ["`acknowledge`" "Marks the runbook destructive: the page is gated behind an \"I understand\" dialog until accepted (once per session)."]
+    row ["`vars`" "Runtime inputs — see below."]
+  prose "Keep `symptoms:` on every runbook: the index matches title, description, symptoms and the system/category names, and the body search reaches through the file."
+step: "Inputs with `vars`" section=true
+  prose "`vars` render a panel of inputs. Each value substitutes into code blocks as a `{{TOKEN}}`, where the token is uppercase A–Z and underscore only:"
+  code lang="bash" label="Use the inputs" body="ssh \"{{SERVER_IP}}\"\nsystemctl restart \"{{SERVICE}}\""
+  list ordered=false
+    item "Give the diagnostic lookup to a `hint` rather than a literal `<placeholder>` inside the code — angle brackets in a fence look like real syntax."
+    item "Set `secret: true` to render a password field."
+    item "Substitution happens in the browser, so values **never leave the page**."
+step: "Steps and sections" section=true
+  prose "A `##` heading is a **step** by default: numbered, tickable and collapsible. Add `layout: sections` to the frontmatter to render headings as **sections** instead — anchored, unnumbered, always open — or switch mid-page with `---sections` / `---steps` on their own line. The GitHub-safe comment forms (`<!-- sections -->` / `<!-- steps -->`) do the same and stay invisible in a rendered Markdown view (GitHub, any CommonMark renderer)."
+  prose "The two mix freely: a page can explain, hand over a numbered procedure, then continue explaining. Numbering counts steps only, the Contents list and prev/next do not care which a heading is, and `###` subheadings are anchored too."
+step: "Resolve the lag" section=false
+  prose "The numbered steps from here to the next separator are a procedure, with the same tick boxes and collapse behaviour as any runbook:"
+  list ordered=true
+    item "Confirm the lag on the replica."
+    item "Stop the SQL thread."
+    item "Clear the deadlock and restart the thread."
+step: "Code blocks" section=true
+  prose "Add a language and an optional bracketed label; the label renders a header with a per-block \"done\" checkbox. The language must be lowercase letters (the fence regex is `[a-z]*`):"
+  code lang="sql" label="Run on mysql-prod-primary" body="SELECT @@read_only, @@global.gtid_executed;"
+step: "Notices" section=true
+  code lang="markdown" label="" body="> [!info] Informational note.\n> [!warn] Something to be careful about.\n> [!danger] This causes an outage."
+  prose "The GitHub alert keywords (`NOTE`, `TIP`, `IMPORTANT`, `WARNING`, `CAUTION`) are accepted and mapped onto info/warn/danger, and the marker is case-insensitive."
+step: "Decision points" section=true
+  prose "A branch block presents the choices at a fork in the procedure:"
+  code lang="markdown" label="" body="> [!branch]\n> - All good → [Next step](#next-step)\n> - Something broke → [Roll back](#rollback)"
+step: "Rollback" section=true
+  prose "`---rollback` (or `<!-- rollback -->`) on its own line starts a separate rollback section: danger-styled, unnumbered, and read as \"what to do if it broke\". Everything after it is rollback steps."
+step: "Glossary" section=true
+  prose "One file at the content root, `content/_glossary.yml`, defines the shop's shared terms. A configured term highlights wherever prose renders — step and section titles, notices, lists, tables — and shows its expansion, detail and optional link on hover or focus. Code is never touched."
+  code lang="yaml" label="" body="- term: MTS\n  expansion: Multi-Threaded Replica\n  description: MySQL replica applying transactions in parallel workers.\n  link: https://internal/glossary#mts"
+  prose "`term` and `expansion` are required; a missing one fails startup. Matching is exact, case-sensitive and whole-word, so `IT` never matches \"it\"."
+step: "Conventions" section=true
+  list ordered=false
+    item "**Titles lead with the symptom, not the mechanism** — \"Replication Lag (MTS Deadlock)\", not \"MTS Deadlock Recovery\". This is a runbook read under duress."
+    item "**One concern per step.** If a step needs a sub-decision, use `###` or a branch block rather than burying it in prose."
+    item "**Destructive procedures declare `acknowledge:`** so the reader must confirm before the page is usable; `notice:` stays a passive banner."
+step: "Where next" section=true
+  list ordered=false
+    item "[Configuration reference](../reference/configuration.md)"
+    item "[Deployment](../operations/deployment.md)"
+    item "[Agent access](../operations/agent-access.md)"
+===== ../docs/internals/brand.md =====
+intro:
+  prose "`mise run brand` generates the brand assets into `brand/` from `cmd/brand`. The output is committed, so the task is a manual step, not part of `mise run build` or CI."
+step: "What it writes" section=true
+  prose "For each variant, an outlined SVG plus 512 and 1024 PNGs:"
+  table headers=["Variant" "`brand/` files"]
+    row ["Logomark — `░▓` alone" "`logomark.svg`, `logomark-{512,1024}.png`"]
+    row ["Wordmark — `runbooks`" "`wordmark-on-{dark,light}.svg`, `…-{512,1024}.png`"]
+    row ["Horizontal lockup — mark + wordmark" "`lockup-horizontal-on-{dark,light}.svg`, `…-{512,1024}.png`"]
+    row ["Stacked lockup — mark above wordmark" "`lockup-stacked-on-{dark,light}.svg`, `…-{512,1024}.png`"]
+    row ["Icon — mark on the brand green" "`icon.svg`, `icon-{512,1024}.png`, and `public/favicon.svg`"]
+  prose "The SVGs have their text converted to paths, so they render with no font installed — the point of shipping SVG. `on-dark` means \"for a dark background\" (the ink is light); `on-light` is the reverse. The logomark and icon use the dark-theme brand greens on a transparent background and need no theme variant."
+  prose "The task also writes `public/favicon.svg` from the **icon**, so the served favicon cannot drift from the generated mark."
+step: "How it works" section=true
+  prose "`cmd/brand` writes a source SVG per variant with the self-hosted fonts, then shells out to the image toolchain already on the machine:"
+  list ordered=true
+    item "`woff2_decompress` turns the vendored `public/fonts/*.woff2` into TTFs in a temp dir, and a temp fontconfig file points only at them, so the outliner uses the pinned fonts and not whatever is installed system-wide."
+    item "`inkscape --export-text-to-path --export-area-drawing` outlines the text and crops to the drawing, writing `brand/<name>.svg`."
+    item "`rsvg-convert -w <n>` rasterises the outlined SVG to PNG."
+  prose "So a run needs `woff2_decompress`, `inkscape` and `rsvg-convert` on `PATH` (Inkscape and librsvg are the Arch packages `inkscape` and `librsvg`). No browser."
+  prose "The palette is copied from `public/css/src/tokens.css`; see `cmd/brand/main.go`."
+step: "The shade font" section=true
+  prose "The `░`/`▓` glyphs (and the bookshelf's `─│┌┐└┘├┤` frame) are not in Atkinson Hyperlegible, so the app used to render the mark, the bookshelf and its frame through the OS fallback monospace — Noto Sans Mono here, DejaVu or Menlo elsewhere — which made the logo machine-dependent and left the shelves a half-character short. `public/fonts/noto-sans-mono-shades.woff2` is a **glyph subset** of Noto Sans Mono (box drawing + shade blocks, U+2500–U+2593), pinned under the family name `Shade Mono` and declared in `public/css/src/fonts.css`. The mark (`.book-mark`) and the whole bookcase (`.shelf-grid`, so every cell and the 13ch track measure `ch` in one face) use it via the `--font-shade` token."
+  prose "Rebuild it from a Noto Sans Mono Regular TTF (OFL) with:"
+  code lang="sh" label="" body="pyftsubset NotoSansMono-Regular.ttf --unicodes=U+2500-2593 \\\n  --output-file=shade.ttf --no-hinting --desubroutinize \\\n  --layout-features='' --recalc-bounds\n# then rename the family to \"Shade Mono\" (name IDs 1/3/4/6/16) and\nwoff2_compress shade.ttf   # → noto-sans-mono-shades.woff2"
+  prose "Its licence ships beside it at `public/fonts/noto-sans-mono-shades.LICENSE`; `mise run notices` reproduces it in `THIRD_PARTY_NOTICES.md`."
+===== ../docs/internals/layout.md =====
+intro:
+  prose "How the runbooks UI is composed, and what enforces it. Read this before adding a page or a component; the token definitions live in `public/css/src/tokens.css`."
+step: "Shell" section=true
+  prose "Every page renders inside the shell (`shell.css`): `<aside class=\"rail\">` + `<aside class=\"sidebar\">` + `<div class=\"main\">`, with a `.main-header` and a scrolling `.content`. `.content` sets `scroll-padding-top` so anchored section links do not land flush against the header."
+  prose "The grid is `rail | main` — two columns. The rail is the only persistent left chrome (`--size-app-rail`): the brand mark plus a full-height hit area that summons the sidebar. The sidebar is never a column — it overlays the rail and main at every width, driven by `data-drawer=\"sidebar\"` on `<body>` and closed on the scrim, Esc, ✕ or navigation. The brand keeps its own link home."
+  prose "The notes panel is a **fixed overlay** (`.notes-panel`, `position: fixed`, `width: var(--notes-width)`): it floats over the content at every width and reserves no column, so showing or hiding it never reflows main. `body.notes-hidden` slides it away on the reading preference; below 1200px it is the same overlay capped at 92vw and joined to the drawer scrim. The prose measure is capped by `--measure` (72ch); tables and code blocks keep the full column width. `.main` centres itself with `max-width: 1440px; margin-inline: auto` — at every width, zen or not — so an ultrawide splits the dead space either side of the reading column instead of piling it all on the right."
+  prose "Below **1200px** (`responsive.css`) the notes panel becomes a full-width off-canvas drawer too, and no space is reserved. It is the same `data-drawer` mechanism; `responsive.css` is the override layer, imports last, and is the one place allowed to use `!important`."
+step: "Primitives" section=true
+  prose "Layout composes the primitives in `layouts.css`; a component does not hand-roll `display: flex`/`grid`. They are shown live at `/styleguide#layouts`."
+  table headers=["primitive" "what it is" "options"]
+    row ["`.stack`" "vertical column" "`data-gap=\"sm\\|md\\|lg\"`, default `--space-4`"]
+    row ["`.cluster`" "wrapping row — chips, badges, actions" "`data-gap=\"sm\\|md\\|lg\"`"]
+    row ["`.row`" "non-wrapping row, `min-width: 0` baked in" "`data-gap=\"sm\\|md\\|lg\"`"]
+    row ["`.inline-icon`" "`inline-flex`, centred — an icon beside its label" "—"]
+    row ["`.grid`" "CSS grid" "`data-cols=\"2\\|3\\|4\\|auto\"`; `--grid-min` for `auto`"]
+    row ["`.grow`" "fill the remaining width in a `.row`" "—"]
+    row ["`.truncate`" "`overflow: hidden` + nowrap + ellipsis" "—"]
+    row ["`.list-row`" "`auto 1fr auto` — icon · content · action" "—"]
+    row ["`.detail-shell`" "two-column `list \\| detail` grid" "`--size-detail-min`/`-max`"]
+  prose "Example — a header row with a status badge, a truncating title and a trailing action:"
+  code lang="html" label="" body="<div class=\"row\" data-gap=\"md\">\n  <span class=\"badge badge-info\">mysql</span>\n  <span class=\"truncate\">Replica lag on db-2 — the SQL thread is blocked</span>\n  <button class=\"btn btn-ghost\" type=\"button\">Open</button>\n</div>"
+step: "Tokens" section=true
+  prose "Values live in `tokens.css`; components reference them, never a literal."
+  list ordered=false
+    item "**Spacing** — `--space-0..7` (0, 4, 8, 12, 16, 24, 32, 48) plus `--space-hair` (2px) for the sub-scale gaps and hairlines below `--space-1`."
+    item "**Structural sizes** — `--size-app-rail`, `--size-app-sidebar`, `--size-app-header`, `--size-detail-min`/`-max`."
+    item "**Component sizing** — `--ctrl-pad-y` sets interactive control height (button, input, select); `--size-step-num` is the step-number badge, reused by the collapsed-step indent so the two cannot drift."
+    item "**Type** — `--font-sans` / `--font-mono`, `--mono-weight`, the `--text-2xs..2xl` scale (moved by `--text-scale`), `--leading-*`."
+    item "**Radius / shadow / motion** — `--radius-sm|md|lg`, `--shadow-sm|md|lg`, `--duration-fast|base`, `--ease`."
+    item "**Colour** — roles, never raw colour; status is never the brand accent; code surfaces stay dark in both themes via the constant `--code-*` tokens."
+step: "Rules" section=true
+  list ordered=true
+    item "**Compose primitives.** Page and component layout uses the primitives above, not bespoke flex/grid."
+    item "**Spacing comes from tokens.** No raw px in `margin*`, `padding*`, `gap`, `row-gap` or `column-gap` — this is machine-enforced (below). Use `--space-hair` when the value is genuinely sub-scale."
+    item "**Contextual chrome belongs to the context.** A reusable component carries no border or margin that only makes sense in one host — e.g. the sidebar footer divider is `.sidebar .appearance`, so the same component can be shown elsewhere without doubling a frame."
+    item "**Frontmatter `notice` is a banner; a notice is prose.** See the design-system spec for the alert/notice split."
+step: "Enforcement" section=true
+  prose "`mise run lintcss` runs stylelint over `public/css/src/**`. The spacing rule is:"
+  code lang="json" label="" body="\"declaration-property-unit-allowed-list\": {\n  \"/^(margin|padding|gap|row-gap|column-gap)/\": [\"em\", \"rem\", \"%\"]\n}"
+  prose "It flags any `px` in those properties — including inside `calc()` — and allows `var(--space-*)`, `0`, `auto` and px in non-spacing properties (widths, borders, shadows, grid tracks). Probe it by adding `padding: 13px` to a source file: lintcss fails."
+  prose "`declaration-no-important` is on, with two documented exceptions in `.stylelintrc.json`:"
+  list ordered=false
+    item "`code.css` — the variable placeholder must win over the vendored syntax highlighter's token colours;"
+    item "`responsive.css` — the responsive and print override layer."
+  prose "**Not machine-enforced** (review-only): \"no bespoke flex/grid in a component\" and \"roles, never raw colour\". Catching either would mean parsing layout intent, not syntax; the spec keeps them as review guidance."
+===== ../docs/internals/sbom.md =====
+intro:
+  prose "A machine-readable **Software Bill of Materials** for what Runbooks ships, generated with [syft](https://github.com/anchore/syft) (Apache-2.0, pinned in `mise.toml`). It complements the human-readable `DEPENDENCIES.md` and `THIRD_PARTY_NOTICES.md`."
+step: "Formats" section=true
+  prose "Both are written on every run:"
+  list ordered=false
+    item "`sbom/runbooks.spdx.json` — **SPDX 2.3 JSON** (ISO/IEC 5962)."
+    item "`sbom/runbooks.cdx.json` — **CycloneDX JSON**."
+  prose "`sbom/` is gitignored: SBOMs are release artifacts, not source."
+step: "What is covered" section=true
+  list ordered=false
+    item "**`mise run sbom`** — builds the binary and SBOMs it. The Go toolchain embeds the module list in the binary, so this captures every module linked into `runbooks` (the same set as `DEPENDENCIES.md` § 1)."
+    item "**`mise run sbom:image`** — builds the container image and SBOMs it. This is the actually-shipped artifact, so it adds the Alpine base and its apk packages (`ca-certificates`) on top of the binary's modules. The image carries no system `git`: content and notes sync use `go-git`."
+  code lang="bash" label="" body="mise run sbom          # binary\nmise run sbom:image    # container (builds the image first; needs podman)"
+  prose "CI generates both formats from the built image on every run and uploads them as the `sbom` artifact. On a `v*` tag it also attaches both to the **GitHub Release** for that tag, so a version's SBOMs sit with the release (and the tag) rather than only in the Actions run."
+step: "Verifying a release" section=true
+  prose "On a tagged release CI signs the image and attests the SPDX document against it with [cosign](https://github.com/sigstore/cosign), binding both to the image digest. Verify the signature:"
+  code lang="bash" label="" body="cosign verify \\\n  --certificate-identity-regexp '^https://github.com/ladydascalie/runbooks/' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  ghcr.io/ladydascalie/runbooks:<tag>"
+  prose "and the SBOM attestation:"
+  code lang="bash" label="" body="cosign verify-attestation \\\n  --type spdxjson \\\n  --certificate-identity-regexp '^https://github.com/ladydascalie/runbooks/' \\\n  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\\n  ghcr.io/ladydascalie/runbooks:<tag>"
+step: "Limits" section=true
+  list ordered=false
+    item "syft reports the **declared** licences it can read; it is not a legal audit. The classification and the FSL posture live in `DEPENDENCIES.md` / `NOTICE`."
+    item "Base-image apk packages are recorded but not re-derived — their licences are Alpine's responsibility."
+    item "The SBOM describes build inputs, not a vulnerability assessment. Scanning (e.g. `grype`) and VEX are separate, not wired here."
+===== ../docs/internals/troubleshooting.md =====
+step: "Colours look washed out / low contrast (HDR displays)" section=true
+  prose "On an **HDR display**, some **Chromium-based browsers** (Chrome, Brave, Edge) on Linux/Wayland convert standard-dynamic-range (SDR) page content into the HDR output incorrectly: the blacks are lifted and the dark theme looks flat and washed out, with no true black. Firefox renders it correctly on the same display."
+  prose "The cause is Chromium's use of the Wayland colour-management protocol (`wp_color_manager_v1`) under a compositor HDR session. **Fix it in the browser** by launching it with:"
+  code lang="" label="" body="--disable-features=WaylandWpColorManagerV1"
+  prose "Add that flag to the launcher — the `Exec=` line of the browser's `.desktop` file, or its flags file where the launcher supports one (`~/.config/brave-flags.conf`, `~/.config/chromium-flags.conf`). The trade-off: the browser then no longer colour-manages *HDR* content either, which is irrelevant for a text app but matters if you use the same browser for HDR video."
+  prose "Alternatives, if you would rather not set a flag:"
+  list ordered=false
+    item "**Disable HDR** while you work (KDE: *System Settings → Display & Monitor → HDR*)."
+    item "**Use Firefox**, which has no Linux HDR output path and renders SDR as authored."
+    item "**Lower the SDR brightness** in your display settings — a value near peak (e.g. ~400 nits) lifts SDR blacks the most; ~100–200 nits is closer to how SDR is meant to look."
+  prose "There is no app-side fix: Runbooks is fixed sRGB hex, and `dynamic-range-limit: standard` was tried and does not help. What you see in Firefox, with the flag, or with HDR off is the intended rendering."
+===== ../docs/operations/agent-access.md =====
+intro:
+  prose "Runbooks are plain Markdown with YAML frontmatter, which makes them easy for an LLM or an automation script to read — and, on a hosted instance, easy to expose through a small read-only surface rather than scraping the rendered HTML."
+step: "The simplest path: clone the content directory" section=true
+  prose "For a local agent, the best route needs no API: **clone the repo (or the `content/` directory) and point the agent at `content/`.** It gets the raw source — frontmatter included — and can grep across runbooks, follow cross-references, and read the git history for when a step changed and why. No network, no credentials, no parsed HTML."
+  prose "`content/` mirrors the app: `content/<system>/<category>/<file>.md`, the slug in frontmatter, and the sidebar order in `content/_meta.yml`. An agent can read `_meta.yml` and each runbook's frontmatter directly."
+  prose "There is deliberately **no `AGENTS.md` inside `content/`**: the parser treats every `*.md` under `content/` as a runbook, and a file without frontmatter is a startup error. Agent guidance lives here and in the repo's `AGENTS.md`."
+step: "The hosted read API" section=true
+  prose "When the agent runs remotely — a bot, a hosted chat, a different trust domain — it cannot clone anything. Instead the app exposes a **read-only** surface:"
+  table headers=["Endpoint" "What it returns"]
+    row ["`GET /llms.txt`" "A generated index: every runbook grouped by system, each linking to its `.md`."]
+    row ["`GET /<slug>.md`" "One runbook's raw Markdown, frontmatter included."]
+    row ["`GET /api/runbooks/v1/search?q=…&limit=…`" "Body search across titles, symptoms, steps and code; JSON with snippets and step anchors."]
+  prose "With identity **off** these are public, like the rest of the app. With identity **on** they require either a session or a **read-scoped API key**, sent as:"
+  code lang="" label="" body="Authorization: Bearer rbk_…"
+step: "Creating an API key" section=true
+  prose "Keys are minted from your own account page and are read-only by construction."
+step: "Create the key" section=false
+  prose "On an identity-enabled instance, open `/account` → **API keys**, give the key a label and choose **Create key**."
+step: "Copy it once" section=false
+  prose "The raw key (`rbk_…`) is shown **once** — copy it then; only its SHA-256 hash is stored and it cannot be recovered. Revoke a key from the same table."
+step: "What a key can do" section=true
+  prose "A key is **read-only by construction**: it can call the three endpoints above and nothing else. It cannot view the HTML pages, reach the admin area, use git sync, or acknowledge a destructive runbook. A revoked key, or one whose owner has been disabled, stops working on the next request."
+===== ../docs/operations/deployment.md =====
+step: "Storage" section=true
+  list ordered=false
+    item "**Runbooks** are plain markdown read from a content **source** at runtime — not stored in a database, and not part of a backup of it. By default that is a local directory (`CONTENT_DIR`, default `content`); set `CONTENT_SOURCE=git` to read from a repository instead, cloned into `CONTENT_GIT_CACHE` (records under `GITSYNC_BASE_PATH` are skipped). The image ships an empty directory (it never bundles content); mount yours there, or point the source wherever you like."
+    item "**Identity** (users, passkeys, sessions, invites, audit events) lives in the configured database. SQLite is the default and keeps everything in one file at `file:./data/runbooks.db`."
+    item "In the container the working directory is `/app`, so the SQLite file is `/app/data/runbooks.db`. Mount a volume at `/app/data` to persist it."
+    item "The schema is applied at startup from embedded, idempotent migrations. There is no external migration tool and no migration step: **to upgrade, replace the binary or image and restart.**"
+    item "`IDENTITY_PUBLIC_URL` is effectively immutable once passkeys exist — changing the host invalidates every credential."
+step: "Content" section=true
+  prose "Runbooks are read from a **source**, selected by `CONTENT_SOURCE`:"
+  list ordered=false
+    item "`local` (default) — read `CONTENT_DIR` directly. Mount your content there, or point it wherever you like."
+    item "`git` — clone `GITSYNC_REPO` (branch `GITSYNC_BRANCH`) into `CONTENT_GIT_CACHE` and read `CONTENT_GIT_PATH` inside it. Content sits at the repo root; the notes records path (`GITSYNC_BASE_PATH`) is skipped by the content walk."
+  heading "SSH credentials"
+  prose "SSH remotes authenticate with the **ambient SSH agent** by default: with no `GITSYNC_SSH_KEY` and no `GITSYNC_TOKEN`, `go-git` connects through `$SSH_AUTH_SOCK`, so a running `ssh-agent`, 1Password, or equivalent is enough on a workstation — there is nothing to configure. Host keys are verified against `SSH_KNOWN_HOSTS`, then `~/.ssh/known_hosts` / `/etc/ssh/ssh_known_hosts`; there is no `accept-new`, so the host must already be known."
+  prose "A **deployment or CI job has no agent**, so supply the key explicitly. Mount the private key and a `known_hosts` file read-only, then point the variables at them:"
+  code lang="bash" label="" body="docker run -d \\\n  -e GITSYNC_REPO=git@github.com:org/notes.git \\\n  -e GITSYNC_SSH_KEY=/run/secrets/gitsync_key \\\n  -e SSH_KNOWN_HOSTS=/run/secrets/known_hosts \\\n  -v /host/gitsync_key:/run/secrets/gitsync_key:ro \\\n  -v /host/known_hosts:/run/secrets/known_hosts:ro \\\n  ghcr.io/ladydascalie/runbooks:<tag>"
+  prose "The key is read as a file path, not a value, so an orchestrator secret mounted as a file works directly. HTTPS remotes need `GITSYNC_TOKEN` instead and no agent."
+  heading "Startup order"
+  list ordered=false
+    item "**Cache present:** the cached checkout is parsed and served immediately, then the remote is fetched in the background. An unreachable remote does not delay or fail boot — the last successful fetch keeps serving."
+    item "**No cache:** the clone happens before the server listens. Boot fails only when there is neither a cache nor a successful fetch."
+  prose "A failed fetch or a parse error keeps the current in-memory snapshot (last-good); it never serves a half-loaded set."
+  heading "Refreshing content"
+  prose "`POST /api/content/v1/refresh` fetches the source, parses it and swaps the snapshot atomically, so no request observes a partially-loaded set and in-flight requests keep the set they started on."
+  list ordered=false
+    item "With identity on it is **admin-only** — a signed-in admin; an API key is read-only by construction and cannot call it."
+    item "With identity off it requires `Authorization: Bearer $CONTENT_REFRESH_TOKEN`, and is disabled (`403`) when no token is configured."
+  prose "A local source is re-read in place; only a git source fetches."
+  prose "Set `CONTENT_REFRESH_INTERVAL` (e.g. `5m`) to refresh on a timer instead of relying on an external scheduler. It is opt-in and requires at least `1m`; each wait is jittered ±10% so several instances polling one repo do not beat in lockstep. Refreshes are serialized — a tick that lands while a refresh is already running is skipped, and the manual endpoint waits its turn — and a failed refresh only logs and keeps the last-good snapshot. There is no webhook."
+  heading "Cache"
+  prose "`CONTENT_GIT_CACHE` (default `data/content`) is a single inspectable directory under the data volume, and is an ordinary git clone. It is not a backed-up artifact: a restart with the remote reachable re-fetches, and an empty cache just means a fresh clone at boot."
+step: "Backing up SQLite" section=true
+  prose "Identity lives in the configured database — SQLite by default — and can be backed up while the app runs."
+step: "Take a snapshot" section=false
+  prose "`VACUUM INTO` writes a consistent, self-contained copy:"
+  code lang="bash" label="" body="sqlite3 ./data/runbooks.db \"VACUUM INTO '/backup/runbooks-$(date +%F).db'\""
+step: "Restore it" section=false
+  prose "Stop the app, point `IDENTITY_DB_DSN` at the copy, and restart:"
+  code lang="bash" label="" body="IDENTITY_DB_DSN=file:/backup/runbooks-2026-10-04.db ./runbooks"
+  prose "A plain file copy of `data/runbooks.db` is equally valid with the app stopped. Verified once against this procedure: create a database, `VACUUM INTO` a copy, open the copy and read a row back — the snapshot restores cleanly."
+step: "MySQL and PostgreSQL" section=true
+  prose "Use the database's own tooling — `mysqldump` / `pg_dump`, or the managed service's snapshots. Runbooks ships no backup code. The identity tables are:"
+  code lang="" label="" body="users, credentials, sessions, invites, webauthn_challenges, auth_events"
+  prose "There are no foreign keys, so the set is self-contained; restoring the database restores identity. Runbook content is unaffected by a database restore."
+step: "Health and readiness" section=true
+  prose "`GET /healthz` returns `200 ok`, unauthenticated, on an identity-on instance too — wire container or load-balancer probes to it."
+step: "Version" section=true
+  prose "`runbooks --version` prints the build stamp — `runbooks vX.Y.Z` for a tagged build, the short commit otherwise. Tagged images also carry `org.opencontainers.image.version` and `…revision` labels:"
+  code lang="bash" label="" body="docker inspect --format '{{index .Config.Labels \"org.opencontainers.image.version\"}}' \\\n  ghcr.io/ladydascalie/runbooks:<tag>"
+===== ../docs/operations/identity.md =====
+intro:
+  prose "Runbooks can require named users, so that reads are gated and writes are attributed to a person. It is **off by default**: with no identity database configured the app is public and the sync API is gated by `GITSYNC_API_TOKEN`."
+  prose "Sign-in is by **passkey** (WebAuthn). There is no password and no shared secret, and no email is sent: registration is invite-only and the first admin is created with a bootstrap token."
+step: "Enabling" section=true
+  table headers=["Var" "Meaning" "Default"]
+    row ["`IDENTITY_DB_DRIVER`" "`sqlite`, `mysql` or `postgres`" "*(unset — identity off)*"]
+    row ["`IDENTITY_DB_DSN`" "DSN / SQLite file path" "`file:./data/runbooks.db` (sqlite only)"]
+    row ["`IDENTITY_PUBLIC_URL`" "Scheme + host; derives the WebAuthn RP ID and origin" "required when on"]
+    row ["`IDENTITY_BOOTSTRAP_TOKEN`" "Guards `/setup` for the first admin" "generated and logged once"]
+    row ["`IDENTITY_RECOVERY_TOKEN`" "Break-glass re-enrolment for the last admin" "*(unset — `/recovery` disabled)*"]
+    row ["`IDENTITY_SESSION_TTL` / `IDENTITY_SESSION_IDLE`" "Absolute / idle session lifetime" "`720h` / `168h`"]
+    row ["`IDENTITY_SECURE_COOKIES`" "Cookie `Secure` flag" "`true`"]
+  prose "`IDENTITY_PUBLIC_URL` is effectively immutable: changing the host after passkeys exist invalidates every credential."
+  prose "Open `/setup` and present the bootstrap token to enrol the first admin; from there, `/admin` issues single-use invite links (`/invite/<token>`). With identity on, every page — including each runbook — redirects to `/login` when unauthenticated."
+step: "Delegating to an upstream proxy" section=true
+  prose "Instead of passkeys, the app can trust an identity asserted by a reverse proxy or SSO gateway in front of it:"
+  table headers=["Var" "Meaning" "Default"]
+    row ["`IDENTITY_TRUST_PROXY_AUTH`" "Trust the upstream identity header" "`false`"]
+    row ["`IDENTITY_PROXY_USER_HEADER`" "Header carrying the login/email" "`Auth-Request-Email`"]
+    row ["`IDENTITY_PROXY_NAME_HEADER`" "Header carrying the display name" "*(unset)*"]
+  prose "On first sight the asserted identity is provisioned as a `member`; admin is never granted from a header. A request is resolved from the session cookie first, then the header, so a proxied request is authenticated without a login."
+  notice variant="warn" message="\nOnly enable this when the instance is **unreachable except through the proxy**, which\nmust set and strip the header. A directly reachable instance is an impersonation\nhole: anyone who can reach it can set the header themselves."
+  heading "Tailscale Serve"
+  prose "`tailscale serve` injects `Tailscale-User-Login` and `Tailscale-User-Name` on requests it proxies, so a Tailnet-fronted instance maps directly onto proxy delegation:"
+  code lang="bash" label="" body="IDENTITY_DB_DRIVER=sqlite \\\nIDENTITY_DB_DSN=file:./data/runbooks.db \\\nIDENTITY_PUBLIC_URL=https://runbooks.example.ts.net \\\nIDENTITY_TRUST_PROXY_AUTH=true \\\nIDENTITY_PROXY_USER_HEADER=Tailscale-User-Login \\\nIDENTITY_PROXY_NAME_HEADER=Tailscale-User-Name \\\n  ./runbooks"
+  prose "with the app listening on loopback and `tailscale serve` in front of it. Caveats:"
+  list ordered=false
+    item "Serve omits the identity headers for **tagged devices** and for **Funnel** traffic, so those requests are anonymous."
+    item "Non-ASCII values may be RFC 2047 \"Q\"-encoded (`=?utf-8?q?...?=`)."
+    item "Behind a Kubernetes L7 operator `Ingress`, the proxy forwards to a cluster-reachable Service rather than localhost, so the equivalent of \"loopback only\" is a NetworkPolicy admitting only the ingress proxy pods to the app port."
+step: "Attribution" section=true
+  prose "With identity on, `/api/git-sync/v1` requires an authenticated session (or proxy assertion), and the commit author is the signed-in user — name and email from the user record. `GITSYNC_API_TOKEN` remains the non-human automation fallback for CI and scripts. Runbook acknowledgements are recorded against the authenticated user."
+===== ../docs/reference/configuration.md =====
+intro:
+  prose "Everything is an environment variable — there is no config file. The defaults are what the container runs with."
+step: "Server" section=true
+  table headers=["Var" "Default" "Meaning"]
+    row ["`PORT`" "`8090`" "HTTP listen port."]
+    row ["`STYLEGUIDE_ENABLED`" "`false`" "Serve the design-system reference at `/styleguide` and `/styleguide/llms`."]
+    row ["`PUBLIC_URL`" "*(unset)*" "Absolute site base, e.g. `https://runbooks.help` (trailing slash stripped). Enables canonical/OpenGraph URLs and `/sitemap.xml`."]
+    row ["`SITE_DESCRIPTION`" "*(unset)*" "Default `<meta name=\"description\">` for pages without their own."]
+  prose "`/healthz` is always served, unauthenticated, and returns `200 ok`."
+step: "Content" section=true
+  table headers=["Var" "Default" "Meaning"]
+    row ["`CONTENT_DIR`" "`content`" "Directory the runbooks are read from when `CONTENT_SOURCE=local`. The image ships an empty one — mount your own."]
+    row ["`CONTENT_SOURCE`" "`local`" "`local` (read `CONTENT_DIR`) or `git` (clone the remote into a cache and read it)."]
+    row ["`CONTENT_GIT_PATH`" "`.`" "Directory within the repo to read when `CONTENT_SOURCE=git`."]
+    row ["`CONTENT_GIT_CACHE`" "`data/content`" "Where the git clone lives; reused across restarts."]
+    row ["`CONTENT_REFRESH_TOKEN`" "*(unset)*" "Bearer token for `POST /api/content/v1/refresh` when identity is off; unset disables the endpoint (it is admin-only when identity is on)."]
+    row ["`CONTENT_REFRESH_INTERVAL`" "*(unset)*" "Opt-in background refresh, e.g. `5m`. Go duration; unset or `0` is off. Values below `1m` are rejected at startup. Applies to any source (`local` re-read, `git` fetch first)."]
+  prose "With `CONTENT_SOURCE=git`, the remote and credential come from the `GITSYNC_*` variables below — content at the repo root, notes records in `GITSYNC_BASE_PATH`, which the content walk skips."
+step: "Identity" section=true
+  prose "Identity is **off** until `IDENTITY_DB_DRIVER` is set; with no driver the app is public as before."
+  table headers=["Var" "Default" "Meaning"]
+    row ["`IDENTITY_DB_DRIVER`" "*(unset)*" "`sqlite`, `mysql` or `postgres`. Unset = identity off."]
+    row ["`IDENTITY_DB_DSN`" "`file:./data/runbooks.db` (sqlite)" "Driver DSN or SQLite file path."]
+    row ["`IDENTITY_PUBLIC_URL`" "*(required when on)*" "Scheme + host; derives the WebAuthn RP ID and origin. Effectively immutable once passkeys exist."]
+    row ["`IDENTITY_BOOTSTRAP_TOKEN`" "*(generated and logged once)*" "Guards `/setup` for the first admin."]
+    row ["`IDENTITY_RECOVERY_TOKEN`" "*(unset)*" "Break-glass re-enrolment for the sole admin; `/recovery` is disabled when unset."]
+    row ["`IDENTITY_TRUST_PROXY_AUTH`" "`false`" "Trust an identity asserted by an upstream proxy/SSO gateway. Only safe when the app is unreachable except through that proxy."]
+    row ["`IDENTITY_PROXY_USER_HEADER`" "`Auth-Request-Email`" "Header carrying the login/email."]
+    row ["`IDENTITY_PROXY_NAME_HEADER`" "*(unset)*" "Header carrying the display name."]
+    row ["`IDENTITY_SECURE_COOKIES`" "`true`" "Cookie `Secure` flag; relax only for local HTTP."]
+    row ["`IDENTITY_SESSION_TTL`" "`720h`" "Absolute session lifetime."]
+    row ["`IDENTITY_SESSION_IDLE`" "`168h`" "Idle session lifetime."]
+  prose "`IDENTITY_BOOTSTRAP_TOKEN` is ignored once an admin exists. There is no API to rotate the bootstrap or recovery tokens: change the value and restart."
+step: "Git sync" section=true
+  prose "Sync is enabled only when a repo **and** a credential **and** an endpoint auth are configured. The endpoint auth is a user session when identity is on (an unauthenticated request is refused), or `GITSYNC_API_TOKEN` when identity is off."
+  prose "A credential is an HTTPS token (`GITSYNC_TOKEN`), an explicit SSH private key (`GITSYNC_SSH_KEY`), or — for an `ssh://` or scp-style remote — the ambient SSH agent. With no key and no token, `go-git` authenticates SSH remotes through `$SSH_AUTH_SOCK` (ssh-agent, 1Password, …), so the common local setup needs no credential variable at all. Set `GITSYNC_SSH_KEY` only where there is no agent: a deployment or CI job that mounts a key and points the variable at its path. See [docs/operations/deployment.md](../operations/deployment.md#ssh-credentials) for the container recipe."
+  table headers=["Var" "Default" "Meaning"]
+    row ["`GITSYNC_REPO`" "*(unset)*" "Remote URL — any host, HTTPS or SSH. Unset disables sync."]
+    row ["`GITSYNC_BRANCH`" "`main`" "Target branch."]
+    row ["`GITSYNC_BASE_PATH`" "`runbook_runs`" "Directory prefix for records (skipped by the content walk when it sits inside the content tree)."]
+    row ["`GITSYNC_AUTHOR_NAME`" "*(required)*" "Fallback commit identity, when the user has no email."]
+    row ["`GITSYNC_AUTHOR_EMAIL`" "*(required)*" "Fallback commit email."]
+    row ["`GITSYNC_USERNAME`" "`oauth2`" "HTTPS basic-auth username (token as password)."]
+    row ["`GITSYNC_TOKEN`" "*(unset)*" "HTTPS access token."]
+    row ["`GITSYNC_SSH_KEY`" "*(unset)*" "Private key path for SSH remotes; omit to use the ambient SSH agent."]
+    row ["`GITSYNC_API_TOKEN`" "*(unset)*" "Shared bearer that gates the sync endpoint, for CI/automation and for identity-off deployments."]
+  prose "Each sync writes a new, immutable snapshot directory under the base path — `<GITSYNC_BASE_PATH>/<YYYY-MM-DD>T<HHMMSSZ>-<slug>/` (UTC) — so every state of play stays in the record tree; a re-sync with no changes is skipped."
+  prose "With identity on, a signed-in user's commit is authored as that user (`DisplayName <Email>`); `GITSYNC_AUTHOR_*` applies only when the user has no email, and `GITSYNC_API_TOKEN` is the non-human fallback."
+  prose "The git transport is `go-git` (pure Go) — no system `git` binary is needed. SSH remotes are verified against `known_hosts` (`SSH_KNOWN_HOSTS`, then `~/.ssh/known_hosts` / `/etc/ssh/ssh_known_hosts`); there is no `accept-new`, so the host key must already be present."
