@@ -59,12 +59,12 @@ function findChromium() {
 	throw new Error("no Chromium found; install chromium or set CHROMIUM=/path/to/chromium");
 }
 
-async function waitForReady(base, child, logs) {
+async function waitForReady(base, child, logs, readyPath) {
 	const deadline = Date.now() + 15000;
 	while (Date.now() < deadline) {
 		if (child.exitCode !== null) throw new Error(`app exited early:\n${logs()}`);
 		try {
-			const res = await fetch(base + "/setup");
+			const res = await fetch(base + readyPath);
 			if (res.ok) return;
 		} catch {
 			// not up yet
@@ -74,30 +74,45 @@ async function waitForReady(base, child, logs) {
 	throw new Error(`app not ready after 15s:\n${logs()}`);
 }
 
-// startApp boots the built binary with a throwaway database on a free port.
-export async function startApp() {
+// startApp boots the built binary on a free port. Options:
+//   identity   — SQLite identity on (default true); false boots a public,
+//                no-database instance (a docs deployment).
+//   contentDir — CONTENT_DIR override (e.g. the repo's docs/ tree).
+//   publicURL  — set PUBLIC_URL to the instance base (canonical, sitemap).
+//   env        — extra environment variables.
+export async function startApp({ identity = true, contentDir, publicURL = false, env = {} } = {}) {
 	const port = await freePort();
 	const base = `http://localhost:${port}`;
 	const dir = mkdtempSync(join(tmpdir(), "runbooks-e2e-"));
 	let logs = "";
-	const child = spawn(binary, [], {
-		cwd: repoRoot,
-		env: {
-			...process.env,
-			PORT: String(port),
+	const childEnv = { ...process.env, PORT: String(port), ...env };
+	if (contentDir) childEnv.CONTENT_DIR = contentDir;
+	if (publicURL) childEnv.PUBLIC_URL = base;
+	if (identity) {
+		Object.assign(childEnv, {
 			IDENTITY_DB_DRIVER: "sqlite",
 			IDENTITY_DB_DSN: `file:${join(dir, "identity.db")}`,
 			IDENTITY_PUBLIC_URL: base,
 			IDENTITY_BOOTSTRAP_TOKEN: bootstrapToken,
 			IDENTITY_RECOVERY_TOKEN: recoveryToken,
 			IDENTITY_SECURE_COOKIES: "false",
-		},
+		});
+	} else {
+		// The dev mise.toml exports identity vars; clear them so a public docs
+		// instance really boots with no database and no gating.
+		for (const key of Object.keys(childEnv)) {
+			if (key.startsWith("IDENTITY_")) delete childEnv[key];
+		}
+	}
+	const child = spawn(binary, [], {
+		cwd: repoRoot,
+		env: childEnv,
 		stdio: ["ignore", "pipe", "pipe"],
 	});
 	child.stdout.on("data", (chunk) => (logs += chunk));
 	child.stderr.on("data", (chunk) => (logs += chunk));
 	try {
-		await waitForReady(base, child, () => logs);
+		await waitForReady(base, child, () => logs, identity ? "/setup" : "/healthz");
 	} catch (err) {
 		child.kill("SIGKILL");
 		rmSync(dir, { recursive: true, force: true });
