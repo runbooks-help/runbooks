@@ -759,6 +759,13 @@ func Parse(data []byte) (RunbookDef, error) {
 		}
 
 		if inList {
+			// A non-blank line after a list item that is not a new item or a table
+			// continues that item (Markdown lazy continuation), so a wrapped bullet
+			// stays one bullet instead of breaking out into a paragraph.
+			if !strings.HasPrefix(line, "|") {
+				listItems[len(listItems)-1] += " " + strings.TrimSpace(line)
+				continue
+			}
 			flushList()
 		}
 
