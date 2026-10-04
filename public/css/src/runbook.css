@@ -343,40 +343,40 @@ body.zen .zen-bar {
 	padding-top: var(--space-2);
 }
 
-/* Doc mode: unnumbered, always-expanded sections instead of step cards. */
-.doc-section {
+/* A section heading: unnumbered, always-expanded, instead of a step card. */
+.section {
 	padding-top: var(--space-5);
 	border-top: 1px solid var(--border);
 }
 
-.doc-section:first-child {
+.section:first-child {
 	border-top: 0;
 	padding-top: 0;
 }
 
-.doc-title {
+.section-title {
 	font-size: var(--text-lg);
 	font-weight: 600;
 	line-height: var(--leading-snug);
 }
 
-.doc-body,
-.doc-lead {
+.section-body,
+.section-lead {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-3);
 }
 
-.doc-body {
+.section-body {
 	padding-top: var(--space-3);
 }
 
-.doc-lead {
+.section-lead {
 	padding-bottom: var(--space-4);
 }
 
-.doc-body p,
-.doc-lead p {
+.section-body p,
+.section-lead p {
 	font-size: var(--text-sm);
 	color: var(--muted);
 	line-height: var(--leading-normal);
@@ -384,13 +384,13 @@ body.zen .zen-bar {
 
 /* Cap the prose measure; tables and code blocks keep the full column width. */
 .step-body p,
-.doc-lead p,
-.doc-body p,
+.section-lead p,
+.section-body p,
 .prose-list {
 	max-width: var(--measure);
 }
 
-.doc-nav {
+.page-nav {
 	display: flex;
 	justify-content: space-between;
 	gap: var(--space-4);
@@ -399,19 +399,19 @@ body.zen .zen-bar {
 	border-top: 1px solid var(--border);
 }
 
-.doc-nav a {
+.page-nav a {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-hair);
 	text-decoration: none;
 }
 
-.doc-nav-next {
+.page-nav-next {
 	margin-left: auto;
 	text-align: right;
 }
 
-.doc-nav-dir {
+.page-nav-dir {
 	font-size: var(--text-2xs);
 	font-weight: 600;
 	text-transform: uppercase;
@@ -419,7 +419,7 @@ body.zen .zen-bar {
 	color: var(--muted);
 }
 
-.doc-nav-title {
+.page-nav-title {
 	font-size: var(--text-sm);
 	color: var(--link);
 }

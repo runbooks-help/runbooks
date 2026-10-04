@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
+package components
+
+import "runbooks/parser"
+
+// PageNav renders previous/next links between pages in sidebar order. Either
+// side is omitted when there is no neighbour.
+templ PageNav(prev, next *parser.RunbookMeta) {
+	if prev != nil || next != nil {
+		<nav class="page-nav" aria-label="Page navigation">
+			if prev != nil {
+				<a class="page-nav-prev" href={ templ.SafeURL("/" + prev.Slug) }>
+					<span class="page-nav-dir">← Previous</span>
+					<span class="page-nav-title">{ prev.Title }</span>
+				</a>
+			}
+			if next != nil {
+				<a class="page-nav-next" href={ templ.SafeURL("/" + next.Slug) }>
+					<span class="page-nav-dir">Next →</span>
+					<span class="page-nav-title">{ next.Title }</span>
+				</a>
+			}
+		</nav>
+	}
+}

@@ -50,9 +50,9 @@ type Block struct {
 }
 
 type Step struct {
-	Title  string
-	Doc    bool // a documentation section, not a numbered step (layout: doc / ---docs)
-	Blocks []Block
+	Title   string
+	Section bool // a plain section, not a numbered step (layout: sections / a sections region)
+	Blocks  []Block
 }
 
 type RunbookMeta struct {
@@ -62,7 +62,7 @@ type RunbookMeta struct {
 	Symptoms    []string `yaml:"symptoms"`
 	Common      bool     `yaml:"common"` // opt in to the index "Common issues" shortlist
 	Order       int      `yaml:"order"`  // optional: lower sorts first within its category
-	Layout      string   `yaml:"layout"` // "doc": render ## as unnumbered sections (default: runbook)
+	Layout      string   `yaml:"layout"` // "sections": render ## unnumbered (default: numbered steps)
 	Group       string   `yaml:"-"`      // top-level system, set from directory name
 	Category    string   `yaml:"-"`      // subcategory, set from directory name
 
@@ -241,8 +241,8 @@ func loadManifest(path string) (manifest, error) {
 }
 
 // parseDirective recognises a region directive on its own line, in either the
-// app's bare form (---runbook) or the GitHub-safe comment form
-// (<!-- runbook -->), which is invisible in a rendered Markdown document.
+// app's bare form (---steps) or the GitHub-safe comment form
+// (<!-- steps -->), which is invisible in a rendered Markdown document.
 func parseDirective(line string) (string, bool) {
 	m := directiveRe.FindStringSubmatch(line)
 	if m == nil {
@@ -354,7 +354,7 @@ var (
 	branchStartRe = regexp.MustCompile(`^>\s+\[!branch\]\s*$`)
 	blockquoteRe  = regexp.MustCompile(`^>\s?(.*)$`)
 	fenceInfoRe   = regexp.MustCompile(`^([a-z]*)\s*(?:\[([^\]]*)\])?$`)
-	directiveRe   = regexp.MustCompile(`^(?:---(rollback|docs|runbook)|<!--\s*(rollback|docs|runbook)\s*-->)\s*$`)
+	directiveRe   = regexp.MustCompile(`^(?:---(rollback|sections|steps)|<!--\s*(rollback|sections|steps)\s*-->)\s*$`)
 )
 
 // parseTableLine splits a markdown table row into trimmed cell strings.
@@ -513,23 +513,23 @@ func Parse(data []byte) (RunbookDef, error) {
 	}
 
 	var (
-		currentSteps = &def.Steps
-		currentStep  *Step
-		regionDoc    = def.Layout == "doc"
-		proseLines   []string
-		inFence      bool
-		fenceLabel   string
-		fenceLang    string
-		fenceLines   []string
-		inBranch     bool
-		branchLines  []string
-		inTable      bool
-		tableLines   []string
-		inList       bool
-		listItems    []string
-		inNotice     bool
-		noticeVar    string
-		noticeLines  []string
+		currentSteps   = &def.Steps
+		currentStep    *Step
+		regionSections = def.Layout == "sections"
+		proseLines     []string
+		inFence        bool
+		fenceLabel     string
+		fenceLang      string
+		fenceLines     []string
+		inBranch       bool
+		branchLines    []string
+		inTable        bool
+		tableLines     []string
+		inList         bool
+		listItems      []string
+		inNotice       bool
+		noticeVar      string
+		noticeLines    []string
 	)
 
 	flushProse := func() {
@@ -688,10 +688,10 @@ func Parse(data []byte) (RunbookDef, error) {
 			switch dir {
 			case "rollback":
 				currentSteps = &def.Rollback
-			case "docs":
-				regionDoc = true
-			case "runbook":
-				regionDoc = false
+			case "sections":
+				regionSections = true
+			case "steps":
+				regionSections = false
 			}
 			continue
 		}
@@ -702,7 +702,7 @@ func Parse(data []byte) (RunbookDef, error) {
 			flushList()
 			flushTable()
 			commitStep()
-			currentStep = &Step{Title: strings.TrimPrefix(line, "## "), Doc: regionDoc}
+			currentStep = &Step{Title: strings.TrimPrefix(line, "## "), Section: regionSections}
 			continue
 		}
 

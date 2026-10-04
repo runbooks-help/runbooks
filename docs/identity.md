@@ -2,7 +2,7 @@
 title: Identity
 slug: identity
 order: 2
-layout: doc
+layout: sections
 description: Passkey sign-in, proxy delegation, and gating reads on named users.
 ---
 

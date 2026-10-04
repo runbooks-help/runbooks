@@ -2,7 +2,7 @@
 title: Operations
 slug: operations
 order: 3
-layout: doc
+layout: sections
 description: Storage, backups, content sources and upgrading a deployment.
 ---
 
@@ -104,7 +104,7 @@ just means a fresh clone at boot.
 Identity lives in the configured database — SQLite by default — and can be backed
 up while the app runs.
 
-<!-- runbook -->
+<!-- steps -->
 
 ## Take a snapshot
 
@@ -126,7 +126,7 @@ A plain file copy of `data/runbooks.db` is equally valid with the app stopped.
 Verified once against this procedure: create a database, `VACUUM INTO` a copy,
 open the copy and read a row back — the snapshot restores cleanly.
 
-<!-- docs -->
+<!-- sections -->
 
 ## MySQL and PostgreSQL
 

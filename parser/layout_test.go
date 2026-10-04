@@ -4,28 +4,28 @@ package parser
 
 import "testing"
 
-// TestParseDocLayout pins the region-scoped mix: layout: doc makes the lead
-// prose an Intro and ## a doc section; ---runbook flips the following ## to
-// numbered steps; ---docs flips them back.
-func TestParseDocLayout(t *testing.T) {
+// TestParseSectionsLayout pins the region-scoped mix: layout: sections makes the
+// lead prose an Intro and ## a section; ---steps flips the following ## to
+// numbered steps; ---sections flips them back.
+func TestParseSectionsLayout(t *testing.T) {
 	src := `---
 title: Configuration
 slug: configuration
-layout: doc
+layout: sections
 ---
 Lead paragraph.
 
 ## Server
 table here
 
----runbook
+---steps
 ## Restart
 step body
 
 ## Verify
 step body
 
----docs
+---sections
 ## Reference
 section
 `
@@ -39,8 +39,8 @@ section
 	}
 
 	want := []struct {
-		title string
-		doc   bool
+		title   string
+		section bool
 	}{
 		{"Server", true},
 		{"Restart", false},
@@ -51,9 +51,9 @@ section
 		t.Fatalf("got %d steps, want %d", len(def.Steps), len(want))
 	}
 	for i, w := range want {
-		if def.Steps[i].Title != w.title || def.Steps[i].Doc != w.doc {
-			t.Errorf("step %d = %q doc=%v, want %q doc=%v",
-				i, def.Steps[i].Title, def.Steps[i].Doc, w.title, w.doc)
+		if def.Steps[i].Title != w.title || def.Steps[i].Section != w.section {
+			t.Errorf("step %d = %q section=%v, want %q section=%v",
+				i, def.Steps[i].Title, def.Steps[i].Section, w.title, w.section)
 		}
 	}
 }
@@ -62,14 +62,14 @@ section
 // comment is invisible when the Markdown is rendered, so docs can mix regions
 // without artifacts.
 func TestParseCommentDirectives(t *testing.T) {
-	src := "---\ntitle: X\nslug: x\nlayout: doc\n---\n\n## A\n\nbody\n\n<!-- runbook -->\n\n## One\n\nbody\n\n## Two\n\nbody\n\n<!-- docs -->\n\n## B\n\nbody\n"
+	src := "---\ntitle: X\nslug: x\nlayout: sections\n---\n\n## A\n\nbody\n\n<!-- steps -->\n\n## One\n\nbody\n\n## Two\n\nbody\n\n<!-- sections -->\n\n## B\n\nbody\n"
 	def, err := Parse([]byte(src))
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
 	want := []struct {
-		title string
-		doc   bool
+		title   string
+		section bool
 	}{
 		{"A", true},
 		{"One", false},
@@ -80,9 +80,9 @@ func TestParseCommentDirectives(t *testing.T) {
 		t.Fatalf("got %d steps, want %d", len(def.Steps), len(want))
 	}
 	for i, w := range want {
-		if def.Steps[i].Title != w.title || def.Steps[i].Doc != w.doc {
-			t.Errorf("step %d = %q doc=%v, want %q doc=%v",
-				i, def.Steps[i].Title, def.Steps[i].Doc, w.title, w.doc)
+		if def.Steps[i].Title != w.title || def.Steps[i].Section != w.section {
+			t.Errorf("step %d = %q section=%v, want %q section=%v",
+				i, def.Steps[i].Title, def.Steps[i].Section, w.title, w.section)
 		}
 	}
 }
@@ -99,9 +99,9 @@ func TestParseCommentRollback(t *testing.T) {
 	}
 }
 
-// TestParseRunbookLayoutIsDefault guards the existing behaviour: with no
-// layout, every ## is a numbered step and nothing is a doc section.
-func TestParseRunbookLayoutIsDefault(t *testing.T) {
+// TestParseStepsLayoutIsDefault guards the existing behaviour: with no layout,
+// every ## is a numbered step and nothing is a section.
+func TestParseStepsLayoutIsDefault(t *testing.T) {
 	def, err := Parse([]byte("---\ntitle: X\nslug: x\n---\n\n## Step one\n\nbody\n"))
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
@@ -109,14 +109,14 @@ func TestParseRunbookLayoutIsDefault(t *testing.T) {
 	if len(def.Intro) != 0 {
 		t.Fatalf("Intro = %#v, want empty", def.Intro)
 	}
-	if len(def.Steps) != 1 || def.Steps[0].Doc {
-		t.Fatalf("Steps = %#v, want one runbook step", def.Steps)
+	if len(def.Steps) != 1 || def.Steps[0].Section {
+		t.Fatalf("Steps = %#v, want one numbered step", def.Steps)
 	}
 }
 
 // TestSearchIndexesIntro pins that the lead prose is searchable.
 func TestSearchIndexesIntro(t *testing.T) {
-	def, err := Parse([]byte("---\ntitle: X\nslug: x\nlayout: doc\n---\n\nUltramarine lead.\n\n## Section\n\nbody\n"))
+	def, err := Parse([]byte("---\ntitle: X\nslug: x\nlayout: sections\n---\n\nUltramarine lead.\n\n## Section\n\nbody\n"))
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}

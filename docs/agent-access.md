@@ -2,7 +2,7 @@
 title: Agent access
 slug: agent-access
 order: 5
-layout: doc
+layout: sections
 description: Read-only access for LLM and automation clients — API keys, raw markdown and llms.txt.
 ---
 
@@ -48,7 +48,7 @@ Authorization: Bearer rbk_…
 
 Keys are minted from your own account page and are read-only by construction.
 
-<!-- runbook -->
+<!-- steps -->
 
 ## Create the key
 
@@ -60,7 +60,7 @@ label and choose **Create key**.
 The raw key (`rbk_…`) is shown **once** — copy it then; only its SHA-256 hash is
 stored and it cannot be recovered. Revoke a key from the same table.
 
-<!-- docs -->
+<!-- sections -->
 
 ## What a key can do
 

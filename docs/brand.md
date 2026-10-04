@@ -2,7 +2,7 @@
 title: Brand assets
 slug: brand
 order: 7
-layout: doc
+layout: sections
 description: Regenerating the logomark, wordmark and lockups via mise run brand.
 ---
 

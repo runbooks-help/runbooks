@@ -88,7 +88,7 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 					}
 				>
 					if len(rb.Intro) > 0 {
-						<div class="doc-lead">
+						<div class="section-lead">
 							for _, block := range rb.Intro {
 								@renderBlock(block)
 							}
@@ -101,7 +101,7 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 								for i, step := range rb.Steps {
 									<li>
 										<a href={ "#" + markup.Slug(step.Title) }>
-											if !step.Doc {
+											if !step.Section {
 												<span class="toc-num">{ strconv.Itoa(stepNumber(rb.Steps, i)) }</span>
 											}
 											{ step.Title }
@@ -140,8 +140,8 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 							</div>
 						}
 					</div>
-					if rb.Layout == "doc" {
-						@components.DocNav(docPrev(groups, rb.Slug), docNext(groups, rb.Slug))
+					if rb.Layout == "sections" {
+						@components.PageNav(pagePrev(groups, rb.Slug), pageNext(groups, rb.Slug))
 					}
 				</div>
 			</div>
@@ -150,8 +150,8 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 }
 
 templ stepCard(n int, step parser.Step, rollback bool) {
-	if step.Doc {
-		@components.DocSection(step.Title) {
+	if step.Section {
+		@components.Section(step.Title) {
 			for _, block := range step.Blocks {
 				@renderBlock(block)
 			}
@@ -207,8 +207,8 @@ func pageConfigJSON(c PageConfig) string {
 	return string(b)
 }
 
-// docPrev and docNext return the neighbouring runbook in sidebar order, or nil.
-func docPrev(groups []parser.SystemGroup, slug string) *parser.RunbookMeta {
+// pagePrev and pageNext return the neighbouring page in sidebar order, or nil.
+func pagePrev(groups []parser.SystemGroup, slug string) *parser.RunbookMeta {
 	metas := flattenRunbooks(groups)
 	for i := range metas {
 		if metas[i].Slug == slug {
@@ -221,7 +221,7 @@ func docPrev(groups []parser.SystemGroup, slug string) *parser.RunbookMeta {
 	return nil
 }
 
-func docNext(groups []parser.SystemGroup, slug string) *parser.RunbookMeta {
+func pageNext(groups []parser.SystemGroup, slug string) *parser.RunbookMeta {
 	metas := flattenRunbooks(groups)
 	for i := range metas {
 		if metas[i].Slug == slug {
@@ -271,12 +271,12 @@ func canonical(base, p string) string {
 	return base + "/" + p
 }
 
-// stepNumber is the display number for the step at index i. Only runbook steps
-// are numbered, so a doc section does not offset the sequence.
+// stepNumber is the display number for the step at index i. Only numbered steps
+// count, so a section does not offset the sequence.
 func stepNumber(steps []parser.Step, i int) int {
 	n := 0
 	for _, step := range steps[:i+1] {
-		if !step.Doc {
+		if !step.Section {
 			n++
 		}
 	}
@@ -287,7 +287,7 @@ func stepNumber(steps []parser.Step, i int) int {
 // bulk step controls (expand/collapse, zen) are only shown when they apply.
 func hasRunbookSteps(steps []parser.Step) bool {
 	for _, step := range steps {
-		if !step.Doc {
+		if !step.Section {
 			return true
 		}
 	}

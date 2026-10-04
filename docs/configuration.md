@@ -2,7 +2,7 @@
 title: Configuration
 slug: configuration
 order: 1
-layout: doc
+layout: sections
 description: Every setting is an environment variable — the full configuration reference.
 ---
 

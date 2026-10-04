@@ -202,12 +202,13 @@ vars:
 - `- item` lists, `| a | b |` tables.
 - `---rollback` (or the GitHub-safe `<!-- rollback -->`) on its own line →
   everything after it is a separate rollback section (danger-styled, unnumbered).
-- `layout: doc` in frontmatter renders `##` as unnumbered doc sections; the
-  separators `---docs` / `---runbook` (or `<!-- docs -->` / `<!-- runbook -->`)
-  switch the mode for the headings that follow, so one page can mix reference
-  prose and a numbered procedure. The comment form is invisible when the Markdown
-  is rendered (GitHub, any CommonMark renderer), which is why the repo's own
-  `docs/` use it.
+- A `##` heading renders as a **step** (numbered, tickable, collapsible) or a
+  **section** (unnumbered, anchored, always open) — one content model, mixable on a
+  page. `layout: sections` in frontmatter makes a page default to sections; the
+  separators `---sections` / `---steps` (or the GitHub-safe `<!-- sections -->` /
+  `<!-- steps -->`) switch how the headings that follow render. The comment form is
+  invisible in a rendered Markdown document (GitHub, any CommonMark renderer), which
+  is why the repo's own `docs/` use it.
 
 Authoring conventions that have bitten us:
 

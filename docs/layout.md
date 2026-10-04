@@ -2,7 +2,7 @@
 title: Layout contract
 slug: layout
 order: 8
-layout: doc
+layout: sections
 description: How the runbook UI is composed, and what enforces it.
 ---
 

@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
+package components
+
+import "runbooks/views/markup"
+
+// Section renders an unnumbered, always-expanded section: an anchored heading
+// with its body. Used when a heading renders as a section (frontmatter
+// layout: sections, or a <!-- sections --> region) rather than a numbered step.
+templ Section(title string) {
+	<section class="section" id={ markup.Slug(title) }>
+		<h2 class="section-title">{ title }</h2>
+		<div class="section-body">
+			{ children... }
+		</div>
+	</section>
+}

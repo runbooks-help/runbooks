@@ -2,7 +2,7 @@
 title: Troubleshooting
 slug: troubleshooting
 order: 4
-layout: doc
+layout: sections
 description: Known issues and fixes, starting with HDR and Chromium.
 ---
 
