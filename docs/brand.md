@@ -1,4 +1,10 @@
-# Brand assets
+---
+title: Brand assets
+slug: brand
+order: 7
+layout: doc
+description: Regenerating the logomark, wordmark and lockups via mise run brand.
+---
 
 `mise run brand` generates the brand assets into `brand/` from `cmd/brand`. The
 output is committed, so the task is a manual step, not part of `mise run build`

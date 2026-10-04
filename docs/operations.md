@@ -1,4 +1,10 @@
-# Operations
+---
+title: Operations
+slug: operations
+order: 3
+layout: doc
+description: Storage, backups, content sources and upgrading a deployment.
+---
 
 ## Storage
 

@@ -1,4 +1,10 @@
-# Troubleshooting
+---
+title: Troubleshooting
+slug: troubleshooting
+order: 4
+layout: doc
+description: Known issues and fixes, starting with HDR and Chromium.
+---
 
 ## Colours look washed out / low contrast (HDR displays)
 

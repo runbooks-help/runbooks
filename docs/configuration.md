@@ -1,4 +1,10 @@
-# Configuration
+---
+title: Configuration
+slug: configuration
+order: 1
+layout: doc
+description: Every setting is an environment variable — the full configuration reference.
+---
 
 Everything is an environment variable — there is no config file. The defaults are
 what the container runs with.

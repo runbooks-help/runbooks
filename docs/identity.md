@@ -1,4 +1,10 @@
-# Identity
+---
+title: Identity
+slug: identity
+order: 2
+layout: doc
+description: Passkey sign-in, proxy delegation, and gating reads on named users.
+---
 
 Runbooks can require named users, so that reads are gated and writes are attributed to
 a person. It is **off by default**: with no identity database configured the app is

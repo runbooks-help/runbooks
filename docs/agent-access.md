@@ -1,4 +1,10 @@
-# Agent access
+---
+title: Agent access
+slug: agent-access
+order: 5
+layout: doc
+description: Read-only access for LLM and automation clients — API keys, raw markdown and llms.txt.
+---
 
 Runbooks are plain Markdown with YAML frontmatter, which makes them easy for an
 LLM or an automation script to read — and, on a hosted instance, easy to expose

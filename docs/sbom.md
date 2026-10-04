@@ -1,4 +1,10 @@
-# SBOM
+---
+title: SBOM
+slug: sbom
+order: 6
+layout: doc
+description: SPDX and CycloneDX bills of materials for the binary and the container image.
+---
 
 A machine-readable **Software Bill of Materials** for what Runbooks ships,
 generated with [syft](https://github.com/anchore/syft) (Apache-2.0, pinned in

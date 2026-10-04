@@ -1,4 +1,10 @@
-# Layout contract
+---
+title: Layout contract
+slug: layout
+order: 8
+layout: doc
+description: How the runbook UI is composed, and what enforces it.
+---
 
 How the runbooks UI is composed, and what enforces it. Read this before adding a
 page or a component; the token definitions live in `public/css/src/tokens.css`.
