@@ -1,0 +1,69 @@
+# Shared glossary for every runbook. Loaded once at startup (see
+# parser.LoadGlossary); a term highlights wherever prose renders and shows this
+# detail on hover. `term` and `expansion` are required; `description` and `link`
+# are optional. Matching is exact and case-sensitive, so a term only highlights
+# in the form written here.
+
+# Replication / MySQL
+- term: MTS
+  expansion: Multi-Threaded Slave
+  description: A MySQL replica that applies transactions in parallel worker threads instead of a single SQL thread. Parallelism is not ordered by default, which is what lets cross-worker deadlocks form.
+  link: https://dev.mysql.com/doc/refman/8.0/en/replication-options-replica.html#sysvar_replica_parallel_workers
+- term: GTID
+  expansion: Global Transaction Identifier
+  description: A unique id MySQL assigns to every committed transaction, used to position a replica without referring to binlog file names and offsets.
+  link: https://dev.mysql.com/doc/refman/8.0/en/replication-gtids.html
+- term: ACID
+  expansion: Atomicity, Consistency, Isolation, Durability
+  description: The four guarantees a transactional database makes. Relaxing durability (skipping fsyncs) trades a few seconds of crash exposure for write speed — safe on a replica, never on a primary.
+- term: DBA
+  expansion: Database Administrator
+  description: The person who owns the database cluster and its recovery procedures.
+- term: RAID
+  expansion: Redundant Array of Independent Disks
+  description: A disk layout that trades capacity and write speed for redundancy or throughput. RAID 1 mirrors, RAID 6 survives two failures, RAID 10 mirrors striped pairs — the layout changes how a busy replica behaves under write load.
+
+# Kubernetes / infrastructure
+- term: CCM
+  expansion: Cloud Controller Manager
+  description: "The Kubernetes control-plane component that integrates the cluster with its cloud provider: node lifecycle, routes, and load balancer provisioning."
+- term: HCCM
+  expansion: hcloud Cloud Controller Manager
+  description: Hetzner Cloud's CCM implementation. It runs as a stateless Deployment, so upgrades are a plain zero-downtime rollout.
+  link: https://github.com/hetznercloud/hcloud-cloud-controller-manager
+- term: LB
+  expansion: Load Balancer
+  description: The component that fronts several servers behind one address. When only one backend is unhealthy, a round-robin load balancer turns that into an intermittent, roughly one-in-N failure.
+- term: SSH
+  expansion: Secure Shell
+  description: The encrypted protocol used to log into hosts and move files between them.
+- term: SFTP
+  expansion: SSH File Transfer Protocol
+  description: File transfer over SSH. Restic backups are downloaded over SFTP, which is usually what dominates the time estimate of a restore.
+
+# Data formats and general
+- term: API
+  expansion: Application Programming Interface
+  description: The programmatic surface one service exposes to another. A token that authenticates an API is a secret and never belongs in a repository.
+- term: CMS
+  expansion: Content Management System
+  description: A database-backed system for authoring content. Runbooks deliberately have none — the filesystem of Markdown files is the taxonomy.
+- term: YAML
+  expansion: YAML Ain't Markup Language
+  description: The human-readable data serialisation format used for runbook frontmatter and the sidebar manifest.
+- term: JSON
+  expansion: JavaScript Object Notation
+  description: The compact data interchange format used for canonical records and machine endpoints.
+- term: UUID
+  expansion: Universally Unique Identifier
+  description: A 128-bit identifier. MySQL records its server UUID on the replica; more than one in the reseed output means writes landed on the replica while it was being rebuilt.
+- term: TTL
+  expansion: Time To Live
+  description: How long a cached value stays valid before it must be refetched. It bounds how quickly a config change can propagate.
+- term: RFC3339
+  expansion: Request for Comments 3339 (date/time format)
+  description: The internet timestamp format (e.g. 2026-09-10T17:39:24Z). Canonical records use RFC3339 UTC so timestamps sort and compare unambiguously.
+  link: https://www.rfc-editor.org/rfc/rfc3339
+- term: CPU
+  expansion: Central Processing Unit
+  description: The processor. A single saturated core can stall a worker thread even when the rest of the machine is idle.

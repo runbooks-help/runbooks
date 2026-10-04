@@ -266,11 +266,17 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 						<h3>Notice <span class="sg-atom">atom</span></h3>
 						<p>Info, warn and danger, plus the banner used for a destructive runbook.</p>
 						<div class="sg-stack">
-							@components.Notice("info", "Use the primary node for reads while the replica catches up.")
-							@components.Notice("warn", "This step briefly stops writes — check the drain is complete first.")
-							@components.Notice("danger", "READ EVERY STEP BEFORE DOING ANYTHING. This recovery drops and rebuilds the replica.")
-							@components.FrontmatterNotice("A frontmatter `notice:` renders this banner above the steps.")
+							@components.Notice("info", "Use the primary node for reads while the replica catches up.", nil)
+							@components.Notice("warn", "This step briefly stops writes — check the drain is complete first.", nil)
+							@components.Notice("danger", "READ EVERY STEP BEFORE DOING ANYTHING. This recovery drops and rebuilds the replica.", nil)
+							@components.FrontmatterNotice("A frontmatter `notice:` renders this banner above the steps.", nil)
 						</div>
+					</section>
+
+					<section class="sg-section" id="glossary">
+						<h3>Glossary term <span class="sg-atom">atom</span></h3>
+						<p>Terms come from <code>content/_glossary.yml</code>. A configured term highlights wherever prose renders and shows its expansion, detail and link on hover or focus. Code is never touched. Hover <abbr class="glossary-term" tabindex="0" data-glossary="MTS">MTS</abbr> to see the popup.</p>
+						@templ.Raw(glossaryScript([]parser.GlossaryEntry{{Term: "MTS", Expansion: "Multi-Threaded Replica", Description: "A MySQL replica that applies transactions in parallel workers.", Link: "https://example.com/glossary#mts"}}))
 					</section>
 
 					<h2 class="sg-heading">Molecules</h2>
@@ -320,12 +326,12 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 						<h3>Step <span class="sg-atom">molecule</span></h3>
 						<p>A numbered card. The header toggles it open or closed; collapsed, it shows the preview line in place of the body.</p>
 						<div class="steps">
-							@components.Step(1, "Confirm the lag", "Check the replica's lag and last error.") {
+							@components.Step(1, "Confirm the lag", "Check the replica's lag and last error.", nil) {
 								<p>Prose inside a step body. Notice the numbered header, the done checkbox and the collapse chevron.</p>
 							}
-							@components.Step(2, "Stop the SQL thread", "Stop the thread before you clear the deadlock.") {
+							@components.Step(2, "Stop the SQL thread", "Stop the thread before you clear the deadlock.", nil) {
 								<p>The replica no longer applies transactions while you resolve the deadlock.</p>
-								@components.Notice("warn", "Writes on the primary keep coming until the next step finishes.")
+								@components.Notice("warn", "Writes on the primary keep coming until the next step finishes.", nil)
 							}
 							<div class="step-card collapsed">
 								<div class="step-header">
@@ -339,7 +345,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 								</div>
 								<p class="step-preview">The preview line shown in place of the body while collapsed.</p>
 							</div>
-							@components.RollbackStep("Roll back the promotion") {
+							@components.RollbackStep("Roll back the promotion", nil) {
 								<p>Rollback steps render in the danger styling, without a number.</p>
 							}
 						</div>
@@ -347,12 +353,12 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 
 					<section class="sg-section" id="table">
 						<h3>List &amp; table <span class="sg-atom">molecule</span></h3>
-						@components.ListBlock([]string{"First item — plain text", "Second item with `inline code` and **bold**", "Third item, long enough to wrap onto a second line"})
+						@components.ListBlock([]string{"First item — plain text", "Second item with `inline code` and **bold**", "Third item, long enough to wrap onto a second line"}, nil)
 						@components.TableBlock([]string{"Column", "Meaning", "Example"}, [][]string{
 							{"`HOST`", "Target host", "`db-2.prod.internal`"},
 							{"`PROCESSLIST_ID`", "Blocked worker", "`4123`"},
 							{"Status", "Whether a step is done", "`done` / `pending`"},
-						})
+						}, nil)
 					</section>
 
 					<section class="sg-section" id="card">

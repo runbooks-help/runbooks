@@ -18,7 +18,80 @@ var (
 	codeRe   = regexp.MustCompile("`([^`\n]+)`")
 	linkRe   = regexp.MustCompile(`\[([^\]]+)\]\(([^)]+)\)`)
 	slugRe   = regexp.MustCompile(`[^a-z0-9]+`)
+
+	// proseSkipRe matches the regions of rendered prose a glossary term must
+	// never touch: code spans, links (text and href) and any HTML tag. The
+	// ledger is applied to Prose's output, so these are already HTML.
+	proseSkipRe = regexp.MustCompile(`(?s)<code\b[^>]*>.*?</code>|<a\b[^>]*>.*?</a>|<[^>]*>`)
 )
+
+// ProseGlossary renders inline Markdown (Prose) then wraps every configured
+// glossary term in an <abbr> carrying its key, for the hover popup. Terms match
+// exactly and case-sensitively, whole-word and longest-first. Regions inside
+// code, links and tags are left untouched.
+func ProseGlossary(text string, terms []string) string {
+	return glossaryApply(Prose(text), terms)
+}
+
+// glossaryApply substitutes terms in the text nodes of rendered HTML h. A
+// single pass over the gaps between skipped regions means a term already wrapped
+// is never re-wrapped.
+func glossaryApply(h string, terms []string) string {
+	re := glossaryRe(terms)
+	if re == nil {
+		return h
+	}
+	var b strings.Builder
+	last := 0
+	for _, loc := range proseSkipRe.FindAllStringIndex(h, -1) {
+		writeGlossaryTerms(&b, h[last:loc[0]], re)
+		b.WriteString(h[loc[0]:loc[1]])
+		last = loc[1]
+	}
+	writeGlossaryTerms(&b, h[last:], re)
+	return b.String()
+}
+
+func writeGlossaryTerms(b *strings.Builder, s string, re *regexp.Regexp) {
+	last := 0
+	for _, m := range re.FindAllStringIndex(s, -1) {
+		b.WriteString(s[last:m[0]])
+		term := s[m[0]:m[1]]
+		b.WriteString(`<abbr class="glossary-term" tabindex="0" data-glossary="`)
+		b.WriteString(term)
+		b.WriteString(`">`)
+		b.WriteString(term)
+		b.WriteString(`</abbr>`)
+		last = m[1]
+	}
+	b.WriteString(s[last:])
+}
+
+// glossaryRe compiles the word-boundary alternation of configured terms,
+// longest first so a longer term is preferred over one it contains. Matching is
+// case-sensitive and exact (no (?i)), so an expansion like "IT" never matches
+// the English word. Empty terms are dropped.
+func glossaryRe(terms []string) *regexp.Regexp {
+	uniq := make([]string, 0, len(terms))
+	seen := make(map[string]bool, len(terms))
+	for _, t := range terms {
+		t = strings.TrimSpace(t)
+		if t == "" || seen[t] {
+			continue
+		}
+		seen[t] = true
+		uniq = append(uniq, regexp.QuoteMeta(t))
+	}
+	if len(uniq) == 0 {
+		return nil
+	}
+	sort.SliceStable(uniq, func(i, j int) bool { return len(uniq[i]) > len(uniq[j]) })
+	re, err := regexp.Compile(`\b(?:` + strings.Join(uniq, "|") + `)\b`)
+	if err != nil {
+		return nil
+	}
+	return re
+}
 
 // Prose escapes text for safe HTML injection then applies inline Markdown:
 // **bold**, *italic*, `code`, [text](url).

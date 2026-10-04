@@ -2,6 +2,8 @@
 
 package views
 
+import "runbooks/parser"
+
 // PageConfig is the page-rendering configuration shared by the public pages. A
 // subset (GitSync*, RecordsBasePath) is embedded for the client as #page-config;
 // the rest is used server-side to build the document metadata.
@@ -11,6 +13,10 @@ type PageConfig struct {
 	RecordsBasePath      string
 	IsAdmin              bool
 	IdentityEnabled      bool
+
+	// Glossary is the site-wide term list from content/_glossary.yml. Runbook
+	// pages highlight its terms and embed it for the hover popup.
+	Glossary []parser.GlossaryEntry
 
 	// PublicURL is the site's absolute base (no trailing slash); empty omits
 	// canonical/OpenGraph URLs. SiteDescription is the default meta description

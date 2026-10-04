@@ -4,10 +4,10 @@ package components
 
 import "runbooks/views/markup"
 
-templ ListBlock(items []string) {
+templ ListBlock(items []string, terms []string) {
 	<ul class="prose-list">
 		for _, item := range items {
-			<li>@templ.Raw(markup.Prose(item))</li>
+			<li>@templ.Raw(markup.ProseGlossary(item, terms))</li>
 		}
 	</ul>
 }

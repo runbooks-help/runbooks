@@ -280,6 +280,108 @@ document.addEventListener('keydown', e => {
 	if (e.key === 'Escape') closeHint();
 });
 
+// Glossary popup — reads the per-page #glossary blob and opens on hover or focus
+// of a .glossary-term. Terms are only rendered when a glossary is configured, so
+// the whole block is inert without one.
+const glossaryEl = document.getElementById('glossary');
+if (glossaryEl) {
+	let glossary = [];
+	try {
+		glossary = JSON.parse(glossaryEl.textContent) || [];
+	} catch {
+		glossary = [];
+	}
+	const glossaryByTerm = new Map(glossary.map(e => [e.term, e]));
+
+	const glossaryPopup = document.createElement('div');
+	glossaryPopup.className = 'glossary-popup';
+	glossaryPopup.innerHTML =
+		'<p class="glossary-popup-term"></p><p class="glossary-popup-exp"></p><p class="glossary-popup-desc"></p><a class="glossary-popup-link" target="_blank" rel="noopener"></a>';
+	document.body.appendChild(glossaryPopup);
+	const gTerm = glossaryPopup.querySelector('.glossary-popup-term');
+	const gExp = glossaryPopup.querySelector('.glossary-popup-exp');
+	const gDesc = glossaryPopup.querySelector('.glossary-popup-desc');
+	const gLink = glossaryPopup.querySelector('.glossary-popup-link');
+
+	let glossaryTimer = 0;
+
+	// Anchor under the term, flipping above it when the viewport bottom runs out,
+	// and clamp so the panel never leaves the viewport.
+	function placeGlossary(anchor) {
+		const gap = 8;
+		const r = anchor.getBoundingClientRect();
+		const w = glossaryPopup.offsetWidth;
+		const h = glossaryPopup.offsetHeight;
+		let left = Math.max(gap, Math.min(r.left, window.innerWidth - w - gap));
+		let top = r.bottom + gap;
+		if (top + h > window.innerHeight - gap) top = r.top - h - gap;
+		top = Math.max(gap, top);
+		glossaryPopup.style.left = left + 'px';
+		glossaryPopup.style.top = top + 'px';
+	}
+
+	function openGlossary(termEl) {
+		const entry = glossaryByTerm.get(termEl.dataset.glossary);
+		if (!entry) return;
+		clearTimeout(glossaryTimer);
+		gTerm.textContent = entry.term;
+		gExp.textContent = entry.expansion;
+		gDesc.textContent = entry.description || '';
+		gDesc.hidden = !entry.description;
+		if (entry.link) {
+			gLink.href = entry.link;
+			gLink.textContent = 'More →';
+			gLink.hidden = false;
+		} else {
+			gLink.removeAttribute('href');
+			gLink.hidden = true;
+		}
+		placeGlossary(termEl);
+		glossaryPopup.classList.add('open');
+	}
+
+	function closeGlossary() {
+		glossaryPopup.classList.remove('open');
+	}
+
+	// A short grace period lets the pointer travel from the term into the popup to
+	// reach the "More" link; entering the popup cancels it.
+	function scheduleGlossaryClose() {
+		clearTimeout(glossaryTimer);
+		glossaryTimer = setTimeout(closeGlossary, 140);
+	}
+
+	document.addEventListener('mouseover', e => {
+		if (!(e.target instanceof Element)) return;
+		const t = e.target.closest('.glossary-term');
+		if (t) openGlossary(t);
+	});
+	document.addEventListener('mouseout', e => {
+		if (!(e.target instanceof Element)) return;
+		if (e.target.closest('.glossary-term')) scheduleGlossaryClose();
+	});
+	document.addEventListener('focusin', e => {
+		if (!(e.target instanceof Element)) return;
+		const t = e.target.closest('.glossary-term');
+		if (t) openGlossary(t);
+	});
+	document.addEventListener('focusout', e => {
+		if (!(e.target instanceof Element)) return;
+		if (e.target.closest('.glossary-term') && !glossaryPopup.contains(e.relatedTarget)) scheduleGlossaryClose();
+	});
+	glossaryPopup.addEventListener('mouseover', () => clearTimeout(glossaryTimer));
+	glossaryPopup.addEventListener('mouseout', scheduleGlossaryClose);
+	glossaryPopup.addEventListener('focusin', () => clearTimeout(glossaryTimer));
+	glossaryPopup.addEventListener('focusout', e => {
+		if (!glossaryPopup.contains(e.relatedTarget)) scheduleGlossaryClose();
+	});
+	document.addEventListener('keydown', e => {
+		if (e.key === 'Escape') closeGlossary();
+	});
+	// The panel is fixed-position, so it cannot follow its term through a scroll.
+	window.addEventListener('scroll', closeGlossary, true);
+}
+
 // Notes panel — auto-saved to localStorage per runbook page
 const notesKey = 'runbooks-notes' + location.pathname;
 const notesImgKey = 'runbooks-notes-imgs' + location.pathname;

@@ -7,9 +7,9 @@ import "runbooks/views/markup"
 // Section renders an unnumbered, always-expanded section: an anchored heading
 // with its body. Used when a heading renders as a section (frontmatter
 // layout: sections, or a <!-- sections --> region) rather than a numbered step.
-templ Section(title string) {
+templ Section(title string, terms []string) {
 	<section class="section" id={ markup.Slug(title) }>
-		<h2 class="section-title">{ title }</h2>
+		<h2 class="section-title">@templ.Raw(markup.ProseGlossary(title, terms))</h2>
 		<div class="section-body">
 			{ children... }
 		</div>

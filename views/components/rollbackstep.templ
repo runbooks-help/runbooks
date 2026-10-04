@@ -5,11 +5,11 @@ package components
 import "runbooks/views/markup"
 
 // RollbackStep renders a step card in danger styling.
-templ RollbackStep(title string) {
+templ RollbackStep(title string, terms []string) {
 	<div class="step-card rollback-card" id={ markup.Slug(title) }>
 		<div class="step-header">
 			<span class="step-num">↩</span>
-			<h2 class="step-title">{ title }</h2>
+			<h2 class="step-title">@templ.Raw(markup.ProseGlossary(title, terms))</h2>
 		</div>
 		<div class="step-body">
 			{ children... }

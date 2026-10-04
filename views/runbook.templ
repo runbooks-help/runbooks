@@ -13,9 +13,11 @@ import (
 )
 
 templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageConfig) {
+	{{ terms := parser.GlossaryTerms(cfg.Glossary) }}
 	@components.ShellMeta(runbookMeta(rb, cfg)) {
 		@templ.Raw("<script id=\"runbook-source\" type=\"application/json\">" + jsonString(rb.Source) + "</script>")
 		@templ.Raw("<script id=\"page-config\" type=\"application/json\">" + pageConfigJSON(cfg) + "</script>")
+		@templ.Raw(glossaryScript(cfg.Glossary))
 		@components.Rail()
 		<aside class="sidebar">
 			@components.SidebarHeader()
@@ -67,11 +69,11 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 					</div>
 					<h1>{ rb.Title }</h1>
 					<p>
-						@templ.Raw(markup.Prose(rb.Description))
+						@templ.Raw(markup.ProseGlossary(rb.Description, terms))
 					</p>
 				</div>
 				if rb.Notice != "" {
-					@components.FrontmatterNotice(rb.Notice)
+					@components.FrontmatterNotice(rb.Notice, terms)
 				}
 				<div class="runbook-bar">
 					if len(rb.Vars) > 0 {
@@ -90,7 +92,7 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 					if len(rb.Intro) > 0 {
 						<div class="section-lead">
 							for _, block := range rb.Intro {
-								@renderBlock(block)
+								@renderBlock(block, terms)
 							}
 						</div>
 					}
@@ -129,13 +131,13 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 					}
 					<div class="steps">
 						for i, step := range rb.Steps {
-							@stepCard(stepNumber(rb.Steps, i), step, false)
+							@stepCard(stepNumber(rb.Steps, i), step, false, terms)
 						}
 						if len(rb.Rollback) > 0 {
 							<div id="rollback">
 								<p class="section-label">Rollback</p>
 								for _, step := range rb.Rollback {
-									@stepCard(0, step, true)
+									@stepCard(0, step, true, terms)
 								}
 							</div>
 						}
@@ -149,45 +151,45 @@ templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageCon
 	}
 }
 
-templ stepCard(n int, step parser.Step, rollback bool) {
+templ stepCard(n int, step parser.Step, rollback bool, terms []string) {
 	if step.Section {
-		@components.Section(step.Title) {
+		@components.Section(step.Title, terms) {
 			for _, block := range step.Blocks {
-				@renderBlock(block)
+				@renderBlock(block, terms)
 			}
 		}
 	} else if rollback {
-		@components.RollbackStep(step.Title) {
+		@components.RollbackStep(step.Title, terms) {
 			for _, block := range step.Blocks {
-				@renderBlock(block)
+				@renderBlock(block, terms)
 			}
 		}
 	} else {
-		@components.Step(n, step.Title, stepPreview(step)) {
+		@components.Step(n, step.Title, stepPreview(step), terms) {
 			for _, block := range step.Blocks {
-				@renderBlock(block)
+				@renderBlock(block, terms)
 			}
 		}
 	}
 }
 
-templ renderBlock(b parser.Block) {
+templ renderBlock(b parser.Block, terms []string) {
 	switch b.Kind {
 		case parser.KindCode:
 			@components.CodeBlock(b.Label, b.Body, b.Lang)
 		case parser.KindNotice:
-			@components.Notice(b.Variant, b.Message)
+			@components.Notice(b.Variant, b.Message, terms)
 		case parser.KindBranch:
-			@components.BranchBlock(b.Body)
+			@components.BranchBlock(b.Body, terms)
 		case parser.KindHeading:
-			<h3 class="step-subheading" id={ markup.Slug(b.Text) }>{ b.Text }</h3>
+			<h3 class="step-subheading" id={ markup.Slug(b.Text) }>@templ.Raw(markup.ProseGlossary(b.Text, terms))</h3>
 		case parser.KindList:
-			@components.ListBlock(b.Items)
+			@components.ListBlock(b.Items, terms)
 		case parser.KindTable:
-			@components.TableBlock(b.Headers, b.Rows)
+			@components.TableBlock(b.Headers, b.Rows, terms)
 		default:
 			<p>
-				@templ.Raw(markup.Prose(b.Text))
+				@templ.Raw(markup.ProseGlossary(b.Text, terms))
 			</p>
 	}
 }
@@ -205,6 +207,17 @@ func pageConfigJSON(c PageConfig) string {
 		"recordsBasePath":      c.RecordsBasePath,
 	})
 	return string(b)
+}
+
+// glossaryScript embeds the per-page glossary as JSON keyed on the term, for the
+// hover popup. json.Marshal HTML-escapes its output, so the closing </script>
+// cannot be forged from the content. Empty means no glossary and no element.
+func glossaryScript(entries []parser.GlossaryEntry) string {
+	if len(entries) == 0 {
+		return ""
+	}
+	b, _ := json.Marshal(entries)
+	return `<script id="glossary" type="application/json">` + string(b) + `</script>`
 }
 
 // pagePrev and pageNext return the neighbouring page in sidebar order, or nil.

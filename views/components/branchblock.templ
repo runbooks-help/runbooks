@@ -9,21 +9,21 @@ import (
 )
 
 // BranchBlock renders a [!branch] decision callout.
-templ BranchBlock(body string) {
+templ BranchBlock(body string, terms []string) {
 	<div class="notice notice-branch">
-		@templ.Raw(branchHTML(body))
+		@templ.Raw(branchHTML(body, terms))
 	</div>
 }
 
 // branchHTML converts a branch block body (markdown list lines) to an HTML list.
-func branchHTML(body string) string {
+func branchHTML(body string, terms []string) string {
 	var buf strings.Builder
 	buf.WriteString("<ul>")
 	for _, line := range strings.Split(body, "\n") {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "- ") {
 			buf.WriteString("<li>")
-			buf.WriteString(markup.Prose(line[2:]))
+			buf.WriteString(markup.ProseGlossary(line[2:], terms))
 			buf.WriteString("</li>")
 		}
 	}

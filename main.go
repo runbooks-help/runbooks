@@ -96,9 +96,10 @@ func main() {
 // contentSnapshot is the parsed content and the indexes derived from it. It is
 // immutable: a refresh builds a new one and swaps it in.
 type contentSnapshot struct {
-	defs   []parser.RunbookDef
-	groups []parser.SystemGroup
-	search *parser.SearchIndex
+	defs     []parser.RunbookDef
+	groups   []parser.SystemGroup
+	search   *parser.SearchIndex
+	glossary []parser.GlossaryEntry
 }
 
 // contentState holds the live content and the routes built from it. A refresh
@@ -239,10 +240,15 @@ func parseContent(dir, recordsPath string) (*contentSnapshot, error) {
 	if err != nil {
 		return nil, err
 	}
+	glossary, err := parser.LoadGlossary(dir)
+	if err != nil {
+		return nil, err
+	}
 	return &contentSnapshot{
-		defs:   defs,
-		groups: parser.GroupBySystem(defs),
-		search: parser.BuildIndex(defs),
+		defs:     defs,
+		groups:   parser.GroupBySystem(defs),
+		search:   parser.BuildIndex(defs),
+		glossary: glossary,
 	}, nil
 }
 
@@ -330,6 +336,7 @@ func (cs *contentState) buildMux(snap *contentSnapshot) *http.ServeMux {
 				IdentityEnabled:      cfg.IdentityEnabled,
 				PublicURL:            cfg.PublicURL,
 				SiteDescription:      cfg.SiteDescription,
+				Glossary:             snap.glossary,
 			}).Render(r.Context(), w)
 		}
 		if authn != nil {

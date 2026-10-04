@@ -8,8 +8,8 @@ import (
 	"runbooks/views/markup"
 )
 
-templ Notice(variant, msg string) {
-	<div class={ "notice " + noticeClass(variant) }>@templ.Raw(noticeHTML(msg))</div>
+templ Notice(variant, msg string, terms []string) {
+	<div class={ "notice " + noticeClass(variant) }>@templ.Raw(noticeHTML(msg, terms))</div>
 }
 
 func noticeClass(v string) string {
@@ -24,7 +24,7 @@ func noticeClass(v string) string {
 }
 
 // noticeHTML renders notice body text as HTML, supporting paragraphs and lists.
-func noticeHTML(msg string) string {
+func noticeHTML(msg string, terms []string) string {
 	var buf strings.Builder
 	var listItems []string
 	var paraLines []string
@@ -33,7 +33,7 @@ func noticeHTML(msg string) string {
 		text := strings.TrimSpace(strings.Join(paraLines, " "))
 		if text != "" {
 			buf.WriteString("<p>")
-			buf.WriteString(markup.Prose(text))
+			buf.WriteString(markup.ProseGlossary(text, terms))
 			buf.WriteString("</p>")
 		}
 		paraLines = nil
@@ -45,7 +45,7 @@ func noticeHTML(msg string) string {
 		buf.WriteString("<ul>")
 		for _, item := range listItems {
 			buf.WriteString("<li>")
-			buf.WriteString(markup.Prose(item))
+			buf.WriteString(markup.ProseGlossary(item, terms))
 			buf.WriteString("</li>")
 		}
 		buf.WriteString("</ul>")

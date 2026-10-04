@@ -69,3 +69,73 @@
 	white-space: pre-wrap;
 	word-break: break-all;
 }
+
+/* Glossary term: a configured TLA or phrase, dotted-underlined in place. The
+underline carries the affordance, not a colour shift, so body text stays calm. */
+.glossary-term {
+	text-decoration: underline dotted;
+	text-decoration-color: var(--border-strong);
+	text-underline-offset: 2px;
+	cursor: help;
+}
+
+.glossary-term:hover,
+.glossary-term:focus-visible {
+	text-decoration-color: var(--accent-strong);
+}
+
+.glossary-term:focus-visible {
+	outline: 2px solid var(--accent-strong);
+	outline-offset: 2px;
+}
+
+/* Glossary popup: the hint popup's fixed-position panel, but prose surfaces in
+the theme's own tokens rather than the constant dark code surface. Interactive
+(pointer-events when open) so the "More" link is clickable. */
+.glossary-popup {
+	position: fixed;
+	z-index: 200;
+	width: 360px;
+	max-width: calc(100vw - var(--space-4));
+	background: var(--surface-2);
+	border: 1px solid var(--border-strong);
+	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-lg);
+	padding: var(--space-3) var(--space-4);
+	visibility: hidden;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity var(--duration-fast);
+}
+
+.glossary-popup.open {
+	visibility: visible;
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.glossary-popup-term {
+	margin: 0 0 var(--space-1);
+	font-weight: 700;
+	color: var(--text);
+}
+
+.glossary-popup-exp {
+	margin: 0 0 var(--space-2);
+	font-size: var(--text-sm);
+	color: var(--accent-strong);
+}
+
+.glossary-popup-desc {
+	margin: 0;
+	font-size: var(--text-sm);
+	line-height: 1.5;
+	color: var(--muted);
+}
+
+.glossary-popup-link {
+	display: inline-block;
+	margin-top: var(--space-2);
+	font-size: var(--text-sm);
+	color: var(--accent-strong);
+}
