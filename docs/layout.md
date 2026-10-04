@@ -22,15 +22,15 @@ summons the sidebar. The sidebar is never a column — it overlays the rail and 
 at every width, driven by `data-drawer="sidebar"` on `<body>` and closed on the
 scrim, Esc, ✕ or navigation. The brand keeps its own link home.
 
-The notes panel is a **floating overlay**, not a grid track: `.notes-panel` is
-`position: fixed` at `width: var(--notes-width)`. While it is shown at ≥1200px,
-`.main` reserves its width with `padding-right: var(--notes-width)`, so the reading
-column and the sticky bar end at the panel's left edge instead of running under it.
-`body.notes-hidden` and `body.zen` drop the reservation and reclaim the space. The
-prose measure is capped by `--measure` (72ch); tables and code blocks keep the full
-column width. `.main` always centres itself with `max-width: 1440px;
-margin-inline: auto` — at every width, zen or not — so an ultrawide splits the dead
-space either side of the reading column instead of piling it all on the right.
+The notes panel is a **fixed overlay** (`.notes-panel`, `position: fixed`,
+`width: var(--notes-width)`): it floats over the content at every width and
+reserves no column, so showing or hiding it never reflows main. `body.notes-hidden`
+slides it away on the reading preference; below 1200px it is the same overlay
+capped at 92vw and joined to the drawer scrim. The prose measure is capped by
+`--measure` (72ch); tables and code blocks keep the full column width. `.main`
+centres itself with `max-width: 1440px; margin-inline: auto` — at every width, zen
+or not — so an ultrawide splits the dead space either side of the reading column
+instead of piling it all on the right.
 
 Below **1200px** (`responsive.css`) the notes panel becomes a full-width off-canvas
 drawer too, and no space is reserved. It is the same `data-drawer` mechanism;
