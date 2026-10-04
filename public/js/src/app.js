@@ -1317,12 +1317,26 @@ function showSyncToast(type, msg) {
 	syncToastEl.className = `notes-sync-toast notes-sync-toast--${type}`;
 	syncToastEl.querySelector('.notes-sync-toast-msg').textContent = msg;
 	syncToastEl.hidden = false;
+	syncToastEl.removeAttribute('aria-busy');
 	syncToastTimer = setTimeout(hideSyncToast, 5000);
+}
+
+// A pending toast is sticky: it stays until the request resolves, so a sync that
+// takes seconds never looks like the click did nothing.
+function showSyncPending(msg) {
+	if (!syncToastEl) return;
+	clearTimeout(syncToastTimer);
+	syncToastEl.className = 'notes-sync-toast notes-sync-toast--pending';
+	syncToastEl.querySelector('.notes-sync-toast-msg').textContent = msg;
+	syncToastEl.hidden = false;
+	syncToastEl.setAttribute('aria-busy', 'true');
 }
 
 function hideSyncToast() {
 	clearTimeout(syncToastTimer);
-	if (syncToastEl) syncToastEl.hidden = true;
+	if (!syncToastEl) return;
+	syncToastEl.hidden = true;
+	syncToastEl.removeAttribute('aria-busy');
 }
 
 if (syncToastEl) {
@@ -1363,6 +1377,7 @@ if (notesSync && notesArea) {
 		}
 		notesSync.disabled = true;
 		notesSync.classList.add('loading');
+		showSyncPending('Syncing…');
 		try {
 			const title = document.title.replace(/\s*—.*$/, '').trim();
 			const slug = location.pathname.slice(1).replace(/\//g, '-');

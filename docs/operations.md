@@ -25,10 +25,35 @@ Runbooks are read from a **source**, selected by `CONTENT_SOURCE`:
 
 - `local` (default) — read `CONTENT_DIR` directly. Mount your content there, or
   point it wherever you like.
-- `git` — clone `GITSYNC_REPO` (branch `GITSYNC_BRANCH`, credential from the
-  `GITSYNC_*` vars) into `CONTENT_GIT_CACHE` and read `CONTENT_GIT_PATH` inside
-  it. Content sits at the repo root; the notes records path (`GITSYNC_BASE_PATH`)
-  is skipped by the content walk.
+- `git` — clone `GITSYNC_REPO` (branch `GITSYNC_BRANCH`) into
+  `CONTENT_GIT_CACHE` and read `CONTENT_GIT_PATH` inside it. Content sits at the
+  repo root; the notes records path (`GITSYNC_BASE_PATH`) is skipped by the
+  content walk.
+
+### SSH credentials
+
+SSH remotes authenticate with the **ambient SSH agent** by default: with no
+`GITSYNC_SSH_KEY` and no `GITSYNC_TOKEN`, `go-git` connects through
+`$SSH_AUTH_SOCK`, so a running `ssh-agent`, 1Password, or equivalent is enough on
+a workstation — there is nothing to configure. Host keys are verified against
+`SSH_KNOWN_HOSTS`, then `~/.ssh/known_hosts` / `/etc/ssh/ssh_known_hosts`; there
+is no `accept-new`, so the host must already be known.
+
+A **deployment or CI job has no agent**, so supply the key explicitly. Mount the
+private key and a `known_hosts` file read-only, then point the variables at them:
+
+```bash
+docker run -d \
+  -e GITSYNC_REPO=git@github.com:org/notes.git \
+  -e GITSYNC_SSH_KEY=/run/secrets/gitsync_key \
+  -e SSH_KNOWN_HOSTS=/run/secrets/known_hosts \
+  -v /host/gitsync_key:/run/secrets/gitsync_key:ro \
+  -v /host/known_hosts:/run/secrets/known_hosts:ro \
+  ghcr.io/ladydascalie/runbooks:<tag>
+```
+
+The key is read as a file path, not a value, so an orchestrator secret mounted as
+a file works directly. HTTPS remotes need `GITSYNC_TOKEN` instead and no agent.
 
 ### Startup order
 

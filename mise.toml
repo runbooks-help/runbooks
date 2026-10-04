@@ -8,16 +8,17 @@ node = "latest"
 
 [env]
 PORT = "8091"
+# Personal/secret dev values (the notes repo, commit identity, GITSYNC_API_TOKEN,
+# …) load from the git-ignored .env — copy .env.example and fill it in. SSH
+# remotes otherwise use the ambient SSH agent, so no key is needed locally.
+# Values set explicitly below win over the file.
+_.file = ".env"
+
 # Git sync dev config (see ~/openspec/plans/specs/runbooks/notes-git-sync/README.md).
-# Uses the SSH key rather than a token so no secret lives in this tracked file;
-# GITSYNC_API_TOKEN is a local-dev shared secret the browser prompts for on Sync.
-GITSYNC_REPO = "git@github.com:ladydascalie/runbooks-sync-test.git"
+# The repo, commit identity and credential live in .env; only the structural
+# defaults are tracked here.
 GITSYNC_BRANCH = "main"
 GITSYNC_BASE_PATH = "runs"
-GITSYNC_AUTHOR_NAME = "Runbooks Sync Bot"
-GITSYNC_AUTHOR_EMAIL = "cable.benjamin@protonmail.com"
-GITSYNC_SSH_KEY = "~/.ssh/personal"
-GITSYNC_API_TOKEN = "dev-local-bearer"
 
 # Identity dev config (see ~/openspec/plans/specs/runbooks/identity/README.md).
 # An empty driver leaves the app PUBLIC (no passkeys, no gating) — used to share

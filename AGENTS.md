@@ -17,6 +17,11 @@ CMS**. One page per runbook, served by slug.
 All tasks are mise tasks (`mise install` once to pull Go, templ, gofumpt, Node).
 The task scripts live in `mise-tasks/`, one executable per task (the task name is the
 file's path, `_default` is a group root); `mise.toml` holds only `[tools]` and `[env]`.
+Personal/secret dev values (the notes repo, commit identity, API token) live in a
+git-ignored `.env` that mise injects via `[env] _.file = ".env"`; copy
+`.env.example` and fill it in. SSH remotes use the ambient SSH agent unless
+`GITSYNC_SSH_KEY` points at a mounted key. Committed `mise.toml` env keys win over
+the file.
 
 | Task | What it does |
 |------|--------------|

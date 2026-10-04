@@ -2,6 +2,8 @@ tmp/
 .git/
 .air.toml
 node_modules/
+.env
+mise.local.toml
 
 # The maintainer's private runbooks never enter the image; the operator mounts
 # their own content (CONTENT_DIR).

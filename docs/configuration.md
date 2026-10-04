@@ -55,6 +55,14 @@ Sync is enabled only when a repo **and** a credential **and** an endpoint auth
 are configured. The endpoint auth is a user session when identity is on (an
 unauthenticated request is refused), or `GITSYNC_API_TOKEN` when identity is off.
 
+A credential is an HTTPS token (`GITSYNC_TOKEN`), an explicit SSH private key
+(`GITSYNC_SSH_KEY`), or — for an `ssh://` or scp-style remote — the ambient SSH
+agent. With no key and no token, `go-git` authenticates SSH remotes through
+`$SSH_AUTH_SOCK` (ssh-agent, 1Password, …), so the common local setup needs no
+credential variable at all. Set `GITSYNC_SSH_KEY` only where there is no agent: a
+deployment or CI job that mounts a key and points the variable at its path. See
+[docs/operations.md](operations.md#ssh-credentials) for the container recipe.
+
 | Var | Default | Meaning |
 |---|---|---|
 | `GITSYNC_REPO` | *(unset)* | Remote URL — any host, HTTPS or SSH. Unset disables sync. |
@@ -64,7 +72,7 @@ unauthenticated request is refused), or `GITSYNC_API_TOKEN` when identity is off
 | `GITSYNC_AUTHOR_EMAIL` | *(required)* | Fallback commit email. |
 | `GITSYNC_USERNAME` | `oauth2` | HTTPS basic-auth username (token as password). |
 | `GITSYNC_TOKEN` | *(unset)* | HTTPS access token. |
-| `GITSYNC_SSH_KEY` | *(unset)* | Private key path for SSH remotes. |
+| `GITSYNC_SSH_KEY` | *(unset)* | Private key path for SSH remotes; omit to use the ambient SSH agent. |
 | `GITSYNC_API_TOKEN` | *(unset)* | Shared bearer that gates the sync endpoint, for CI/automation and for identity-off deployments. |
 
 With identity on, a signed-in user's commit is authored as that user

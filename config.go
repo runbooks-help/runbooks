@@ -5,6 +5,7 @@ package main
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -59,7 +60,7 @@ func loadConfig() config {
 		GitSyncAuthorEmail:  os.Getenv("GITSYNC_AUTHOR_EMAIL"),
 		GitSyncUsername:     os.Getenv("GITSYNC_USERNAME"),
 		GitSyncToken:        os.Getenv("GITSYNC_TOKEN"),
-		GitSyncSSHKey:       os.Getenv("GITSYNC_SSH_KEY"),
+		GitSyncSSHKey:       expandHome(os.Getenv("GITSYNC_SSH_KEY")),
 		GitSyncAPIToken:     os.Getenv("GITSYNC_API_TOKEN"),
 	}
 	if cfg.ContentDir == "" {
@@ -117,8 +118,10 @@ func loadConfig() config {
 	// must never be reachable unauthenticated: with identity on a user session (or
 	// proxy assertion) authorises the endpoint and an unauthenticated request is
 	// refused; with identity off, the shared API token is the gate. Without one of
-	// those, sync stays off.
-	hasCredential := cfg.GitSyncToken != "" || cfg.GitSyncSSHKey != ""
+	// those, sync stays off. An SSH remote counts as a credential: go-git falls
+	// back to the ambient SSH agent (ssh-agent, 1Password, …) when no key or token
+	// is given, so a key is only needed where there is no agent (deployment/CI).
+	hasCredential := cfg.GitSyncToken != "" || cfg.GitSyncSSHKey != "" || sshRemote(cfg.GitSyncRepo)
 	hasEndpointAuth := cfg.GitSyncAPIToken != "" || cfg.IdentityEnabled
 	cfg.GitSyncEnabled = cfg.GitSyncRepo != "" && hasCredential && hasEndpointAuth
 
@@ -156,4 +159,33 @@ func envOr(name, def string) string {
 		return v
 	}
 	return def
+}
+
+// sshRemote reports whether a remote URL uses SSH, where the ambient SSH agent
+// is the credential and an explicit key is optional. It accepts ssh:// URLs and
+// scp-style remotes (user@host:path), but not an https:// URL that happens to
+// carry a user.
+func sshRemote(repo string) bool {
+	if strings.HasPrefix(repo, "ssh://") {
+		return true
+	}
+	return !strings.Contains(repo, "://") && strings.Contains(repo, "@")
+}
+
+// expandHome expands a leading ~ to the user's home directory, since neither
+// mise nor go-git does it for us: GITSYNC_SSH_KEY=~/.ssh/id_ed25519 must resolve
+// before the file is opened. A bare ~ becomes the home directory; ~user is left
+// alone.
+func expandHome(path string) string {
+	if path != "~" && !strings.HasPrefix(path, "~/") {
+		return path
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return path
+	}
+	if path == "~" {
+		return home
+	}
+	return filepath.Join(home, path[2:])
 }

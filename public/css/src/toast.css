@@ -32,6 +32,39 @@
 	border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
+/* In-flight: neutral (status is never the brand accent), with a spinner so the
+   wait is legible while the push runs. */
+.notes-sync-toast--pending {
+	background: var(--surface);
+	color: var(--muted);
+	border: 1px solid var(--border-strong);
+}
+
+.notes-sync-toast--pending::before {
+	content: '';
+	flex: none;
+	width: var(--space-3);
+	height: var(--space-3);
+	border: 2px solid var(--border-strong);
+	border-top-color: var(--muted);
+	border-radius: 50%;
+	animation: notes-sync-spin 0.7s linear infinite;
+}
+
+@keyframes notes-sync-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* Motion respects the user's preference: the pending label already says the
+   sync is running, so the spinner does not need to turn. */
+@media (prefers-reduced-motion: reduce) {
+	.notes-sync-toast--pending::before {
+		animation: none;
+	}
+}
+
 .notes-sync-toast-msg {
 	flex: 1;
 }

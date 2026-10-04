@@ -3,6 +3,9 @@
 /sbom/
 content/testdata
 
+# Personal/secret dev values (injected by mise via [env] _.file = ".env")
+.env
+
 # Per-developer dev-task config for pi-devtasks
 /.pi/dev.json
 

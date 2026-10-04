@@ -12,6 +12,11 @@ mise install
 
 This installs Go, templ, gofumpt, and Node.
 
+Optional personal dev values (the git-sync repo, commit identity and API token)
+come from a git-ignored `.env` injected by mise. Copy `.env.example` to `.env`
+and fill it in; without it the app runs on the committed defaults. SSH remotes use
+your SSH agent, so no key file is needed locally.
+
 ## Development
 
 ```bash
