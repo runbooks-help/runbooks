@@ -11,8 +11,8 @@ import (
 
 // IndexPage is the welcome / navigation page: a filter box, the symptom-first
 // shortcuts declared in runbook frontmatter, then the full catalogue as cards.
-templ IndexPage(systems []parser.SystemGroup, isAdmin, identityEnabled bool) {
-	@components.Shell("") {
+templ IndexPage(systems []parser.SystemGroup, cfg PageConfig) {
+	@components.ShellMeta(components.Meta{Description: cfg.SiteDescription, Canonical: canonical(cfg.PublicURL, ""), Type: "website"}) {
 		@components.Rail()
 		<aside class="sidebar">
 			@components.SidebarHeader()
@@ -20,7 +20,7 @@ templ IndexPage(systems []parser.SystemGroup, isAdmin, identityEnabled bool) {
 			<div class="sidebar-appearance">
 				@components.AppearanceTrigger(true)
 			</div>
-			@components.SessionActions(isAdmin, identityEnabled)
+			@components.SessionActions(cfg.IsAdmin, cfg.IdentityEnabled)
 		</aside>
 		<div class="main index-main">
 			<div class="main-header">

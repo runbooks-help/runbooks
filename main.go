@@ -258,7 +258,12 @@ func (cs *contentState) buildMux(snap *contentSnapshot) *http.ServeMux {
 
 	index := func(w http.ResponseWriter, r *http.Request) {
 		u := userFrom(r.Context())
-		views.IndexPage(snap.groups, u.IsAdmin(), cfg.IdentityEnabled).Render(r.Context(), w)
+		views.IndexPage(snap.groups, views.PageConfig{
+			IsAdmin:         u.IsAdmin(),
+			IdentityEnabled: cfg.IdentityEnabled,
+			PublicURL:       cfg.PublicURL,
+			SiteDescription: cfg.SiteDescription,
+		}).Render(r.Context(), w)
 	}
 
 	if authn != nil {
@@ -323,6 +328,8 @@ func (cs *contentState) buildMux(snap *contentSnapshot) *http.ServeMux {
 				RecordsBasePath:      cfg.GitSyncBasePath,
 				IsAdmin:              u.IsAdmin(),
 				IdentityEnabled:      cfg.IdentityEnabled,
+				PublicURL:            cfg.PublicURL,
+				SiteDescription:      cfg.SiteDescription,
 			}).Render(r.Context(), w)
 		}
 		if authn != nil {
@@ -345,6 +352,18 @@ func (cs *contentState) buildMux(snap *contentSnapshot) *http.ServeMux {
 		llmsIndex = authn.requireRead(llmsIndex)
 	}
 	mux.Handle("/llms.txt", llmsIndex)
+
+	// robots.txt is public; the sitemap lists the same slugs as the pages, so
+	// with identity on it sits behind the read gate like llms.txt. The sitemap
+	// needs absolute URLs, so it exists only when PUBLIC_URL is set.
+	mux.Handle("/robots.txt", http.HandlerFunc(handleRobots(cfg.IdentityEnabled, cfg.PublicURL)))
+	if cfg.PublicURL != "" {
+		sitemap := http.HandlerFunc(handleSitemap(snap.groups, cfg.PublicURL))
+		if authn != nil {
+			sitemap = authn.requireRead(sitemap)
+		}
+		mux.Handle("/sitemap.xml", sitemap)
+	}
 
 	gitSync := http.HandlerFunc(handleGitSync(cfg))
 	if authn != nil {

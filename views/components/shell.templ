@@ -2,14 +2,58 @@
 
 package components
 
-// Shell wraps the full HTML document. Children are rendered inside <body>.
+// Meta is per-page document metadata for the public pages. Every field except
+// Title is optional; an empty field omits its tags.
+type Meta struct {
+	Title       string
+	Description string
+	Canonical   string // absolute URL
+	Image       string // absolute URL (unused for now; no raster asset is served)
+	Robots      string // e.g. "noindex, nofollow"
+	Type        string // og:type; defaults to "website"
+}
+
+// Shell renders a plain document for the non-public pages (auth, admin, account,
+// audit, styleguide): a title and no crawler metadata.
 templ Shell(title string) {
+	@ShellMeta(Meta{Title: title}) {
+		{ children... }
+	}
+}
+
+// ShellMeta wraps the full HTML document. Children are rendered inside <body>.
+templ ShellMeta(meta Meta) {
 	<!DOCTYPE html>
 	<html lang="en" data-theme="light">
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-			<title>{ pageTitle(title) }</title>
+			<title>{ pageTitle(meta.Title) }</title>
+			if meta.Description != "" {
+				<meta name="description" content={ meta.Description }/>
+			}
+			if meta.Robots != "" {
+				<meta name="robots" content={ meta.Robots }/>
+			}
+			if meta.Canonical != "" {
+				<link rel="canonical" href={ templ.SafeURL(meta.Canonical) }/>
+			}
+			<meta property="og:site_name" content="Runbooks"/>
+			<meta property="og:title" content={ pageTitle(meta.Title) }/>
+			<meta property="og:type" content={ ogType(meta.Type) }/>
+			if meta.Description != "" {
+				<meta property="og:description" content={ meta.Description }/>
+				<meta name="twitter:description" content={ meta.Description }/>
+			}
+			if meta.Canonical != "" {
+				<meta property="og:url" content={ meta.Canonical }/>
+			}
+			if meta.Image != "" {
+				<meta property="og:image" content={ meta.Image }/>
+				<meta name="twitter:image" content={ meta.Image }/>
+			}
+			<meta name="twitter:card" content={ twitterCard(meta.Image) }/>
+			<meta name="twitter:title" content={ pageTitle(meta.Title) }/>
 			<link rel="icon" href="/public/favicon.svg" type="image/svg+xml"/>
 			<link rel="stylesheet" href="/public/css/bundle.css"/>
 			@templ.Raw("<script>" + themeScript + "</script>")
@@ -34,6 +78,20 @@ func pageTitle(title string) string {
 		return "Runbooks"
 	}
 	return title + " — Runbooks"
+}
+
+func ogType(t string) string {
+	if t == "" {
+		return "website"
+	}
+	return t
+}
+
+func twitterCard(image string) string {
+	if image != "" {
+		return "summary_large_image"
+	}
+	return "summary"
 }
 
 // themeScript is inlined before first paint to prevent flash of wrong theme.

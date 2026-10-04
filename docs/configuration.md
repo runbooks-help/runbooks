@@ -15,6 +15,8 @@ what the container runs with.
 |---|---|---|
 | `PORT` | `8090` | HTTP listen port. |
 | `STYLEGUIDE_ENABLED` | `false` | Serve the design-system reference at `/styleguide` and `/styleguide/llms`. |
+| `PUBLIC_URL` | *(unset)* | Absolute site base, e.g. `https://runbooks.help` (trailing slash stripped). Enables canonical/OpenGraph URLs and `/sitemap.xml`. |
+| `SITE_DESCRIPTION` | *(unset)* | Default `<meta name="description">` for pages without their own. |
 
 `/healthz` is always served, unauthenticated, and returns `200 ok`.
 

@@ -13,7 +13,7 @@ import (
 )
 
 templ RunbookPage(rb parser.RunbookDef, groups []parser.SystemGroup, cfg PageConfig) {
-	@components.Shell(rb.Title) {
+	@components.ShellMeta(runbookMeta(rb, cfg)) {
 		@templ.Raw("<script id=\"runbook-source\" type=\"application/json\">" + jsonString(rb.Source) + "</script>")
 		@templ.Raw("<script id=\"page-config\" type=\"application/json\">" + pageConfigJSON(cfg) + "</script>")
 		@components.Rail()
@@ -243,6 +243,32 @@ func flattenRunbooks(groups []parser.SystemGroup) []parser.RunbookMeta {
 		}
 	}
 	return metas
+}
+
+// runbookMeta builds the document metadata for a runbook page.
+func runbookMeta(rb parser.RunbookDef, cfg PageConfig) components.Meta {
+	desc := rb.Description
+	if desc == "" {
+		desc = cfg.SiteDescription
+	}
+	return components.Meta{
+		Title:       rb.Title,
+		Description: desc,
+		Canonical:   canonical(cfg.PublicURL, rb.Slug),
+		Type:        "article",
+	}
+}
+
+// canonical joins the site base and a path with a single slash; an empty base
+// omits the URL entirely.
+func canonical(base, p string) string {
+	if base == "" {
+		return ""
+	}
+	if p == "" {
+		return base + "/"
+	}
+	return base + "/" + p
 }
 
 // stepNumber is the display number for the step at index i. Only runbook steps

@@ -44,6 +44,12 @@ type config struct {
 	ContentRefreshToken    string
 	ContentRefreshInterval time.Duration
 	StyleGuideEnabled      bool
+
+	// PublicURL is the site's absolute base (no trailing slash); it enables the
+	// canonical/OpenGraph URLs and the sitemap. SiteDescription is the default
+	// meta description for pages without their own.
+	PublicURL       string
+	SiteDescription string
 }
 
 func loadConfig() config {
@@ -75,6 +81,8 @@ func loadConfig() config {
 	if cfg.ContentGitCache == "" {
 		cfg.ContentGitCache = "data/content"
 	}
+	cfg.PublicURL = strings.TrimRight(os.Getenv("PUBLIC_URL"), "/")
+	cfg.SiteDescription = os.Getenv("SITE_DESCRIPTION")
 	// Automatic refresh is opt-in; a sub-minute interval is a footgun against the
 	// remote, so a positive value below the floor is a startup error.
 	cfg.ContentRefreshInterval = envDuration("CONTENT_REFRESH_INTERVAL", 0)
