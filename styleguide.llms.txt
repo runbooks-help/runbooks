@@ -3,7 +3,6 @@
 Source of truth for building conformant UI. Interactive version: /styleguide
 (dev-gated, off in the default container), organised by atomicity —
 Foundations → Layout primitives → Atoms → Molecules → Patterns.
-Spec: specs/runbooks/design-system/README.md.
 
 ## Stack
 
@@ -143,8 +142,7 @@ styleguide) without carrying a border that only makes sense in one host.
                    .size-btn / .steps-btn.
   acknowledgement  a destructive runbook's frontmatter `acknowledge:` gates the
                    page behind a non-dismissable danger dialog; the steps are
-                   inert until accepted (once per session). See
-                   specs/runbooks/danger-ack/README.md.
+                   inert until accepted (once per session).
   session actions  Admin link (admins) + Sign out (identity on) — the sidebar
                    footer account row.
 

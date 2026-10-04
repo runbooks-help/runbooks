@@ -4,11 +4,9 @@ A small Go web app that renders operational runbooks as interactive step-by-step
 pages. Runbooks are plain Markdown files with YAML frontmatter — **no database, no
 CMS**. One page per runbook, served by slug.
 
-- **Repo:** `github.com/runbooks-help/runbooks` (private), local `~/Code/Personal/runbooks`.
+- **Repo:** `github.com/runbooks-help/runbooks`, local `~/Code/Personal/runbooks`.
 - **Licence:** FSL-1.1-MIT (source-available, no competing use, converts to MIT after
-  2y). Governance, positioning and the commercial model live in the spec library:
-  `~/openspec/plans/specs/runbooks/governance/README.md`,
-  `…/runbooks/commercial-model/README.md`.
+  2y). See `LICENSE`, `DEPENDENCIES.md` and `NOTICE`.
 - This file layers on the global `~/.pi/agent/AGENTS.md` (DB naming, API versioning, no
   foreign keys, memory/spec stores). There is no workspace parent above it.
 
@@ -32,8 +30,8 @@ the file.
 | `mise run lintcss` / `mise run fmtcss` | stylelint / Prettier over `public/css/src/**`. |
 | `mise run test` | Go tests + JS unit tests (`node --test`). |
 | `mise run notices` | Regenerate `THIRD_PARTY_NOTICES.md` from the linked modules and vendored assets (`cmd/notices`). |
-| `mise run brand` | Generate the brand assets (logomark, wordmark, lockups, icon) into `brand/` and the mark favicon into `public/favicon.svg`, as outlined SVG + PNG (`cmd/brand`). Needs `woff2_decompress`, `inkscape`, `rsvg-convert`; output is committed. See `specs/runbooks/brand-assets/README.md`. |
-| `mise run sbom` / `mise run sbom:image` | SPDX 2.3 + CycloneDX SBOM for the built binary / the container image (syft). See `specs/runbooks/release-process/README.md`. |
+| `mise run brand` | Generate the brand assets (logomark, wordmark, lockups, icon) into `brand/` and the mark favicon into `public/favicon.svg`, as outlined SVG + PNG (`cmd/brand`). Needs `woff2_decompress`, `inkscape`, `rsvg-convert`; output is committed. |
+| `mise run sbom` / `mise run sbom:image` | SPDX 2.3 + CycloneDX SBOM for the built binary / the container image (syft). |
 | `mise run test:e2e` | Browser E2E behind `e2e/harness.mjs` (shared boot + Chromium + virtual authenticator): `passkey.test.mjs` (identity), `runbook.test.mjs` (page interactions), `styleguide.test.mjs` (design-system screenshots). `E2E_SCREENSHOT_DIR=…` writes the screenshots. Needs a system Chromium (`CHROMIUM=/path` to override); `playwright-core` installs into `e2e/` on demand. |
 | `mise run test:e2e:headed` | The same tests in visible windows. `E2E_SLOWMO=ms` paces the actions, `E2E_HOLD_MS=ms` holds at the end of each test (default: run straight through). |
 | `mise run test:e2e:inspect` | Headed with the **Playwright Inspector** (`page.pause()` breakpoints before the setup, invite-enrol and recovery submits). Step over / resume from the inspector window. |
@@ -47,8 +45,7 @@ default `8090`; the container listens on `8090`.
 
 ## Design system
 
-The app has its own visual identity — see `~/openspec/plans/specs/runbooks/design-system/README.md`.
-The living reference is `/styleguide` (dev-gated by `STYLEGUIDE_ENABLED`, set in
+The app has its own visual identity. The living reference is `/styleguide` (dev-gated by `STYLEGUIDE_ENABLED`, set in
 `mise.toml` `[env]`), organised by atomicity; `/styleguide/llms` is the agent mirror
 (embedded from `styleguide.llms.txt`).
 
@@ -58,7 +55,7 @@ The living reference is `/styleguide` (dev-gated by `STYLEGUIDE_ENABLED`, set in
 - **Fonts** — self-hosted Atkinson Hyperlegible Next + Mono (variable, latin), plus a
   tiny `Shade Mono` subset (Noto Sans Mono, U+2500–U+2593) that pins the `░▒▓`
   brand mark and the bookshelf glyphs and frame — Atkinson does not contain them,
-  so without it they render through the OS fallback. See `specs/runbooks/brand-assets/README.md`.
+  so without it they render through the OS fallback.
   `--mono-weight` is 450, or 600 under `html[data-code-weight="bold"]`.
 - **Radii** — squared (4/6/8px); tickboxes are square, not circles.
 - **Badges** — bracketed `[ label ]`, not filled pills.
@@ -105,11 +102,11 @@ cmd/css, cmd/js      esbuild wrappers (see build pipeline below)
 cmd/notices          generates THIRD_PARTY_NOTICES.md (mise run notices)
 cmd/brand            generates the brand assets into brand/ (mise run brand)
 mise-tasks/          file tasks, one executable per task (see Commands; mise.toml keeps [tools]/[env])
-brand/               generated brand assets: outlined SVG + PNG (committed; see specs/runbooks/brand-assets)
+brand/               generated brand assets: outlined SVG + PNG (committed)
 LICENSE / NOTICE     outbound FSL-1.1-MIT + the third-party notices that must be embedded (OFL, MPL driver)
 DEPENDENCIES.md      dependency inventory + FSL classification
 THIRD_PARTY_NOTICES.md  generated full licence texts (do not hand-edit)
-runbooks-docs/       (separate repo) the public docs content; see specs/runbooks/docs-site
+runbooks-docs/       (separate repo) the public docs content; see https://runbooks.help
 tmp/                 air build output
 ```
 
@@ -229,7 +226,7 @@ by `requireRead` — session **or a read-scoped API key** — with identity on.
 
 API keys are minted self-service at `/account`, owned by a user, stored as
 `sha256(raw)` under an `rbk_` prefix, and revocable; a key is read-only by
-construction and never authenticates a write. See `specs/runbooks/agent-access`.
+construction and never authenticates a write. See https://runbooks.help/agent-access.
 
 **Never add a signpost `.md` under `content/`** (e.g. `content/AGENTS.md`):
 `parser.LoadDir` treats every `*.md` there as a runbook and a file without
@@ -258,10 +255,9 @@ frontmatter is a startup error, so it breaks boot. This file is the signpost.
 
 ## Gotchas
 
-- **`content/` is private operational material.** It describes real infrastructure
-  procedures and must not be published. Until the app is separated from this
-  content, keep the repo private — the app itself is source-available, the *content*
-  is not for release.
+- **`content/` in this repo is public demo material only** (the `playground/`
+  gallery). A deployment's real runbooks are its own content root or mount, never
+  this repository — do not commit private operational content here.
 - **CI regenerates the asset bundles and verifies `THIRD_PARTY_NOTICES.md` is
   committed and current**: `check.yml` builds `public/css/bundle.css` /
   `public/js/bundle.js` from source and fails if `THIRD_PARTY_NOTICES.md` differs
@@ -281,7 +277,7 @@ frontmatter is a startup error, so it breaks boot. This file is the signpost.
   `.stylelintrc.json` — `code.css` over the syntax highlighter, `responsive.css` the
   override layer), and `declaration-property-unit-allowed-list` bans raw px in
   `margin`/`padding`/`gap` — spacing comes from tokens (use `--space-hair` below
-  `--space-1`). See `specs/runbooks/design-system/README.md`. Prettier uses tabs, width 100.
+  `--space-1`). Prettier uses tabs, width 100.
 - **E2E virtual-authenticator options**: Chromium's `WebAuthn.addVirtualAuthenticator`
   names the backup flags `defaultBackupEligibility` / `defaultBackupState`; the
   `hasBackup*` spellings are silently ignored (so BE never gets set). `e2e/passkey.test.mjs`
@@ -301,12 +297,11 @@ frontmatter is a startup error, so it breaks boot. This file is the signpost.
 
 - `LICENSE` is the FSL-1.1-MIT text; `DEPENDENCIES.md` inventories every distributed
   dependency and its licence; `NOTICE` embeds the OFL text for the fonts and the
-  MPL-2.0 notice for `go-sql-driver/mysql` (compatible via MPL §3.3 Larger Work —
-  see `specs/runbooks/commercial-model/README.md`).
+  MPL-2.0 notice for `go-sql-driver/mysql` (compatible via MPL §3.3 Larger Work).
 - `THIRD_PARTY_NOTICES.md` is **generated** (`mise run notices`, `cmd/notices`) —
   never hand-edit it; CI fails on drift. The JS and font licence texts are committed
   beside the assets.
-- `mise run sbom` / `sbom:image` emit SPDX 2.3 + CycloneDX (`specs/runbooks/release-process/README.md`); CI
+- `mise run sbom` / `sbom:image` emit SPDX 2.3 + CycloneDX; CI
   uploads them as the `sbom` artifact and, on `v*` tags, keyless-attests the SPDX
   document with cosign.
 

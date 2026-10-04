@@ -47,8 +47,7 @@ CMD ["./runbooks"]
 # Derived docs-site image: the runtime plus a build-time seed of the public docs
 # repo. The app reads it with CONTENT_SOURCE=git (CONTENT_GIT_PATH=docs) and
 # refreshes in the background; the seed keeps cold start offline-safe and
-# independent of the remote. Build with `--target docs`. See
-# specs/runbooks/docs-hosting/README.md.
+# independent of the remote. Build with `--target docs`.
 FROM alpine:3 AS docs-seed
 RUN apk add --no-cache git && \
     git clone --branch main https://github.com/runbooks-help/runbooks-docs /seed
