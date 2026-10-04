@@ -8,8 +8,7 @@ description: Run the container, mount your runbooks, and see your first page.
 
 ## Run the container
 
-The app ships as a container image and carries no content — you mount a
-directory of Markdown runbooks.
+The app ships as a container image and carries no content. You mount a directory of Markdown runbooks.
 
 ```bash [Start Runbooks]
 docker run -d --name runbooks \
@@ -21,10 +20,8 @@ docker run -d --name runbooks \
 
 Open [localhost:8090](http://localhost:8090).
 
-- `/app/content` is the content root (`CONTENT_DIR`). If it is empty the index
-  renders a welcome page — add a `.md` file to populate it.
-- `/app/data` holds the SQLite identity database when identity is on. It is
-  unused otherwise, but mount it so a later upgrade keeps its data.
+- `/app/content` is the content root (`CONTENT_DIR`). If it is empty the index renders a welcome page; add a `.md` file to populate it.
+- `/app/data` holds the SQLite identity database when identity is on. It is unused otherwise, but mount it so a later upgrade keeps its data.
 - The container runs as a non-root user and exposes `/healthz`.
 
 Pin a version tag (`:vX.Y.Z`) rather than `:latest` for a production deployment.
@@ -45,22 +42,18 @@ description: Check that last night's dump exists and restores.
 The dump should be from tonight and non-trivial in size.
 ```
 
-The path puts it under **MySQL › Backup** in the sidebar, and the URL is
-`/verify-backup` (from the slug, not the filename). Content is read from disk at
-startup — no rebuild, no restart. Add a code block, a notice or `vars` as you
-need them: see [Writing a runbook](../guides/writing-runbooks.md).
+The path puts it under **MySQL › Backup** in the sidebar, and the URL is `/verify-backup` (from the slug, not the filename). Content is read from disk at startup: no rebuild, no restart. Add a code block, a notice or `vars` as you need them: see [Writing a runbook](../guides/writing-runbooks.md).
 
 ## Configuration
 
-Every setting is an environment variable; the full list is
-[Configuration](../reference/configuration.md). The common ones:
+Every setting is an environment variable; the full list is [Configuration](../reference/configuration.md). The common ones:
 
 | Var | Default | Meaning |
 | --- | --- | --- |
 | `PORT` | `8090` | HTTP listen port. |
 | `CONTENT_DIR` | `content` | Directory the runbooks are read from. |
-| `PUBLIC_URL` | *(unset)* | Absolute site base; enables canonical/OpenGraph tags and `/sitemap.xml`. |
-| `IDENTITY_DB_DRIVER` | *(unset)* | `sqlite`, `mysql` or `postgres`; unset leaves the app public. |
+| `PUBLIC_URL` | _(unset)_ | Absolute site base; enables canonical/OpenGraph tags and `/sitemap.xml`. |
+| `IDENTITY_DB_DRIVER` | _(unset)_ | `sqlite`, `mysql` or `postgres`; unset leaves the app public. |
 
 ## Build from source
 

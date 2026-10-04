@@ -77,7 +77,7 @@ Layout uses the primitives in layouts.css only — never bespoke flex/grid in a
 component: .stack, .cluster, .row, .inline-icon, .grid[data-cols], .grow,
 .truncate, .list-row, .detail-shell. Spacing comes from tokens: no raw px in
 margin/padding/gap (stylelint `declaration-property-unit-allowed-list`; use
---space-hair for sub-scale hairlines). Full contract: docs/layout.md.
+--space-hair for sub-scale hairlines).
 
 Contextual chrome belongs to the context, not the component — e.g. the sidebar
 footer divider is `.sidebar .appearance`, so the atom can be shown elsewhere (the

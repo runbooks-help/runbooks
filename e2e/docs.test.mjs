@@ -41,7 +41,7 @@ test("the public docs: sections, lead, prev/next and the crawler surface", async
 		// The docs tree groups by audience, in _meta.yml order.
 		assert.deepEqual(
 			await b.page.locator(".nav-sys-name").allTextContents(),
-			["Get started", "Guides", "Reference", "Operations", "Internals"],
+			["Get started", "Guides", "Reference", "Operations"],
 			"sidebar groups render in order",
 		);
 
@@ -98,7 +98,7 @@ test("the public docs: sections, lead, prev/next and the crawler surface", async
 		if (process.env.E2E_SCREENSHOT_DIR) {
 			// Hide the floating notes panel so it does not occlude the page.
 			await b.page.evaluate(() => localStorage.setItem("runbooks-notes", "off"));
-			for (const slug of ["overview", "install", "writing-runbooks", "configuration", "deployment", "identity", "agent-access", "layout", "brand", "sbom", "troubleshooting"]) {
+			for (const slug of ["overview", "install", "writing-runbooks", "configuration", "deployment", "identity", "agent-access"]) {
 				await b.page.goto(`${app.base}/${slug}`, { waitUntil: "load" });
 				await b.page.locator(".section, .step-card").first().waitFor({ timeout: uiTimeout });
 				// The page scrolls inside .content, so fullPage alone captures only the

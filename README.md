@@ -108,12 +108,6 @@ agent, an identity-enabled instance exposes a read-only surface (`/llms.txt`,
 created at `/account`. See
 [docs/operations/agent-access.md](docs/operations/agent-access.md).
 
-## Troubleshooting
-
-See [docs/internals/troubleshooting.md](docs/internals/troubleshooting.md) —
-notably, dark colours looking washed out on an HDR display in Chromium-based
-browsers, and the workarounds.
-
 ## Licence
 
 Runbooks is source-available under [FSL-1.1-MIT](LICENSE): free to self-host,

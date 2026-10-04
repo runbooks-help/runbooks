@@ -3,11 +3,10 @@ title: Writing a runbook
 slug: writing-runbooks
 order: 1
 layout: sections
-description: The runbook file format — frontmatter, steps and sections, code, notices, variables and the glossary.
+description: The runbook file format, covering frontmatter, steps and sections, code, notices, variables and the glossary.
 ---
 
-A runbook is a Markdown file with YAML frontmatter, under the content root. The
-file path and the frontmatter decide where it appears and at what URL.
+A runbook is a Markdown file with YAML frontmatter, under the content root. The file path and the frontmatter decide where it appears and at what URL.
 
 ## Where files live
 
@@ -25,11 +24,9 @@ content/
 
 - `<system>` is a top-level sidebar group (the directory name, title-cased).
 - `<category>` is a subheading under the system.
-- A file directly in `content/<system>/` renders under the system with no
-  subheading.
+- A file directly in `content/<system>/` renders under the system with no subheading.
 
-Display names and order live in `content/_meta.yml` at the top of the tree — an
-ordered list where position is the order:
+Display names and order live in `content/_meta.yml` at the top of the tree: an ordered list where position is the order:
 
 ```yaml
 - mysql:
@@ -39,11 +36,7 @@ ordered list where position is the order:
 - backend
 ```
 
-An item is a bare directory name or `name: {title, categories}`; a category may
-carry a title the same way. Unlisted directories are appended after the listed
-ones, alphabetically. Within a category, runbooks sort by the optional
-frontmatter `order:` (lower first; absent sorts last), then by title. Use
-`order:` to pull the most likely on-call runbook to the top of its category.
+An item is a bare directory name or `name: {title, categories}`; a category may carry a title the same way. Unlisted directories are appended after the listed ones, alphabetically. Within a category, runbooks sort by the optional frontmatter `order:` (lower first; absent sorts last), then by title. Use `order:` to pull the most likely on-call runbook to the top of its category.
 
 ## Frontmatter
 
@@ -77,54 +70,41 @@ vars:
 | Field | What it does |
 | --- | --- |
 | `title` | Sidebar label and `<h1>`. |
-| `slug` | The URL, `/<slug>` — **not** the filename. |
+| `slug` | The URL, `/<slug>`, **not** the filename. |
 | `order` | Position within its category (lower first). |
 | `description` | One-line summary under the `<h1>` and on index cards. |
 | `symptoms` | Extra keywords the index filter and search match. |
 | `common` | `true` pins it into the "Common issues" shortlist. |
 | `notice` | A passive banner above the body. |
 | `acknowledge` | Marks the runbook destructive: the page is gated behind an "I understand" dialog until accepted (once per session). |
-| `vars` | Runtime inputs — see below. |
+| `vars` | Runtime inputs; see below. |
 
-Keep `symptoms:` on every runbook: the index matches title, description,
-symptoms and the system/category names, and the body search reaches through the
-file.
+Keep `symptoms:` on every runbook: the index matches title, description, symptoms and the system/category names, and the body search reaches through the file.
 
 ## Inputs with `vars`
 
-`vars` render a panel of inputs. Each value substitutes into code blocks as a
-`{{TOKEN}}`, where the token is uppercase A–Z and underscore only:
+`vars` render a panel of inputs. Each value substitutes into code blocks as a `{{TOKEN}}`, where the token is uppercase A–Z and underscore only:
 
 ```bash [Use the inputs]
 ssh "{{SERVER_IP}}"
 systemctl restart "{{SERVICE}}"
 ```
 
-- Give the diagnostic lookup to a `hint` rather than a literal `<placeholder>`
-  inside the code — angle brackets in a fence look like real syntax.
+- Give the diagnostic lookup to a `hint` rather than a literal `<placeholder>` inside the code: angle brackets in a fence look like real syntax.
 - Set `secret: true` to render a password field.
 - Substitution happens in the browser, so values **never leave the page**.
 
 ## Steps and sections
 
-A `##` heading is a **step** by default: numbered, tickable and collapsible.
-Add `layout: sections` to the frontmatter to render headings as **sections**
-instead — anchored, unnumbered, always open — or switch mid-page with
-`---sections` / `---steps` on their own line. The GitHub-safe comment forms
-(`<!-- sections -->` / `<!-- steps -->`) do the same and stay invisible in a
-rendered Markdown view (GitHub, any CommonMark renderer).
+A `##` heading is a **step** by default: numbered, tickable and collapsible. Add `layout: sections` to the frontmatter to render headings as **sections** instead (anchored, unnumbered, always open), or switch mid-page with `---sections` / `---steps` on their own line. The GitHub-safe comment forms (`<!-- sections -->` / `<!-- steps -->`) do the same and stay invisible in a rendered Markdown view (GitHub, any CommonMark renderer).
 
-The two mix freely: a page can explain, hand over a numbered procedure, then
-continue explaining. Numbering counts steps only, the Contents list and
-prev/next do not care which a heading is, and `###` subheadings are anchored
-too.
+The two mix freely: a page can explain, hand over a numbered procedure, then continue explaining. Numbering counts steps only, the Contents list and prev/next do not care which a heading is, and `###` subheadings are anchored too.
 
 <!-- steps -->
 
 ## Resolve the lag
 
-The numbered steps from here to the next separator are a procedure, with the
-same tick boxes and collapse behaviour as any runbook:
+The numbered steps from here to the next separator are a procedure, with the same tick boxes and collapse behaviour as any runbook:
 
 1. Confirm the lag on the replica.
 2. Stop the SQL thread.
@@ -134,9 +114,7 @@ same tick boxes and collapse behaviour as any runbook:
 
 ## Code blocks
 
-Add a language and an optional bracketed label; the label renders a header with
-a per-block "done" checkbox. The language must be lowercase letters (the fence
-regex is `[a-z]*`):
+Add a language and an optional bracketed label; the label renders a header with a per-block "done" checkbox. The language must be lowercase letters (the fence regex is `[a-z]*`):
 
 ```sql [Run on mysql-prod-primary]
 SELECT @@read_only, @@global.gtid_executed;
@@ -145,13 +123,10 @@ SELECT @@read_only, @@global.gtid_executed;
 ## Notices
 
 ```markdown
-> [!info] Informational note.
-> [!warn] Something to be careful about.
-> [!danger] This causes an outage.
+> [!info] Informational note. [!warn] Something to be careful about. [!danger] This causes an outage.
 ```
 
-The GitHub alert keywords (`NOTE`, `TIP`, `IMPORTANT`, `WARNING`, `CAUTION`) are
-accepted and mapped onto info/warn/danger, and the marker is case-insensitive.
+The GitHub alert keywords (`NOTE`, `TIP`, `IMPORTANT`, `WARNING`, `CAUTION`) are accepted and mapped onto info/warn/danger, and the marker is case-insensitive.
 
 ## Decision points
 
@@ -159,22 +134,18 @@ A branch block presents the choices at a fork in the procedure:
 
 ```markdown
 > [!branch]
+>
 > - All good → [Next step](#next-step)
 > - Something broke → [Roll back](#rollback)
 ```
 
 ## Rollback
 
-`---rollback` (or `<!-- rollback -->`) on its own line starts a separate
-rollback section: danger-styled, unnumbered, and read as "what to do if it
-broke". Everything after it is rollback steps.
+`---rollback` (or `<!-- rollback -->`) on its own line starts a separate rollback section: danger-styled, unnumbered, and read as "what to do if it broke". Everything after it is rollback steps.
 
 ## Glossary
 
-One file at the content root, `content/_glossary.yml`, defines the shop's shared
-terms. A configured term highlights wherever prose renders — step and section
-titles, notices, lists, tables — and shows its expansion, detail and optional
-link on hover or focus. Code is never touched.
+One file at the content root, `content/_glossary.yml`, defines the shop's shared terms. A configured term highlights wherever prose renders (step and section titles, notices, lists, tables) and shows its expansion, detail and optional link on hover or focus. Code is never touched.
 
 ```yaml
 - term: MTS
@@ -183,17 +154,13 @@ link on hover or focus. Code is never touched.
   link: https://internal/glossary#mts
 ```
 
-`term` and `expansion` are required; a missing one fails startup. Matching is
-exact, case-sensitive and whole-word, so `IT` never matches "it".
+`term` and `expansion` are required; a missing one fails startup. Matching is exact, case-sensitive and whole-word, so `IT` never matches "it".
 
 ## Conventions
 
-- **Titles lead with the symptom, not the mechanism** — "Replication Lag (MTS
-  Deadlock)", not "MTS Deadlock Recovery". This is a runbook read under duress.
-- **One concern per step.** If a step needs a sub-decision, use `###` or a
-  branch block rather than burying it in prose.
-- **Destructive procedures declare `acknowledge:`** so the reader must confirm
-  before the page is usable; `notice:` stays a passive banner.
+- **Titles lead with the symptom, not the mechanism**: "Replication Lag (MTS Deadlock)", not "MTS Deadlock Recovery". This is a runbook read under duress.
+- **One concern per step.** If a step needs a sub-decision, use `###` or a branch block rather than burying it in prose.
+- **Destructive procedures declare `acknowledge:`** so the reader must confirm before the page is usable; `notice:` stays a passive banner.
 
 ## Where next
 

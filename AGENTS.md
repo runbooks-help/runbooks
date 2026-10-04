@@ -32,8 +32,8 @@ the file.
 | `mise run lintcss` / `mise run fmtcss` | stylelint / Prettier over `public/css/src/**`. |
 | `mise run test` | Go tests + JS unit tests (`node --test`). |
 | `mise run notices` | Regenerate `THIRD_PARTY_NOTICES.md` from the linked modules and vendored assets (`cmd/notices`). |
-| `mise run brand` | Generate the brand assets (logomark, wordmark, lockups, icon) into `brand/` and the mark favicon into `public/favicon.svg`, as outlined SVG + PNG (`cmd/brand`). Needs `woff2_decompress`, `inkscape`, `rsvg-convert`; output is committed. See `docs/internals/brand.md`. |
-| `mise run sbom` / `mise run sbom:image` | SPDX 2.3 + CycloneDX SBOM for the built binary / the container image (syft). See `docs/internals/sbom.md`. |
+| `mise run brand` | Generate the brand assets (logomark, wordmark, lockups, icon) into `brand/` and the mark favicon into `public/favicon.svg`, as outlined SVG + PNG (`cmd/brand`). Needs `woff2_decompress`, `inkscape`, `rsvg-convert`; output is committed. See `specs/runbooks/brand-assets/README.md`. |
+| `mise run sbom` / `mise run sbom:image` | SPDX 2.3 + CycloneDX SBOM for the built binary / the container image (syft). See `specs/runbooks/release-process/README.md`. |
 | `mise run test:e2e` | Browser E2E behind `e2e/harness.mjs` (shared boot + Chromium + virtual authenticator): `passkey.test.mjs` (identity), `runbook.test.mjs` (page interactions), `styleguide.test.mjs` (design-system screenshots). `E2E_SCREENSHOT_DIR=…` writes the screenshots. Needs a system Chromium (`CHROMIUM=/path` to override); `playwright-core` installs into `e2e/` on demand. |
 | `mise run test:e2e:headed` | The same tests in visible windows. `E2E_SLOWMO=ms` paces the actions, `E2E_HOLD_MS=ms` holds at the end of each test (default: run straight through). |
 | `mise run test:e2e:inspect` | Headed with the **Playwright Inspector** (`page.pause()` breakpoints before the setup, invite-enrol and recovery submits). Step over / resume from the inspector window. |
@@ -58,7 +58,7 @@ The living reference is `/styleguide` (dev-gated by `STYLEGUIDE_ENABLED`, set in
 - **Fonts** — self-hosted Atkinson Hyperlegible Next + Mono (variable, latin), plus a
   tiny `Shade Mono` subset (Noto Sans Mono, U+2500–U+2593) that pins the `░▒▓`
   brand mark and the bookshelf glyphs and frame — Atkinson does not contain them,
-  so without it they render through the OS fallback. See `docs/internals/brand.md`.
+  so without it they render through the OS fallback. See `specs/runbooks/brand-assets/README.md`.
   `--mono-weight` is 450, or 600 under `html[data-code-weight="bold"]`.
 - **Radii** — squared (4/6/8px); tickboxes are square, not circles.
 - **Badges** — bracketed `[ label ]`, not filled pills.
@@ -105,14 +105,13 @@ cmd/css, cmd/js      esbuild wrappers (see build pipeline below)
 cmd/notices          generates THIRD_PARTY_NOTICES.md (mise run notices)
 cmd/brand            generates the brand assets into brand/ (mise run brand)
 mise-tasks/          file tasks, one executable per task (see Commands; mise.toml keeps [tools]/[env])
-brand/               generated brand assets: outlined SVG + PNG (committed; see docs/internals/brand.md)
+brand/               generated brand assets: outlined SVG + PNG (committed; see specs/runbooks/brand-assets)
 LICENSE / NOTICE     outbound FSL-1.1-MIT + the third-party notices that must be embedded (OFL, MPL driver)
 DEPENDENCIES.md      dependency inventory + FSL classification
 THIRD_PARTY_NOTICES.md  generated full licence texts (do not hand-edit)
 docs/                the public docs tree, grouped: get-started/ (overview, install),
                      guides/ (writing-runbooks), reference/ (configuration),
-                     operations/ (deployment, identity, agent-access),
-                     internals/ (layout, brand, sbom, troubleshooting)
+                     operations/ (deployment, identity, agent-access)
                      (see specs/runbooks/docs-content)
 tmp/                 air build output
 ```
@@ -286,7 +285,7 @@ frontmatter is a startup error, so it breaks boot. This file is the signpost.
   `.stylelintrc.json` — `code.css` over the syntax highlighter, `responsive.css` the
   override layer), and `declaration-property-unit-allowed-list` bans raw px in
   `margin`/`padding`/`gap` — spacing comes from tokens (use `--space-hair` below
-  `--space-1`). See `docs/internals/layout.md`. Prettier uses tabs, width 100.
+  `--space-1`). See `specs/runbooks/design-system/README.md`. Prettier uses tabs, width 100.
 - **E2E virtual-authenticator options**: Chromium's `WebAuthn.addVirtualAuthenticator`
   names the backup flags `defaultBackupEligibility` / `defaultBackupState`; the
   `hasBackup*` spellings are silently ignored (so BE never gets set). `e2e/passkey.test.mjs`
@@ -311,7 +310,7 @@ frontmatter is a startup error, so it breaks boot. This file is the signpost.
 - `THIRD_PARTY_NOTICES.md` is **generated** (`mise run notices`, `cmd/notices`) —
   never hand-edit it; CI fails on drift. The JS and font licence texts are committed
   beside the assets.
-- `mise run sbom` / `sbom:image` emit SPDX 2.3 + CycloneDX (`docs/internals/sbom.md`); CI
+- `mise run sbom` / `sbom:image` emit SPDX 2.3 + CycloneDX (`specs/runbooks/release-process/README.md`); CI
   uploads them as the `sbom` artifact and, on `v*` tags, keyless-attests the SPDX
   document with cosign.
 
