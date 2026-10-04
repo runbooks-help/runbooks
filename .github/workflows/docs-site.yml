@@ -2,8 +2,9 @@ name: Docs site
 
 # The public docs site is a derived image: the runtime plus a build-time seed of
 # runbooks-help/runbooks-docs. It is not a release artifact (the official image
-# ships no content); Cloudflare Containers deploy it. See
-# specs/runbooks/docs-hosting/README.md.
+# ships no content). Scaleway Serverless Containers deploy it, pulling from the
+# Scaleway Container Registry — the GHCR package is private, so Scaleway cannot
+# pull it directly. See specs/runbooks/docs-hosting/README.md.
 on:
   push:
     branches: [main]
@@ -14,7 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v4
 
@@ -23,16 +23,16 @@ jobs:
         run: |
           DATETIME=$(date -u '+%Y%m%d%H%M%S')
           SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
-          echo "value=ghcr.io/runbooks-help/runbooks-docs-site:main-${DATETIME}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "value=main-${DATETIME}-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v3
 
       - uses: docker/login-action@v3
         if: github.event_name == 'push'
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: rg.fr-par.scw.cloud
+          username: nologin
+          password: ${{ secrets.SCW_SECRET_KEY }}
 
       - uses: docker/build-push-action@v6
         with:
@@ -40,10 +40,33 @@ jobs:
           target: docs
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ${{ steps.tag.outputs.value }}
-            ghcr.io/runbooks-help/runbooks-docs-site:latest
+            ${{ secrets.SCW_IMAGE }}:${{ steps.tag.outputs.value }}
+            ${{ secrets.SCW_IMAGE }}:latest
           build-args: |
             VERSION=docs
             REVISION=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - uses: scaleway/action-scw@v0
+        if: github.event_name == 'push'
+        with:
+          version: v2.63.0
+          access-key: ${{ secrets.SCW_ACCESS_KEY }}
+          secret-key: ${{ secrets.SCW_SECRET_KEY }}
+          default-project-id: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+          export-config: true
+
+      # Point the container at the immutable build tag so a rollout is forced and
+      # the running version is traceable, rather than relying on a moving
+      # `:latest`.
+      - name: Roll out the new image
+        if: github.event_name == 'push'
+        env:
+          SCW_CONTAINER_ID: ${{ secrets.SCW_CONTAINER_ID }}
+          SCW_IMAGE: ${{ secrets.SCW_IMAGE }}
+        run: |
+          scw container container update \
+            container-id="${SCW_CONTAINER_ID}" \
+            image="${SCW_IMAGE}:${{ steps.tag.outputs.value }}" \
+            -w
