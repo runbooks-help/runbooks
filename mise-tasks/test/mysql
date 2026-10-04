@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Run the store contract against the local MySQL from compose.yaml"
+podman compose up -d --wait mysql
+STORES_MYSQL_DSN="root:root@tcp(127.0.0.1:3307)/runbooks_identity" go test -v ./stores/mysql/

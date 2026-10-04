@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="Verify every authored source file carries the FSL SPDX header (use `go run ./cmd/spdx -fix` to apply)"
+go run ./cmd/spdx

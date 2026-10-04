@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Browser E2E in headed mode with the Playwright Inspector (page.pause breakpoints; step over / resume)"
+#MISE depends=["build"]
+npm --prefix e2e install --silent && E2E_INSPECT=1 node --test e2e/

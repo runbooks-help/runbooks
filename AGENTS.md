@@ -15,6 +15,8 @@ CMS**. One page per runbook, served by slug.
 ## Commands
 
 All tasks are mise tasks (`mise install` once to pull Go, templ, gofumpt, Node).
+The task scripts live in `mise-tasks/`, one executable per task (the task name is the
+file's path, `_default` is a group root); `mise.toml` holds only `[tools]` and `[env]`.
 
 | Task | What it does |
 |------|--------------|
@@ -97,6 +99,7 @@ e2e/                 browser E2E: harness.mjs + passkey/runbook/styleguide suite
 cmd/css, cmd/js      esbuild wrappers (see build pipeline below)
 cmd/notices          generates THIRD_PARTY_NOTICES.md (mise run notices)
 cmd/brand            generates the brand assets into brand/ (mise run brand)
+mise-tasks/          file tasks, one executable per task (see Commands; mise.toml keeps [tools]/[env])
 brand/               generated brand assets: outlined SVG + PNG (committed; see docs/brand.md)
 LICENSE / NOTICE     outbound FSL-1.1-MIT + the third-party notices that must be embedded (OFL, MPL driver)
 DEPENDENCIES.md      dependency inventory + FSL classification

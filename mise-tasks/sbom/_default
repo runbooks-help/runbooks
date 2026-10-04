@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Generate SPDX + CycloneDX SBOMs for the built binary"
+#MISE depends=["build"]
+mkdir -p sbom
+syft ./runbooks -o spdx-json=sbom/runbooks.spdx.json -o cyclonedx-json=sbom/runbooks.cdx.json
+echo "wrote sbom/runbooks.spdx.json, sbom/runbooks.cdx.json"

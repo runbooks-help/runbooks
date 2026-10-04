@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Browser E2E: real WebAuthn ceremony (CDP virtual authenticator) against a throwaway instance"
+#MISE depends=["build"]
+npm --prefix e2e install --silent && node --test e2e/

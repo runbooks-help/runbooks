@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="Run a bounded fuzzing round (Go fuzz targets + JS differential fuzz)"
+go test -run=^$ -fuzz=FuzzTransportsRoundTrip -fuzztime=20s ./stores/
+go test -run=^$ -fuzz=FuzzNullStringRoundTrip -fuzztime=20s ./internal/nullable/
+go test -run=^$ -fuzz=FuzzNullJSONUnmarshal -fuzztime=15s ./internal/nullable/
+go test -run=^$ -fuzz=FuzzAuthenticateNeverPanics -fuzztime=15s ./identity/
+go test -run=^$ -fuzz=FuzzFinishRegistrationNeverPanics -fuzztime=20s ./identity/
+go test -run=^$ -fuzz=FuzzFinishLoginNeverPanics -fuzztime=20s ./identity/
+go test -run=^$ -fuzz=FuzzHashTokenDeterministic -fuzztime=15s ./identity/
+FUZZ_ITERATIONS=300000 node --test public/js/src/base64url.fuzz.test.mjs

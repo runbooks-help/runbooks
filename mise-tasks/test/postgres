@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Run the store contract against the local PostgreSQL from compose.yaml"
+podman compose up -d --wait postgres
+STORES_POSTGRES_DSN="postgres://postgres:postgres@127.0.0.1:5433/runbooks_identity?sslmode=disable" go test -v ./stores/postgres/

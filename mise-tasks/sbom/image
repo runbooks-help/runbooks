@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Build the container image and generate SPDX + CycloneDX SBOMs for it"
+podman build -t runbooks:sbom .
+mkdir -p sbom
+syft runbooks:sbom -o spdx-json=sbom/runbooks-image.spdx.json -o cyclonedx-json=sbom/runbooks-image.cdx.json
+echo "wrote sbom/runbooks-image.spdx.json, sbom/runbooks-image.cdx.json"

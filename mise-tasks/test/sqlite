@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="Run the SQLite store against a local on-disk database"
+mkdir -p tmp && STORES_SQLITE_DSN="file:$PWD/tmp/stores.db" go test -run TestLocalDB -v ./stores/sqlite/

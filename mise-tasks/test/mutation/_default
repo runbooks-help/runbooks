@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="Mutation-test the SQLite store, the identity service, the git/content sources and the auth HTTP layer (fast, no database)"
+gremlins unleash ./stores/sqlite
+gremlins unleash ./identity
+gremlins unleash ./contentsource
+gremlins unleash ./internal/gitrepo
+# The auth/admin/recovery HTTP layer is in package main; scope the run to the
+# hand-written handlers so it does not mutate generated views, wiring or
+# git-sync. The styleguide is a dev-only surface, deliberately untested.
+gremlins unleash --exclude-files 'views/|cmd/|parser/|internal/|stores/|identity/|gitsync.go|main.go|config.go|styleguide.go|_test.go' .

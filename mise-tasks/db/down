@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="Stop the local test databases"
+podman compose down -v

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="Run slop (code generation)"
+npx aislop scan --exclude "public/js/vendor,public/js/bundle.js"

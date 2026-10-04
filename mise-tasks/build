@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Generate templ components, compile CSS + JS, and build binary"
+#MISE depends=["generate", "css", "js"]
+go build -ldflags "-X main.version=$(git describe --tags --always --dirty 2>/dev/null || echo dev)" -o runbooks .

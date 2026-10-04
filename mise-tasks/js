@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="Compile JS bundles (one-shot)"
+go run ./cmd/js

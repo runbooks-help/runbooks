@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Run Go and JS tests"
+#MISE depends=["generate"]
+go test ./...
+node --test public/js/src/*.test.mjs

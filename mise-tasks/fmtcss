@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="Format CSS source files with Prettier"
+npx prettier --write 'public/css/src/**/*.css'

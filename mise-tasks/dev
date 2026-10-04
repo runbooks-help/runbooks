@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Live-reload dev server (templ watch + CSS/JS watch + air)"
+#MISE depends=["css", "js"]
+templ generate --watch ./... & TEMPL_PID=$!
+go run ./cmd/css --watch & CSS_PID=$!
+go run ./cmd/js --watch & JS_PID=$!
+trap "kill $CSS_PID $JS_PID $TEMPL_PID 2>/dev/null" EXIT
+air -c .air.toml

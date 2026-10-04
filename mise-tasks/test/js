@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="Run JS unit tests"
+node --test public/js/src/*.test.mjs

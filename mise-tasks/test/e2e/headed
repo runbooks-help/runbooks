@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Browser E2E with a visible window (E2E_SLOWMO to pace it); close the window to finish"
+#MISE depends=["build"]
+npm --prefix e2e install --silent && E2E_HEADED=1 E2E_SLOWMO=${E2E_SLOWMO:-600} node --test e2e/
