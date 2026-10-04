@@ -19,7 +19,7 @@ docker run -d --name runbooks \
   ghcr.io/ladydascalie/runbooks:latest
 ```
 
-Open <http://localhost:8090>.
+Open [localhost:8090](http://localhost:8090).
 
 - `/app/content` is the content root (`CONTENT_DIR`). If it is empty the index
   renders a welcome page — add a `.md` file to populate it.

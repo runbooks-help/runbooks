@@ -27,7 +27,8 @@ Both are written on every run:
   `runbooks` (the same set as `DEPENDENCIES.md` § 1).
 - **`mise run sbom:image`** — builds the container image and SBOMs it. This is
   the actually-shipped artifact, so it adds the Alpine base and its apk packages
-  (`git`, `openssh-client`, `ca-certificates`) on top of the binary's modules.
+  (`ca-certificates`) on top of the binary's modules. The image carries no system
+  `git`: content and notes sync use `go-git`.
 
 ```bash
 mise run sbom          # binary
