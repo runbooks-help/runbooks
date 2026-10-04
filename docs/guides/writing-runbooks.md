@@ -104,7 +104,7 @@ The two mix freely: a page can explain, hand over a numbered procedure, then con
 
 ## Resolve the lag
 
-The numbered steps from here to the next separator are a procedure, with the same tick boxes and collapse behaviour as any runbook:
+The numbered steps from here to the next separator are a procedure, with the same tick boxes and collapse behaviour as every other step:
 
 1. Confirm the lag on the replica.
 2. Stop the SQL thread.
@@ -114,7 +114,7 @@ The numbered steps from here to the next separator are a procedure, with the sam
 
 ## Code blocks
 
-Add a language and an optional bracketed label; the label renders a header with a per-block "done" checkbox. The language must be lowercase letters (the fence regex is `[a-z]*`):
+Add a language and an optional bracketed label; the label renders a header with a per-block "done" checkbox. The language tag must be lowercase letters:
 
 ```sql [Run on mysql-prod-primary]
 SELECT @@read_only, @@global.gtid_executed;
@@ -145,7 +145,7 @@ A branch block presents the choices at a fork in the procedure:
 
 ## Glossary
 
-One file at the content root, `content/_glossary.yml`, defines the shop's shared terms. A configured term highlights wherever prose renders (step and section titles, notices, lists, tables) and shows its expansion, detail and optional link on hover or focus. Code is never touched.
+One file at the content root, `content/_glossary.yml`, defines the shared terms for the instance. A configured term highlights wherever prose renders (step and section titles, notices, lists, tables) and shows its expansion, detail and optional link on hover or focus. Code is never touched.
 
 ```yaml
 - term: MTS

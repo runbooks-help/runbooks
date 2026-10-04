@@ -3,7 +3,7 @@ title: Configuration
 slug: configuration
 order: 1
 layout: sections
-description: Every setting is an environment variable; this is the full configuration reference.
+description: The full configuration reference; every setting is an environment variable.
 ---
 
 Everything is an environment variable; there is no config file. The defaults are what the container runs with.
@@ -70,7 +70,7 @@ A credential is an HTTPS token (`GITSYNC_TOKEN`), an explicit SSH private key (`
 | `GITSYNC_SSH_KEY` | _(unset)_ | Private key path for SSH remotes; omit to use the ambient SSH agent. |
 | `GITSYNC_API_TOKEN` | _(unset)_ | Shared bearer that gates the sync endpoint, for CI/automation and for identity-off deployments. |
 
-Each sync writes a new, immutable snapshot directory under the base path, `<GITSYNC_BASE_PATH>/<YYYY-MM-DD>T<HHMMSSZ>-<slug>/` (UTC), so every state of play stays in the record tree; a re-sync with no changes is skipped.
+Each sync writes a new, immutable snapshot directory under the base path, `<GITSYNC_BASE_PATH>/<YYYY-MM-DD>T<HHMMSSZ>-<slug>/` (UTC), so every sync is preserved; a re-sync with no changes is skipped.
 
 With identity on, a signed-in user's commit is authored as that user (`DisplayName <Email>`); `GITSYNC_AUTHOR_*` applies only when the user has no email, and `GITSYNC_API_TOKEN` is the non-human fallback.
 

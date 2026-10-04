@@ -57,7 +57,7 @@ Every setting is an environment variable; the full list is [Configuration](../re
 
 ## Build from source
 
-The image is the supported distributable, but the FSL always permits building:
+The image is the supported distribution. The FSL permits building from source:
 
 ```bash [Build and run]
 mise install

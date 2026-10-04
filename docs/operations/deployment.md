@@ -18,7 +18,7 @@ description: Storage, backups, content sources and upgrading a deployment.
 
 Runbooks are read from a **source**, selected by `CONTENT_SOURCE`:
 
-- `local` (default): read `CONTENT_DIR` directly. Mount your content there, or point it wherever you like.
+- `local` (default): read `CONTENT_DIR` directly. Mount your content there.
 - `git`: clone `GITSYNC_REPO` (branch `GITSYNC_BRANCH`) into `CONTENT_GIT_CACHE` and read `CONTENT_GIT_PATH` inside it. Content sits at the repo root; the notes records path (`GITSYNC_BASE_PATH`) is skipped by the content walk.
 
 ### SSH credentials

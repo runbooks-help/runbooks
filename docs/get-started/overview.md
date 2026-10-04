@@ -33,7 +33,7 @@ By default the app is public: no accounts, no database. Turn on passkey (WebAuth
 
 ## Who it is for
 
-Solo operators, small teams and studios who keep their operational knowledge in files and want it readable in the moment. It is deliberately **not** for large enterprises: no procurement process, no on-prem SSO tier, no "Contact Sales".
+Solo operators, small teams and studios who keep their operational knowledge in files and want it readable in the moment. It is not aimed at large enterprises: there is no procurement process, no on-prem SSO tier and no enterprise sales motion.
 
 ## Licence
 

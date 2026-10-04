@@ -118,7 +118,7 @@ step: "Configuration" section=true
     row ["`PUBLIC_URL`" "_(unset)_" "Absolute site base; enables canonical/OpenGraph tags and `/sitemap.xml`."]
     row ["`IDENTITY_DB_DRIVER`" "_(unset)_" "`sqlite`, `mysql` or `postgres`; unset leaves the app public."]
 step: "Build from source" section=true
-  prose "The image is the supported distributable, but the FSL always permits building:"
+  prose "The image is the supported distribution. The FSL permits building from source:"
   code lang="bash" label="Build and run" body="mise install\nmise run build\n./runbooks            # serves on :8090, reads ./content"
 step: "Where next" section=true
   list ordered=false
@@ -146,7 +146,7 @@ step: "The mental model" section=true
 step: "Identity is optional" section=true
   prose "By default the app is public: no accounts, no database. Turn on passkey (WebAuthn) identity, or delegate to an upstream proxy/SSO gateway, to gate reads and attribute writes to named users. It is off until you configure it, and when it is on the instance is private (crawlers are disallowed)."
 step: "Who it is for" section=true
-  prose "Solo operators, small teams and studios who keep their operational knowledge in files and want it readable in the moment. It is deliberately **not** for large enterprises: no procurement process, no on-prem SSO tier, no \"Contact Sales\"."
+  prose "Solo operators, small teams and studios who keep their operational knowledge in files and want it readable in the moment. It is not aimed at large enterprises: there is no procurement process, no on-prem SSO tier and no enterprise sales motion."
 step: "Licence" section=true
   prose "Runbooks is **source-available** under FSL-1.1-MIT: free to self-host, modify and use commercially, with no competing-use right, and each release converts to MIT two years after publication."
 step: "Where next" section=true
@@ -191,13 +191,13 @@ step: "Steps and sections" section=true
   prose "A `##` heading is a **step** by default: numbered, tickable and collapsible. Add `layout: sections` to the frontmatter to render headings as **sections** instead (anchored, unnumbered, always open), or switch mid-page with `---sections` / `---steps` on their own line. The GitHub-safe comment forms (`<!-- sections -->` / `<!-- steps -->`) do the same and stay invisible in a rendered Markdown view (GitHub, any CommonMark renderer)."
   prose "The two mix freely: a page can explain, hand over a numbered procedure, then continue explaining. Numbering counts steps only, the Contents list and prev/next do not care which a heading is, and `###` subheadings are anchored too."
 step: "Resolve the lag" section=false
-  prose "The numbered steps from here to the next separator are a procedure, with the same tick boxes and collapse behaviour as any runbook:"
+  prose "The numbered steps from here to the next separator are a procedure, with the same tick boxes and collapse behaviour as every other step:"
   list ordered=true
     item "Confirm the lag on the replica."
     item "Stop the SQL thread."
     item "Clear the deadlock and restart the thread."
 step: "Code blocks" section=true
-  prose "Add a language and an optional bracketed label; the label renders a header with a per-block \"done\" checkbox. The language must be lowercase letters (the fence regex is `[a-z]*`):"
+  prose "Add a language and an optional bracketed label; the label renders a header with a per-block \"done\" checkbox. The language tag must be lowercase letters:"
   code lang="sql" label="Run on mysql-prod-primary" body="SELECT @@read_only, @@global.gtid_executed;"
 step: "Notices" section=true
   code lang="markdown" label="" body="> [!info] Informational note. [!warn] Something to be careful about. [!danger] This causes an outage."
@@ -208,7 +208,7 @@ step: "Decision points" section=true
 step: "Rollback" section=true
   prose "`---rollback` (or `<!-- rollback -->`) on its own line starts a separate rollback section: danger-styled, unnumbered, and read as \"what to do if it broke\". Everything after it is rollback steps."
 step: "Glossary" section=true
-  prose "One file at the content root, `content/_glossary.yml`, defines the shop's shared terms. A configured term highlights wherever prose renders (step and section titles, notices, lists, tables) and shows its expansion, detail and optional link on hover or focus. Code is never touched."
+  prose "One file at the content root, `content/_glossary.yml`, defines the shared terms for the instance. A configured term highlights wherever prose renders (step and section titles, notices, lists, tables) and shows its expansion, detail and optional link on hover or focus. Code is never touched."
   code lang="yaml" label="" body="- term: MTS\n  expansion: Multi-Threaded Replica\n  description: MySQL replica applying transactions in parallel workers.\n  link: https://internal/glossary#mts"
   prose "`term` and `expansion` are required; a missing one fails startup. Matching is exact, case-sensitive and whole-word, so `IT` never matches \"it\"."
 step: "Conventions" section=true
@@ -255,7 +255,7 @@ step: "Storage" section=true
 step: "Content" section=true
   prose "Runbooks are read from a **source**, selected by `CONTENT_SOURCE`:"
   list ordered=false
-    item "`local` (default): read `CONTENT_DIR` directly. Mount your content there, or point it wherever you like."
+    item "`local` (default): read `CONTENT_DIR` directly. Mount your content there."
     item "`git`: clone `GITSYNC_REPO` (branch `GITSYNC_BRANCH`) into `CONTENT_GIT_CACHE` and read `CONTENT_GIT_PATH` inside it. Content sits at the repo root; the notes records path (`GITSYNC_BASE_PATH`) is skipped by the content walk."
   heading "SSH credentials"
   prose "SSH remotes authenticate with the **ambient SSH agent** by default: with no `GITSYNC_SSH_KEY` and no `GITSYNC_TOKEN`, `go-git` connects through `$SSH_AUTH_SOCK`, so a running `ssh-agent`, 1Password, or equivalent is enough on a workstation; there is nothing to configure. Host keys are verified against `SSH_KNOWN_HOSTS`, then `~/.ssh/known_hosts` / `/etc/ssh/ssh_known_hosts`; there is no `accept-new`, so the host must already be known."
@@ -297,7 +297,7 @@ step: "Version" section=true
 ===== ../docs/operations/identity.md =====
 intro:
   prose "Runbooks can require named users, so that reads are gated and writes are attributed to a person. It is **off by default**: with no identity database configured the app is public and the sync API is gated by `GITSYNC_API_TOKEN`."
-  prose "Sign-in is by **passkey** (WebAuthn). There is no password and no shared secret, and no email is sent: registration is invite-only and the first admin is created with a bootstrap token."
+  prose "Sign-in is by **passkey** (WebAuthn): no password, no shared secret, no email. Registration is invite-only, and the first admin is created with a bootstrap token."
 step: "Enabling" section=true
   table headers=["Var" "Meaning" "Default"]
     row ["`IDENTITY_DB_DRIVER`" "`sqlite`, `mysql` or `postgres`" "_(unset, identity off)_"]
@@ -374,6 +374,6 @@ step: "Git sync" section=true
     row ["`GITSYNC_TOKEN`" "_(unset)_" "HTTPS access token."]
     row ["`GITSYNC_SSH_KEY`" "_(unset)_" "Private key path for SSH remotes; omit to use the ambient SSH agent."]
     row ["`GITSYNC_API_TOKEN`" "_(unset)_" "Shared bearer that gates the sync endpoint, for CI/automation and for identity-off deployments."]
-  prose "Each sync writes a new, immutable snapshot directory under the base path, `<GITSYNC_BASE_PATH>/<YYYY-MM-DD>T<HHMMSSZ>-<slug>/` (UTC), so every state of play stays in the record tree; a re-sync with no changes is skipped."
+  prose "Each sync writes a new, immutable snapshot directory under the base path, `<GITSYNC_BASE_PATH>/<YYYY-MM-DD>T<HHMMSSZ>-<slug>/` (UTC), so every sync is preserved; a re-sync with no changes is skipped."
   prose "With identity on, a signed-in user's commit is authored as that user (`DisplayName <Email>`); `GITSYNC_AUTHOR_*` applies only when the user has no email, and `GITSYNC_API_TOKEN` is the non-human fallback."
   prose "The git transport is `go-git` (pure Go); no system `git` binary is needed. SSH remotes are verified against `known_hosts` (`SSH_KNOWN_HOSTS`, then `~/.ssh/known_hosts` / `/etc/ssh/ssh_known_hosts`); there is no `accept-new`, so the host key must already be present."

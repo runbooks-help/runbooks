@@ -8,7 +8,7 @@ description: Passkey sign-in, proxy delegation, and gating reads on named users.
 
 Runbooks can require named users, so that reads are gated and writes are attributed to a person. It is **off by default**: with no identity database configured the app is public and the sync API is gated by `GITSYNC_API_TOKEN`.
 
-Sign-in is by **passkey** (WebAuthn). There is no password and no shared secret, and no email is sent: registration is invite-only and the first admin is created with a bootstrap token.
+Sign-in is by **passkey** (WebAuthn): no password, no shared secret, no email. Registration is invite-only, and the first admin is created with a bootstrap token.
 
 ## Enabling
 
