@@ -4,10 +4,21 @@ package components
 
 import "runbooks/views/markup"
 
-templ ListBlock(items []string, terms []string) {
-	<ul class="prose-list">
-		for _, item := range items {
-			<li>@templ.Raw(markup.ProseGlossary(item, terms))</li>
-		}
-	</ul>
+// ListBlock renders a bullet list (ordered=false) or a numbered list
+// (ordered=true). Items go through the inline renderer, so glossary terms and
+// `code` still apply.
+templ ListBlock(items []string, ordered bool, terms []string) {
+	if ordered {
+		<ol class="prose-list">
+			for _, item := range items {
+				<li>@templ.Raw(markup.ProseGlossary(item, terms))</li>
+			}
+		</ol>
+	} else {
+		<ul class="prose-list">
+			for _, item := range items {
+				<li>@templ.Raw(markup.ProseGlossary(item, terms))</li>
+			}
+		</ul>
+	}
 }

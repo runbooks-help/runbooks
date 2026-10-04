@@ -353,7 +353,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 
 					<section class="sg-section" id="table">
 						<h3>List &amp; table <span class="sg-atom">molecule</span></h3>
-						@components.ListBlock([]string{"First item — plain text", "Second item with `inline code` and **bold**", "Third item, long enough to wrap onto a second line"}, nil)
+						@components.ListBlock([]string{"First item — plain text", "Second item with `inline code` and **bold**", "Third item, long enough to wrap onto a second line"}, false, nil)
 						@components.TableBlock([]string{"Column", "Meaning", "Example"}, [][]string{
 							{"`HOST`", "Target host", "`db-2.prod.internal`"},
 							{"`PROCESSLIST_ID`", "Blocked worker", "`4123`"},

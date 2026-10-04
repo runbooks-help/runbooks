@@ -47,6 +47,7 @@ type Block struct {
 	Headers []string   // KindTable
 	Rows    [][]string // KindTable
 	Items   []string   // KindList
+	Ordered bool       // KindList: render as <ol> rather than <ul>
 }
 
 type Step struct {
@@ -355,6 +356,7 @@ var (
 	blockquoteRe  = regexp.MustCompile(`^>\s?(.*)$`)
 	fenceInfoRe   = regexp.MustCompile(`^([a-z]*)\s*(?:\[([^\]]*)\])?$`)
 	directiveRe   = regexp.MustCompile(`^(?:---(rollback|sections|steps)|<!--\s*(rollback|sections|steps)\s*-->)\s*$`)
+	orderedItemRe = regexp.MustCompile(`^\d+\.\s`)
 )
 
 // parseTableLine splits a markdown table row into trimmed cell strings.
@@ -526,6 +528,7 @@ func Parse(data []byte) (RunbookDef, error) {
 		inTable        bool
 		tableLines     []string
 		inList         bool
+		listOrdered    bool
 		listItems      []string
 		inNotice       bool
 		noticeVar      string
@@ -590,11 +593,13 @@ func Parse(data []byte) (RunbookDef, error) {
 		inList = false
 		if currentStep != nil && len(listItems) > 0 {
 			currentStep.Blocks = append(currentStep.Blocks, Block{
-				Kind:  KindList,
-				Items: listItems,
+				Kind:    KindList,
+				Items:   listItems,
+				Ordered: listOrdered,
 			})
 		}
 		listItems = nil
+		listOrdered = false
 	}
 
 	flushTable := func() {
@@ -749,12 +754,24 @@ func Parse(data []byte) (RunbookDef, error) {
 			continue
 		}
 
-		if strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "* ") {
+		if bullet := strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "* "); bullet || orderedItemRe.MatchString(line) {
+			ordered := orderedItemRe.MatchString(line)
 			if !inList {
 				flushProse()
 				inList = true
+				listOrdered = ordered
+			} else if ordered != listOrdered {
+				// A change of list kind (bullet ↔ numbered) starts a new list rather
+				// than mixing markers.
+				flushList()
+				inList = true
+				listOrdered = ordered
 			}
-			listItems = append(listItems, strings.TrimSpace(line[2:]))
+			item := line[2:]
+			if ordered {
+				item = orderedItemRe.ReplaceAllString(line, "")
+			}
+			listItems = append(listItems, strings.TrimSpace(item))
 			continue
 		}
 

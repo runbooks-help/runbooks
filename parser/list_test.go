@@ -30,6 +30,31 @@ func TestParseMultiLineListItem(t *testing.T) {
 	}
 }
 
+// TestParseOrderedList pins that `1.` / `2.` render as a numbered list (Ordered),
+// distinct from a bullet list, and that a kind change starts a new block.
+func TestParseOrderedList(t *testing.T) {
+	src := "---\ntitle: X\nslug: x\n---\n\n## Step\n\n" +
+		"1. first\n2. second\n\n" +
+		"- bullet\n"
+	def, err := Parse([]byte(src))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	blocks := def.Steps[0].Blocks
+	if len(blocks) != 2 {
+		t.Fatalf("blocks = %#v, want a numbered list then a bullet list", blocks)
+	}
+	if blocks[0].Kind != KindList || !blocks[0].Ordered || len(blocks[0].Items) != 2 {
+		t.Errorf("block 0 = %#v, want an ordered 2-item list", blocks[0])
+	}
+	if want := "first"; blocks[0].Items[0] != want {
+		t.Errorf("item 0 = %q, want %q", blocks[0].Items[0], want)
+	}
+	if blocks[1].Kind != KindList || blocks[1].Ordered || len(blocks[1].Items) != 1 {
+		t.Errorf("block 1 = %#v, want an unordered 1-item list", blocks[1])
+	}
+}
+
 // TestParseListThenTable pins that a table line still ends the list rather than
 // being swallowed as a continuation.
 func TestParseListThenTable(t *testing.T) {
