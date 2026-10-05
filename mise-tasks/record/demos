@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+#MISE description="Record the landing-page demo clips into dist/demos (browser flow via CDP screencast, terminal flows via vhs)"
+#MISE depends=["build"]
+#
+# The clips are generated artefacts of the marketing site, not of the app: only
+# the rendered bytes belong in runbooks-site, under media/. The browser clip is a
+# recording driven by e2e/demos/reader.mjs (which asserts what it films) and
+# encoded by e2e/demos/screencast.mjs; the terminal clips are vhs tapes that drive
+# a throwaway container.
+set -euo pipefail
+
+out="${DEMO_OUT:-dist/demos}"
+raw="$out/raw"
+mkdir -p "$raw"
+
+# The terminal clips type `docker`, the command a reader will use. Where Docker
+# is not installed a podman shim stands in for the recording only.
+shim=""
+if ! command -v docker >/dev/null 2>&1; then
+	shim="$(mktemp -d)"
+	printf '#!/bin/sh\nexec podman "$@"\n' >"$shim/docker"
+	chmod +x "$shim/docker"
+	export PATH="$shim:$PATH"
+fi
+
+npm --prefix e2e install --silent
+
+# The container both terminal clips use; remove it before and after, so a run
+# starts clean and leaves nothing behind (vhs can end its shell before a
+# teardown typed inside the tape has finished).
+cleanup() {
+	docker rm -f runbooks >/dev/null 2>&1 || true
+}
+trap 'cleanup; [ -z "$shim" ] || rm -rf "$shim"' EXIT
+cleanup
+
+# The browser clip drops its own lead-in while recording (reader.mjs, `skip`), so
+# the published file is the recording rather than a cut of it.
+DEMO_OUT="$out" node e2e/demos/reader.mjs
+
+# vhs owns its own ffmpeg pipeline and writes Raw WebM.
+vhs e2e/demos/quickstart.tape
+cleanup # free the name the next clip starts a container under
+vhs e2e/demos/agent-surface.tape
+
+# The terminal clips are transcoded here: vhs encodes loosely, and the browser
+# clip is already final (its own recorder encodes the lossless frames once).
+for name in quickstart agent-surface; do
+	src="$raw/$name.webm"
+	[ -f "$src" ] || {
+		echo "record:demos: missing $src" >&2
+		exit 1
+	}
+	ffmpeg -y -loglevel error -i "$src" -an \
+		-c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -movflags +faststart \
+		"$out/$name.mp4"
+done
+
+for name in reader quickstart agent-surface; do
+	# The poster is the reduced-motion fallback, so take it from a moment with
+	# the point of the clip on screen rather than the first frame. The browser
+	# clip's offset is against the published clip, whose first 4s the recorder
+	# never wrote.
+	src="$out/$name.mp4"
+	case "$name" in
+		# 14s into the file is the ticked-blocks moment (18s into the recording,
+		# minus the 4s lead-in reader.mjs drops before writing anything).
+		reader) poster_at=14 ;;
+		quickstart) poster_at=6 ;;
+		agent-surface) poster_at=9 ;;
+	esac
+	ffmpeg -y -loglevel error -ss "$poster_at" -i "$src" -frames:v 1 -q:v 2 "$out/$name-poster.jpg"
+done
+
+echo "demos written to $out:"
+ls -lh "$out"/*.mp4 "$out"/*-poster.jpg

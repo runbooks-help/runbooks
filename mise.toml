@@ -5,6 +5,8 @@ go = "latest"
 gofumpt = "latest"
 node = "latest"
 "go:github.com/go-gremlins/gremlins/cmd/gremlins" = "latest"
+vhs = "latest"
+ttyd = "latest"
 
 [env]
 PORT = "8091"

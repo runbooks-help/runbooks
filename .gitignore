@@ -1,6 +1,7 @@
 /runbooks
 /tmp/
 /sbom/
+/dist/
 content/testdata
 
 # Personal/secret dev values (injected by mise via [env] _.file = ".env")
