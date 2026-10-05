@@ -1,6 +1,6 @@
 # Runbooks
 
-A lightweight Go web app that renders operational runbooks as interactive step-by-step pages. Runbooks are plain Markdown files with YAML frontmatter — no database, no CMS.
+A lightweight Go web app that renders operational runbooks as interactive step-by-step pages. Runbooks are plain Markdown files with YAML frontmatter. There is no CMS, and content is never stored in a database.
 
 ## Setup
 
@@ -10,7 +10,7 @@ Install [mise](https://mise.jdx.dev/), then let it pull the toolchain:
 mise install
 ```
 
-This installs Go, templ, gofumpt, and Node.
+This installs Go, templ, gofumpt, Node, syft and gremlins.
 
 Optional personal dev values (the git-sync repo, commit identity and API token)
 come from a git-ignored `.env` injected by mise. Copy `.env.example` to `.env`
@@ -36,8 +36,8 @@ Produces a single `runbooks` binary with all assets embedded.
 ## Install & operate
 
 The app runs from the container image and reads your runbooks from a mounted
-directory — see the [install quickstart](https://docs.runbooks.help/install) for
-the quickstart. Every setting is an environment variable: the
+directory. See the [install quickstart](https://docs.runbooks.help/install) to
+start. Every setting is an environment variable: the
 [configuration reference](https://docs.runbooks.help/configuration) is the full
 reference, and [deployment](https://docs.runbooks.help/deployment)
 covers storage, backups and upgrading.
@@ -48,7 +48,7 @@ Serving a public, crawler-friendly site: set `PUBLIC_URL` to the absolute base
 
 ## Identity
 
-Identity — passkey sign-in, or delegation to an upstream proxy/SSO gateway — is
+Identity (passkey sign-in, or delegation to an upstream proxy/SSO gateway) is
 optional and off by default. To gate reads and attribute writes to named users, see
 [identity](https://docs.runbooks.help/identity).
 
@@ -84,8 +84,8 @@ unnumbered sections instead, and a single page can mix the two. `vars` become
 sent to the server. `---rollback` starts a rollback section, and
 `> [!info]` / `> [!warn]` / `> [!danger]` render notices.
 
-The full format — every frontmatter field, code labels, branch blocks, the
-glossary, and the authoring conventions — is
+The full format (every frontmatter field, code labels, branch blocks, the
+glossary, and the authoring conventions) is
 [Writing a runbook](https://docs.runbooks.help/writing-runbooks).
 
 ### Index page
@@ -94,7 +94,7 @@ glossary, and the authoring conventions — is
 runbook as a card grouped by system/category. The filter matches title,
 description, `symptoms`, and the system/category names (phrase first, then
 "all words present"). "Common issues" is built
-from runbooks marked `common: true` — each contributes its first symptom as the
+from runbooks marked `common: true`; each contributes its first symptom as the
 label and links to the runbook, in sidebar order. Keep `symptoms:` on every
 runbook for search, and reserve `common: true` for the shortlist. There is no
 separate index file to maintain.
@@ -102,7 +102,7 @@ separate index file to maintain.
 ## Agent access
 
 Runbooks are plain Markdown, so a local agent is best served by cloning the
-repo and reading `content/` directly — no API, no credentials. For a remote
+repo and reading `content/` directly, with no API and no credentials. For a remote
 agent, an identity-enabled instance exposes a read-only surface (`/llms.txt`,
 `/<slug>.md`, `/api/runbooks/v1/search`) authorised by a read-scoped API key
 created at `/account`. See

@@ -2,13 +2,13 @@
 title: How to write a runbook (starter guide)
 slug: writing-runbooks
 order: 0
-description: A working example of the runbook format and the authoring conventions — safe to delete once your own runbooks exist.
+description: A working example of the runbook format and the authoring conventions; safe to delete once your own runbooks exist.
 symptoms:
   - authoring
   - frontmatter
   - runbook syntax
   - how to write a runbook
-notice: "Starter guide — this page teaches the format and is safe to delete."
+notice: "Starter guide: this page teaches the format and is safe to delete."
 vars:
   - id: guide-host
     label: Example target host
@@ -28,7 +28,7 @@ This page is a runbook about writing runbooks. Read it, copy the patterns, then 
 
 ## Where runbooks live
 
-The filesystem is the taxonomy — there is no database and no CMS. A runbook is a Markdown file with YAML frontmatter:
+The filesystem is the taxonomy: there is no database and no CMS. A runbook is a Markdown file with YAML frontmatter:
 
 ```text [Content layout]
 content/<system>/<category>/<file>.md
@@ -37,9 +37,9 @@ content/<system>/<category>/<file>.md
 - `<system>` becomes a top-level sidebar group (the directory name, title-cased).
 - `<category>` becomes a subheading under the system.
 - A file directly under the system (`content/<system>/<file>.md`) has no subheading.
-- The URL is `/<slug>`, and `slug` comes from frontmatter — not the filename.
+- The URL is `/<slug>`, and `slug` comes from frontmatter, not the filename.
 
-Directory names map to display names and sidebar order in `parser/parser.go` (`systemLabels`, `systemOrder`, `categoryOrder`). Within a category, runbooks sort by the optional `order:` field, then by title. Content is read from disk at runtime, so edits need no rebuild — just refresh.
+Directory display names and sidebar order live in one manifest, `content/_meta.yml`: an ordered list where position is the order. Unlisted directories are appended after the listed ones, title-cased and alphabetical. Within a category, runbooks sort by the optional `order:` field, then by title. Content is read from disk at runtime, so edits need no rebuild, just refresh.
 
 ## Frontmatter
 
@@ -55,7 +55,7 @@ Only `title` and `slug` are required; everything else is optional.
 | `common` | `true` pins it into the "Common issues" shortlist. |
 | `notice` | A passive banner above the body. |
 | `acknowledge` | Marks the runbook destructive: the page is gated behind an "I understand" dialog until accepted (once per session). |
-| `vars` | Runtime inputs — see the next step. |
+| `vars` | Runtime inputs: see the next step. |
 
 ## Inputs with `vars`
 
@@ -66,7 +66,7 @@ ssh "{{HOST}}"
 systemctl --user restart "{{SERVICE}}"
 ```
 
-- Give the diagnostic lookup to a `hint` rather than a literal `<placeholder>` in the code — angle brackets inside a fence look like real syntax.
+- Give the diagnostic lookup to a `hint` rather than a literal `<placeholder>` in the code; angle brackets inside a fence look like real syntax.
 - Set `secret: true` to render a password field.
 - Substitution happens in the browser, so values **never leave the page**.
 
@@ -74,7 +74,7 @@ systemctl --user restart "{{SERVICE}}"
 
 `## Heading` starts a numbered step. `### Heading` splits a long step without starting a new card. A step body takes ordinary Markdown: **bold**, *italic*, `inline code`, [links](https://example.com), bullet lists and tables.
 
-> [!info] Titles lead with the symptom, not the mechanism — a runbook is read under duress.
+> [!info] Titles lead with the symptom, not the mechanism; a runbook is read under duress.
 
 For a destructive runbook, don't rely on a banner: add `acknowledge:` and the reader must accept it before the page is usable.
 
@@ -117,7 +117,7 @@ styling:
 ---rollback
 ```
 
-That is the whole format — delete this file, and any other content you don't need,
+That is the whole format; delete this file, and any other content you don't need,
 from `content/` when you are done.
 
 ---rollback
