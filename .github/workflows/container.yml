@@ -122,11 +122,11 @@ jobs:
 
           Attached: the SPDX 2.3 and CycloneDX SBOMs for that exact image.
           Verify the signature and the SBOM attestation with cosign
-          (`cosign verify` / `cosign verify-attestation`).
+          (\`cosign verify\` / \`cosign verify-attestation\`).
           EOF
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --title "$TITLE" --notes-file "$NOTES"
           else
-            gh release create "$TAG" --title "$TITLE" --notes-file "$NOTES"
+            gh release create "$TAG" --title "$TITLE" --notes-file "$NOTES" --draft
           fi
           gh release upload "$TAG" sbom/runbooks.spdx.json sbom/runbooks.cdx.json --clobber
