@@ -108,8 +108,16 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF_NAME}"
+          MAJOR="${TAG%%.*}"
+          CODENAME="$(grep -m1 "^<!-- codename:${MAJOR} " CODENAMES.md | sed -e "s/^<!-- codename:${MAJOR} //" -e 's/ -->$//' || true)"
+          TITLE="${TAG}"
+          if [ -n "$CODENAME" ]; then
+            TITLE="${TAG} — ${CODENAME}"
+          fi
           NOTES="$(mktemp)"
           cat > "$NOTES" <<EOF
+          ${TITLE}
+
           Container image: ghcr.io/runbooks-help/runbooks@${IMAGE_DIGEST}
 
           Attached: the SPDX 2.3 and CycloneDX SBOMs for that exact image.
@@ -117,8 +125,8 @@ jobs:
           (`cosign verify` / `cosign verify-attestation`).
           EOF
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG" --notes-file "$NOTES"
+            gh release edit "$TAG" --title "$TITLE" --notes-file "$NOTES"
           else
-            gh release create "$TAG" --title "$TAG" --notes-file "$NOTES"
+            gh release create "$TAG" --title "$TITLE" --notes-file "$NOTES"
           fi
           gh release upload "$TAG" sbom/runbooks.spdx.json sbom/runbooks.cdx.json --clobber
