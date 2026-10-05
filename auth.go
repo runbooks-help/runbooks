@@ -999,7 +999,7 @@ func (a *auth) clearSession(w http.ResponseWriter) {
 }
 
 // adminExists reports whether the instance already has an enabled admin who can
-// log in — an admin holding at least one passkey. An admin row with no credential
+// log in: an admin holding at least one passkey. An admin row with no credential
 // is the orphan of an abandoned /setup and must not close bootstrap.
 func (a *auth) adminExists(ctx context.Context) bool {
 	users, err := a.st.ListUsers(ctx)
@@ -1018,7 +1018,7 @@ func (a *auth) adminExists(ctx context.Context) bool {
 	return false
 }
 
-// pendingAdmin returns an enabled admin that holds no credential — the orphan of
+// pendingAdmin returns an enabled admin that holds no credential, the orphan of
 // an abandoned /setup, which the next setup/begin re-uses rather than duplicating.
 func (a *auth) pendingAdmin(ctx context.Context) (stores.User, bool) {
 	users, err := a.st.ListUsers(ctx)

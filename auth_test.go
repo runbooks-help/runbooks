@@ -407,7 +407,7 @@ func TestInviteFlow(t *testing.T) {
 		t.Fatalf("CreateInvite re-enrol: %v", err)
 	}
 	reClient := newClient(t)
-	// A bound invite hides the name step — it re-enrols an existing user.
+	// A bound invite hides the name step; it re-enrols an existing user.
 	if code, body := get(t, reClient, srv.URL+"/invite/"+re); code != http.StatusOK || bytes.Contains(body, []byte(`name="display_name"`)) {
 		t.Fatalf("re-enrolment invite page = %d %q, want no name step", code, body)
 	}
@@ -1307,7 +1307,7 @@ func TestAccountHandlers(t *testing.T) {
 		t.Errorf("passkeys/begin = %d %s, want 200 with options", code, body)
 	}
 
-	// Add a second passkey through the account endpoint — the flow the browser E2E
+	// Add a second passkey through the account endpoint: the flow the browser E2E
 	// cannot drive with a single virtual authenticator. Covers the success path
 	// and the label.
 	code, beginBody := postJSON(t, client, srv.URL+"/api/auth/v1/passkeys/begin", nil)
@@ -1418,7 +1418,7 @@ func TestGitSyncSessionAttribution(t *testing.T) {
 		t.Errorf("commit author = %q, want %q", got, want)
 	}
 
-	// A member may sync too — v1 authorization is instance-wide, not per-runbook.
+	// A member may sync too; v1 authorization is instance-wide, not per-runbook.
 	raw, err := svc.CreateInvite(context.Background(), adminID, stores.RoleMember, "", time.Hour)
 	if err != nil {
 		t.Fatalf("CreateInvite: %v", err)

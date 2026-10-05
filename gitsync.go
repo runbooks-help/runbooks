@@ -95,7 +95,7 @@ func handleGitSync(cfg config) http.HandlerFunc {
 		// otherwise the shared instance token does, as the documented
 		// automation fallback for CI and scripts. With identity on and no
 		// token, an unauthenticated caller is refused rather than assumed to
-		// sit behind upstream auth — only a session or the token gets in.
+		// sit behind upstream auth; only a session or the token gets in.
 		if !sessionAuthorized(r.Context()) {
 			switch {
 			case cfg.GitSyncAPIToken != "":
@@ -199,7 +199,7 @@ func doGitSync(ctx context.Context, cfg config, job gitSyncJob) (string, bool, e
 		log.Printf("gitsync: commit failed: %v", err)
 		return "", false, fmt.Errorf("git commit failed")
 	}
-	// Nothing changed since the last sync — report up-to-date rather than
+	// Nothing changed since the last sync; report up-to-date rather than
 	// creating an empty commit.
 	if !changed {
 		return "", false, nil

@@ -1,6 +1,6 @@
 # Local databases for the identity integration checks.
 #
-# Started on demand — `mise run test:mysql` brings up the service and points the
+# Started on demand: `mise run test:mysql` brings up the service and points the
 # test at it. Not used by the app; the dev stack (dev-mysql) is separate.
 name: runbooks-test
 

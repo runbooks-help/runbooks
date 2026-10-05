@@ -8,7 +8,7 @@ symptoms:
   - design system smoke test
   - every block type
 common: true
-notice: "Design fixture — nothing here is a real procedure. It exists to render every component."
+notice: "Design fixture: nothing here is a real procedure. It exists to render every component."
 vars:
   - id: gallery-host
     label: Target host
@@ -29,15 +29,15 @@ vars:
     hint: Rendered as a password field. Values never leave the page.
 ---
 
-This opening paragraph is intro prose before the first step. It can carry **bold**, *italic*, `inline code`, and a [link](https://example.com) — all inline-markdown forms.
+This opening paragraph is intro prose before the first step. It can carry **bold**, *italic*, `inline code`, and a [link](https://example.com): all inline-markdown forms.
 
 ## Prose, lists and tables
 
 A step body can hold plain prose, bullet lists and tables. The prose here is deliberately long enough to wrap a few lines, so line-height and measure are visible.
 
-- First bullet — plain text.
+- First bullet, plain text.
 - Second bullet with `inline code` and a **bold** run.
-- Third bullet — a longer one that wraps onto a second line so spacing between items is visible.
+- Third bullet, a longer one that wraps onto a second line so spacing between items is visible.
 - A bullet that contains a nested list:
   - Nested bullet one.
   - Nested bullet two with `inline code`.
@@ -77,11 +77,11 @@ curl -H "Authorization: Bearer {{API_TOKEN}}" "https://{{HOST}}/healthz"
 
 All three notice variants, then a decision callout.
 
-> [!info] This is an info notice — context, links and read-only remarks.
+> [!info] This is an info notice: context, links and read-only remarks.
 
-> [!warn] This is a warning — a step that briefly stops writes, or a value to double-check.
+> [!warn] This is a warning: a step that briefly stops writes, or a value to double-check.
 
-> [!danger] This is a danger notice — destructive. READ EVERY STEP BEFORE DOING ANYTHING.
+> [!danger] This is a danger notice: destructive. READ EVERY STEP BEFORE DOING ANYTHING.
 
 > [!branch]
 > - If the replica's IO thread is running, continue to the next step.

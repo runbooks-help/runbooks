@@ -90,7 +90,7 @@ func hasCredentialFlags(t *testing.T, s *store) bool {
 }
 
 // TestMigrationAddsAuthEventDetail covers upgrading a database created before
-// the auth_events.detail column existed — without the migration the admin audit
+// the auth_events.detail column existed; without the migration the admin audit
 // page 500s because ListAuthEvents names the column.
 func TestMigrationAddsAuthEventDetail(t *testing.T) {
 	ctx := context.Background()

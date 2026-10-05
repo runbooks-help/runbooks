@@ -54,7 +54,7 @@ func Open(ctx context.Context, dsn string) (stores.Store, error) {
 func (s *store) Close() error { return s.db.Close() }
 
 // migrate applies every schema file, one per table, in filename order. Each is
-// IF NOT EXISTS, so it is safe and cheap to re-run on every startup — no
+// IF NOT EXISTS, so it is safe and cheap to re-run on every startup; no
 // external migration tool.
 func (s *store) migrate(ctx context.Context) error {
 	entries, err := schemaFS.ReadDir("schema")
@@ -75,7 +75,7 @@ func (s *store) migrate(ctx context.Context) error {
 
 // addedColumns are columns a schema file introduced after some databases were
 // already created. CREATE TABLE IF NOT EXISTS leaves an existing table alone, so
-// each is added explicitly when the live table is missing it — otherwise a query
+// each is added explicitly when the live table is missing it; otherwise a query
 // that names the column fails on an older database.
 var addedColumns = []struct{ table, column, ddl string }{
 	{"credentials", "flags", `ALTER TABLE credentials ADD COLUMN flags SMALLINT NOT NULL DEFAULT 0`},

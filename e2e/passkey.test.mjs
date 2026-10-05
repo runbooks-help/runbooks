@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: FSL-1.1-MIT
 
 // Identity E2E: setup -> logout -> login, invite -> member enrol -> revoke, and
-// break-glass recovery — driven through the app's real WebAuthn JS in Chromium
+// break-glass recovery, driven through the app's real WebAuthn JS in Chromium
 // via a virtual authenticator. Runbook-page behaviour lives in runbook.test.mjs
 // and the design system in styleguide.test.mjs.
 import { test } from "node:test";

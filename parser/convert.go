@@ -311,7 +311,7 @@ func convertList(src []byte, n *ast.List) Block {
 
 // convertListItem keeps an item's own paragraph(s) as Text and a nested list as
 // Child. Any other block (a code block, a blockquote, a second nested list) has
-// no structural slot, so its text is folded into Text — lossy in structure, but
+// no structural slot, so its text is folded into Text, lossy in structure but
 // never silently dropped.
 func convertListItem(src []byte, item *ast.ListItem) ListItem {
 	var li ListItem
@@ -436,7 +436,7 @@ func fenceInfo(n *ast.FencedCodeBlock, src []byte) (lang, label string) {
 	return "", ""
 }
 
-// rawLines joins a block's source lines, each trimmed, with a single space —
+// rawLines joins a block's source lines, each trimmed, with a single space:
 // the inline-markdown text the Block model carries and Prose renders.
 func rawLines(src []byte, lines *text.Segments) string {
 	if lines == nil || lines.Len() == 0 {

@@ -1,13 +1,13 @@
 # yaml-language-server: $schema=https://gremlins.dev/0.6/schema/configuration.json
 #
-# Mutation testing — `mise run test:mutation`.
+# Mutation testing: `mise run test:mutation`.
 #
 # Each target must kill every supported mutant; the thresholds make a survivor
 # fail the run.
 unleash:
   workers: 4
   # The suite runs in ~10ms, so gremlins' derived per-mutant timeout is far too
-  # short to rebuild a mutated package — this leaves mutants "timed out" instead
+  # short to rebuild a mutated package; this leaves mutants "timed out" instead
   # of killed.
   timeout-coefficient: 30
   # The contract itself is test infrastructure, not production code.
@@ -18,6 +18,6 @@ unleash:
     # 99.9 means any survivor in a package this size fails the run.
     efficacy: 99.9
     # Package-level const expressions (e.g. defaultInviteTTL) and unreachable
-    # panic branches are classified "not covered" — they are compile-time
-    # statements, not executed ones — so mutant coverage sits just under 100.
+    # panic branches are classified "not covered": they are compile-time
+    # statements, not executed ones, so mutant coverage sits just under 100.
     mutant-coverage: 97

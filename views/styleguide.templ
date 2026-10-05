@@ -8,7 +8,7 @@ import (
 )
 
 // StyleGuidePage renders the design system inside the app shell, organised by
-// atomicity — Foundations, Layout primitives, Atoms, Molecules, Patterns — from
+// atomicity (Foundations, Layout primitives, Atoms, Molecules, Patterns) from
 // the real tokens and templ components, so it cannot drift. The sidebar carries
 // the styleguide's own section navigation. Dev-gated; see styleguide.go and
 // STYLEGUIDE_ENABLED. Machine-readable mirror: /styleguide/llms.
@@ -37,7 +37,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 
 					<section class="sg-section" id="colours">
 						<h3>Colours <span class="sg-atom">foundation</span></h3>
-						<p>Seeded from the mallard — roles, never raw colour. Each swatch reads the live token.</p>
+						<p>Seeded from the mallard: roles, never raw colour. Each swatch reads the live token.</p>
 						<div class="sg-grid">
 							@sgSwatch("--accent", "brand fill")
 							@sgSwatch("--accent-strong", "brand text / icon")
@@ -70,7 +70,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 					<section class="sg-section" id="language">
 						<h3>Tone and language <span class="sg-atom">foundation</span></h3>
 						<p>
-							<b>British English</b> in prose, identifiers and user-facing copy —
+							<b>British English</b> in prose, identifiers and user-facing copy:
 							<code>colour</code>, <code>behaviour</code>, <code>licence</code>,
 							<code>enrol</code>/<code>enrolment</code>, <code>labelled</code>. American spelling
 							only where the language itself demands it (the CSS <code>color</code> keyword,
@@ -84,7 +84,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 
 					<section class="sg-section" id="spacing">
 						<h3>Spacing <span class="sg-atom">foundation</span></h3>
-						<p>One scale for every gap and padding — never raw px.</p>
+						<p>One scale for every gap and padding, never raw px.</p>
 						<div class="sg-stack">
 							for _, s := range []string{"--space-1", "--space-2", "--space-3", "--space-4", "--space-5", "--space-6", "--space-7"} {
 								<div class="sg-row">
@@ -134,7 +134,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 					<section class="sg-section" id="layouts">
 						<h3>Primitives <span class="sg-atom">layout</span></h3>
 						<p>
-							Layout uses the primitives in <code>layouts.css</code> only — never bespoke flex/grid in a component.
+							Layout uses the primitives in <code>layouts.css</code> only, never bespoke flex/grid in a component.
 							Each is shown below with real content.
 						</p>
 						<div class="sg-stack sg-primitives">
@@ -159,7 +159,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 								<div class="sg-primitive-head"><code>.row</code><span>no wrap · min-width:0 baked in, with .truncate</span></div>
 								<div class="row" data-gap="md">
 									<span class="badge badge-info">mysql</span>
-									<span class="truncate">Replica lag on db-2.prod.internal — the SQL thread is blocked</span>
+									<span class="truncate">Replica lag on db-2.prod.internal: the SQL thread is blocked</span>
 									<button class="btn btn-ghost" type="button" style="flex-shrink:0">Open</button>
 								</div>
 							</div>
@@ -222,7 +222,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 					<section class="sg-section" id="dialog">
 						<h3>Dialog <span class="sg-atom">atom</span></h3>
 						<p>
-							A native &lt;dialog&gt; modal — the browser supplies the backdrop, focus trap and Esc.
+							A native &lt;dialog&gt; modal: the browser supplies the backdrop, focus trap and Esc.
 							Server-rendered dialogs open with <code>data-dialog-open="id"</code> and close with
 							<code>data-dialog-close</code>; JS confirmations use the same component via <code>showDialog()</code>.
 						</p>
@@ -254,7 +254,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 						<dialog class="dialog" id="sg-ack">
 							<div class="dialog-header">Acknowledge this runbook</div>
 							<div class="dialog-body">
-								<p>A destructive runbook declares <code>acknowledge:</code>; this dialog states it and the steps stay inert until accepted. In the app it is not dismissable — only <em>I understand</em> or leaving the page.</p>
+								<p>A destructive runbook declares <code>acknowledge:</code>; this dialog states it and the steps stay inert until accepted. In the app it is not dismissable, only <em>I understand</em> or leaving the page.</p>
 							</div>
 							<div class="dialog-footer">
 								<button class="btn btn-danger" type="button" data-dialog-close>I understand</button>
@@ -267,7 +267,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 						<p>Info, warn and danger, plus the banner used for a destructive runbook.</p>
 						<div class="sg-stack">
 							@components.Notice("info", "Use the primary node for reads while the replica catches up.", nil)
-							@components.Notice("warn", "This step briefly stops writes — check the drain is complete first.", nil)
+							@components.Notice("warn", "This step briefly stops writes; check the drain is complete first.", nil)
 							@components.Notice("danger", "READ EVERY STEP BEFORE DOING ANYTHING. This recovery drops and rebuilds the replica.", nil)
 							@components.FrontmatterNotice("A frontmatter `notice:` renders this banner above the steps.", nil)
 						</div>
@@ -283,7 +283,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 
 					<section class="sg-section" id="toc">
 						<h3>Contents <span class="sg-atom">molecule</span></h3>
-						<p>A runbook's step list at the top of the page — shown once a runbook has three or more steps. Each link jumps to that step's card.</p>
+						<p>A runbook's step list at the top of the page, shown once a runbook has three or more steps. Each link jumps to that step's card.</p>
 						<nav class="toc" aria-label="Contents">
 							<p class="toc-label">Contents</p>
 							<ol class="toc-list">
@@ -315,7 +315,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 
 					<section class="sg-section" id="code">
 						<h3>Code block <span class="sg-atom">molecule</span></h3>
-						<p>A language and an optional bracketed label; the label renders as an inline header on the block — an accent ▸, the label, and a per-block done checkbox. Code stays dark in both themes.</p>
+						<p>A language and an optional bracketed label; the label renders as an inline header on the block: an accent ▸, the label, and a per-block done checkbox. Code stays dark in both themes.</p>
 						<div class="stack">
 							@components.CodeBlock("Promote the replica", "export HOST=\"db-2.prod.internal\"\nmysql -h \"$HOST\" -e \"STOP SLAVE; RESET SLAVE ALL;\"", "bash")
 							@components.CodeBlock("", "SELECT id, state FROM information_schema.processlist;", "sql")
@@ -354,7 +354,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 					<section class="sg-section" id="table">
 						<h3>List &amp; table <span class="sg-atom">molecule</span></h3>
 						@components.ListBlock([]parser.ListItem{
-							{Text: "First item — plain text"},
+							{Text: "First item, plain text"},
 							{Text: "Second item with `inline code` and **bold**"},
 							{Text: "Third item, with a nested list:", Child: &parser.Block{Kind: parser.KindList, Items: []parser.ListItem{
 								{Text: "A nested bullet."},
@@ -416,7 +416,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 									<a class="search-result-link" href="#">
 										<span class="search-result-title">Replica Stops With a Duplicate Key</span>
 										<span class="search-result-meta">MySQL › Replication</span>
-										<span class="search-result-snippet">…replica behind — <mark>Seconds_Behind_Source</mark> growing…</span>
+										<span class="search-result-snippet">…replica behind: <mark>Seconds_Behind_Source</mark> growing…</span>
 									</a>
 								</li>
 							</ul>
@@ -476,7 +476,7 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 
 					<section class="sg-section" id="admin">
 						<h3>Admin invite form <span class="sg-atom">pattern</span></h3>
-						<p>Role and expiry selects with a primary action — the form used on <code>/admin</code>.</p>
+						<p>Role and expiry selects with a primary action: the form used on <code>/admin</code>.</p>
 						<section class="admin-card">
 							<form class="form-row" data-admin="invite">
 								<div class="form-field">
@@ -555,7 +555,7 @@ templ sgSwatch(token, label string) {
 }
 
 // sgSidebarGroups is the sample tree the styleguide renders the sidebar-nav
-// pattern from — it must not depend on the content tree, which is empty in a
+// pattern from; it must not depend on the content tree, which is empty in a
 // fresh checkout. The values are invented, not drawn from real content.
 func sgSidebarGroups() []parser.SystemGroup {
 	return []parser.SystemGroup{

@@ -36,7 +36,7 @@ func (s *Service) BeginRegistration(ctx context.Context, userID string) (token s
 }
 
 // FinishRegistration verifies the attestation and stores the credential on the
-// user the ceremony was begun for — the user id is read from the challenge's
+// user the ceremony was begun for; the user id is read from the challenge's
 // session, never taken from the caller, so a client cannot point a finish at a
 // different account. Body is the raw JSON the browser sent. A credential id
 // already registered comes back as stores.ConflictError.

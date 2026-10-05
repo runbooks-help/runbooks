@@ -123,7 +123,7 @@ func loadConfig() config {
 	cfg.IdentityRecoveryToken = os.Getenv("IDENTITY_RECOVERY_TOKEN")
 	cfg.IdentityTrustProxyAuth = envBool("IDENTITY_TRUST_PROXY_AUTH", false)
 	// A custom identity header keeps no deprecated X- prefix (RFC 6648). The
-	// operator points this at whatever their proxy emits — oauth2-proxy uses
+	// operator points this at whatever their proxy emits: oauth2-proxy uses
 	// X-Auth-Request-Email, Authelia Remote-Email.
 	cfg.IdentityProxyUserHeader = envOr("IDENTITY_PROXY_USER_HEADER", "Auth-Request-Email")
 	cfg.IdentityProxyNameHeader = os.Getenv("IDENTITY_PROXY_NAME_HEADER")

@@ -217,7 +217,7 @@ body.notes-dismiss-armed .notes-dismiss-hint {
 	margin: var(--space-1) 0;
 }
 
-/* Syntax cheatsheet — non-modal, stays beside the caret. */
+/* Syntax cheatsheet: non-modal, stays beside the caret. */
 .notes-cheatsheet {
 	position: absolute;
 	top: calc(100% + var(--space-1));
@@ -273,7 +273,7 @@ body.notes-dismiss-armed .notes-dismiss-hint {
 }
 
 /* The formatting tools do not apply to rendered output, and the toolbar is the
-   row's only content — hide the row so preview keeps no empty strip. */
+   row's only content; hide the row so preview keeps no empty strip. */
 .notes-panel[data-mode="preview"] .notes-row-compose {
 	display: none;
 }

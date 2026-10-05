@@ -11,7 +11,7 @@ import (
 	"runbooks/parser"
 )
 
-// serveMarkdown writes a runbook's raw source markdown — the highest-fidelity
+// serveMarkdown writes a runbook's raw source markdown, the highest-fidelity
 // form for an LLM, frontmatter included. It is a read-only machine endpoint.
 func serveMarkdown(w http.ResponseWriter, r *http.Request, rb parser.RunbookDef) {
 	if r.Method != http.MethodGet {

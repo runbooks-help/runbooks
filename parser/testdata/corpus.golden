@@ -9,13 +9,13 @@ step: "Rebuild the replica" section=false
   code lang="bash" label="Rebuild" body="mysql -h db-replica -e \"STOP REPLICA; RESET REPLICA ALL;\""
 ===== ../content/playground/gallery.md =====
 intro:
-  prose "This opening paragraph is intro prose before the first step. It can carry **bold**, *italic*, `inline code`, and a [link](https://example.com) — all inline-markdown forms."
+  prose "This opening paragraph is intro prose before the first step. It can carry **bold**, *italic*, `inline code`, and a [link](https://example.com): all inline-markdown forms."
 step: "Prose, lists and tables" section=false
   prose "A step body can hold plain prose, bullet lists and tables. The prose here is deliberately long enough to wrap a few lines, so line-height and measure are visible."
   list ordered=false
-    item "First bullet — plain text."
+    item "First bullet, plain text."
     item "Second bullet with `inline code` and a **bold** run."
-    item "Third bullet — a longer one that wraps onto a second line so spacing between items is visible."
+    item "Third bullet, a longer one that wraps onto a second line so spacing between items is visible."
     item "A bullet that contains a nested list:"
     child ordered=false
       item "Nested bullet one."
@@ -34,9 +34,9 @@ step: "Code blocks" section=false
   code lang="bash" label="Uses the secret" body="curl -H \"Authorization: Bearer {{API_TOKEN}}\" \"https://{{HOST}}/healthz\""
 step: "Notices and branch" section=false
   prose "All three notice variants, then a decision callout."
-  notice variant="info" message="This is an info notice — context, links and read-only remarks."
-  notice variant="warn" message="This is a warning — a step that briefly stops writes, or a value to double-check."
-  notice variant="danger" message="This is a danger notice — destructive. READ EVERY STEP BEFORE DOING ANYTHING."
+  notice variant="info" message="This is an info notice: context, links and read-only remarks."
+  notice variant="warn" message="This is a warning: a step that briefly stops writes, or a value to double-check."
+  notice variant="danger" message="This is a danger notice: destructive. READ EVERY STEP BEFORE DOING ANYTHING."
   branch "- If the replica's IO thread is running, continue to the next step.\n- If it has stopped, rebuild from the nightly snapshot instead.\n- If neither, page the on-call DBA."
 rollback: "Roll back the promotion" section=false
   prose "Rollback steps render after `---rollback`, in the danger styling and without a number."
@@ -47,14 +47,14 @@ rollback: "Confirm the rollback held" section=false
 intro:
   prose "This page is a runbook about writing runbooks. Read it, copy the patterns, then delete it."
 step: "Where runbooks live" section=false
-  prose "The filesystem is the taxonomy — there is no database and no CMS. A runbook is a Markdown file with YAML frontmatter:"
+  prose "The filesystem is the taxonomy: there is no database and no CMS. A runbook is a Markdown file with YAML frontmatter:"
   code lang="text" label="Content layout" body="content/<system>/<category>/<file>.md"
   list ordered=false
     item "`<system>` becomes a top-level sidebar group (the directory name, title-cased)."
     item "`<category>` becomes a subheading under the system."
     item "A file directly under the system (`content/<system>/<file>.md`) has no subheading."
-    item "The URL is `/<slug>`, and `slug` comes from frontmatter — not the filename."
-  prose "Directory names map to display names and sidebar order in `parser/parser.go` (`systemLabels`, `systemOrder`, `categoryOrder`). Within a category, runbooks sort by the optional `order:` field, then by title. Content is read from disk at runtime, so edits need no rebuild — just refresh."
+    item "The URL is `/<slug>`, and `slug` comes from frontmatter, not the filename."
+  prose "Directory display names and sidebar order live in one manifest, `content/_meta.yml`: an ordered list where position is the order. Unlisted directories are appended after the listed ones, title-cased and alphabetical. Within a category, runbooks sort by the optional `order:` field, then by title. Content is read from disk at runtime, so edits need no rebuild, just refresh."
 step: "Frontmatter" section=false
   prose "Only `title` and `slug` are required; everything else is optional."
   table headers=["Field" "What it does"]
@@ -66,17 +66,17 @@ step: "Frontmatter" section=false
     row ["`common`" "`true` pins it into the \"Common issues\" shortlist."]
     row ["`notice`" "A passive banner above the body."]
     row ["`acknowledge`" "Marks the runbook destructive: the page is gated behind an \"I understand\" dialog until accepted (once per session)."]
-    row ["`vars`" "Runtime inputs — see the next step."]
+    row ["`vars`" "Runtime inputs: see the next step."]
 step: "Inputs with `vars`" section=false
   prose "`vars` render a panel of inputs. Each value substitutes into code blocks as a `{{TOKEN}}`, where the token is uppercase A–Z and underscore only:"
   code lang="bash" label="Use the inputs" body="ssh \"{{HOST}}\"\nsystemctl --user restart \"{{SERVICE}}\""
   list ordered=false
-    item "Give the diagnostic lookup to a `hint` rather than a literal `<placeholder>` in the code — angle brackets inside a fence look like real syntax."
+    item "Give the diagnostic lookup to a `hint` rather than a literal `<placeholder>` in the code; angle brackets inside a fence look like real syntax."
     item "Set `secret: true` to render a password field."
     item "Substitution happens in the browser, so values **never leave the page**."
 step: "Steps, subheadings and prose" section=false
   prose "`## Heading` starts a numbered step. `### Heading` splits a long step without starting a new card. A step body takes ordinary Markdown: **bold**, *italic*, `inline code`, [links](https://example.com), bullet lists and tables."
-  notice variant="info" message="Titles lead with the symptom, not the mechanism — a runbook is read under duress."
+  notice variant="info" message="Titles lead with the symptom, not the mechanism; a runbook is read under duress."
   prose "For a destructive runbook, don't rely on a banner: add `acknowledge:` and the reader must accept it before the page is usable."
   code lang="yaml" label="Frontmatter" body="acknowledge: \"This drops and rebuilds the replica. Take it out of the load balancer first.\""
 step: "Code blocks and checkoffs" section=false
@@ -92,7 +92,7 @@ step: "Notices and decisions" section=false
 step: "Rollback" section=false
   prose "`---rollback` on its own line closes the numbered steps and starts a separate, danger-styled, unnumbered section. This page ends with one, so you can see the styling:"
   code lang="text" label="The marker" body="---rollback"
-  prose "That is the whole format — delete this file, and any other content you don't need, from `content/` when you are done."
+  prose "That is the whole format; delete this file, and any other content you don't need, from `content/` when you are done."
 rollback: "Undo the example restart" section=false
   prose "Rollback steps are unnumbered and danger-styled. A real runbook puts the actual undo commands here."
   code lang="bash" label="Stop the example service" body="systemctl --user stop \"{{SERVICE}}\""

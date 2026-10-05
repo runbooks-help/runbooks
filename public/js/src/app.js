@@ -68,7 +68,7 @@ document.querySelectorAll('[data-var]').forEach(input => {
 // Initialise display with placeholders
 updateAll();
 
-// Inputs — two or fewer render inline in the bar; more collapse to a summary
+// Inputs: two or fewer render inline in the bar; more collapse to a summary
 // whose Edit opens the editor dialog. The "N set" counts (summary and dialog
 // header) are live, and each editor row marks itself set once it has a value.
 const varsPanel = document.querySelector('[data-vars-panel]');
@@ -213,7 +213,7 @@ document.addEventListener('click', e => {
 	}
 });
 
-// Hint popup — singleton panel, one per page
+// Hint popup: singleton panel, one per page
 const hintPopup = document.createElement('div');
 hintPopup.className = 'hint-popup';
 hintPopup.innerHTML = '<p class="hint-popup-label">How to find this value</p><pre></pre>';
@@ -280,7 +280,7 @@ document.addEventListener('keydown', e => {
 	if (e.key === 'Escape') closeHint();
 });
 
-// Glossary popup — reads the per-page #glossary blob and opens on hover or focus
+// Glossary popup: reads the per-page #glossary blob and opens on hover or focus
 // of a .glossary-term. Terms are only rendered when a glossary is configured, so
 // the whole block is inert without one.
 const glossaryEl = document.getElementById('glossary');
@@ -382,7 +382,7 @@ if (glossaryEl) {
 	window.addEventListener('scroll', closeGlossary, true);
 }
 
-// Notes panel — auto-saved to localStorage per runbook page
+// Notes panel: auto-saved to localStorage per runbook page
 const notesKey = 'runbooks-notes' + location.pathname;
 const notesImgKey = 'runbooks-notes-imgs' + location.pathname;
 const notesArea = document.querySelector('.notes-textarea');
@@ -459,7 +459,7 @@ if (notesArea) {
 	});
 }
 
-// Completion timeline — each tick appends a timestamped line to the notes body.
+// Completion timeline: each tick appends a timestamped line to the notes body.
 // Entries are plain markdown, so Preview, Print and Export pick them up for free.
 const recordKey = 'runbooks-record-timeline';
 const recordCheck = document.querySelector('.notes-record-check');
@@ -477,7 +477,7 @@ function localTimestamp(d) {
 	return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
-// Filled inputs are named by id only — values may be secrets and the notes get exported.
+// Filled inputs are named by id only; values may be secrets and the notes get exported.
 function filledVarSuffix() {
 	const ids = Object.keys(vars).filter(name => vars[name]);
 	return ids.length ? ` (vars: ${ids.join(', ')})` : '';
@@ -487,7 +487,7 @@ function stepTimelineEntry(card, done) {
 	const num = (card.querySelector('.step-num')?.textContent || '').trim();
 	const title = (card.querySelector('.step-title')?.textContent || '').trim();
 	const tail = done ? '' : ' (re-opened)';
-	return `- \`${localTimestamp(new Date())}\` ${done ? '✅' : '↩'} Step ${num} — ${title}${tail}${done ? filledVarSuffix() : ''}`;
+	return `- \`${localTimestamp(new Date())}\` ${done ? '✅' : '↩'} Step ${num}: ${title}${tail}${done ? filledVarSuffix() : ''}`;
 }
 
 function blockTimelineEntry(group, done) {
@@ -496,7 +496,7 @@ function blockTimelineEntry(group, done) {
 	const bi = [...card.querySelectorAll('.code-group')].indexOf(group) + 1;
 	const label = (group.querySelector('.code-label')?.textContent || '').trim();
 	const tail = done ? '' : ' (re-opened)';
-	return `- \`${localTimestamp(new Date())}\` ${done ? '☑' : '↩'} Block ${si}.${bi} — ${label}${tail}${done ? filledVarSuffix() : ''}`;
+	return `- \`${localTimestamp(new Date())}\` ${done ? '☑' : '↩'} Block ${si}.${bi}: ${label}${tail}${done ? filledVarSuffix() : ''}`;
 }
 
 const timelineLine = /^- `\d{4}-\d{2}-\d{2} /;
@@ -713,7 +713,7 @@ if (notesPrint) {
 // which is what makes Export the no-repo-credential path.
 function exportRecordDir() {
 	const base = (pageConfig.recordsBasePath || 'runbook_runs').replace(/\/+$/, '');
-	// UTC, second precision — the same snapshot directory the server writes, so a
+	// UTC, second precision: the same snapshot directory the server writes, so a
 	// ZIP drops into the record tree unchanged.
 	const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
 	const slug = location.pathname.slice(1).replace(/\//g, '-') || 'runbook';
@@ -822,7 +822,7 @@ if (notesHandle) {
 	});
 }
 
-// Modal dialog (native <dialog>) — replaces window.confirm()/prompt(). Resolves
+// Modal dialog (native <dialog>): replaces window.confirm()/prompt(). Resolves
 // { confirmed, value }. `input` adds a text field; `danger` styles the primary
 // action as destructive. The browser supplies the backdrop, focus trap and Esc.
 function showDialog({ title, message, confirmLabel = 'OK', cancelLabel = 'Cancel', danger = false, input = null }) {
@@ -970,7 +970,7 @@ function applySteps(pref) {
 }
 applySteps(localStorage.getItem('runbooks-steps') || 'first');
 
-// Steps preference (first open, or all open) — global, from the Appearance control.
+// Steps preference (first open, or all open): global, from the Appearance control.
 const stepsBtns = document.querySelectorAll('.steps-btn');
 stepsBtns.forEach(btn => btn.addEventListener('click', () => {
 	const pref = btn.dataset.steps;
@@ -1049,7 +1049,7 @@ if (runbookRoot) {
 }
 
 // Destructive runbooks: gate the page behind an acknowledgement, once per
-// session. The dialog cannot be dismissed — only accepted.
+// session. The dialog cannot be dismissed, only accepted.
 const ackDialog = document.querySelector('[data-ack-dialog]');
 if (ackDialog) {
 	const gated = document.querySelector('[data-ack]');
@@ -1174,7 +1174,7 @@ if (notesToggle) {
 	});
 }
 
-// Index page — server-side body search over the runbook catalogue. The query is
+// Index page: server-side body search over the runbook catalogue. The query is
 // debounced to the JSON endpoint; the catalogue is the no-query / fallback state.
 const indexSearch = document.querySelector('.index-search');
 if (indexSearch) {
@@ -1294,7 +1294,7 @@ if (indexSearch) {
 			renderResults(await res.json());
 		} catch (err) {
 			if (err.name === 'AbortError') return;
-			showMessage('Search is unavailable right now — showing all runbooks.', true);
+			showMessage('Search is unavailable right now, showing all runbooks.', true);
 		}
 	};
 
@@ -1330,7 +1330,7 @@ if (indexSearch) {
 	}
 }
 
-// Sidebar — filter and disclosure over the runbook tree
+// Sidebar: filter and disclosure over the runbook tree
 const navFilter = document.querySelector('.nav-filter-input');
 const navTree = document.querySelector('[data-nav-tree]');
 if (navFilter && navTree) {
@@ -1398,7 +1398,7 @@ if (navFilter && navTree) {
 		});
 	});
 	// `/` focuses a filter, unless a field already has focus. On the index page the
-	// search hub is the primary field, so it wins — unless the sidebar drawer is
+	// search hub is the primary field, so it wins unless the sidebar drawer is
 	// open, where the nav filter keeps it.
 	document.addEventListener('keydown', e => {
 		if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -1410,7 +1410,7 @@ if (navFilter && navTree) {
 	});
 }
 
-// Git Sync button — only active when rendered by server (GitSyncEnabled = true)
+// Git Sync button: only active when rendered by server (GitSyncEnabled = true)
 const notesSync = document.querySelector('.notes-sync');
 const syncToastEl = document.querySelector('.notes-sync-toast');
 let syncToastTimer = null;
@@ -1511,12 +1511,12 @@ if (notesSync && notesArea) {
 				showSyncToast('success', msg);
 			} else if (res.status === 401) {
 				sessionStorage.removeItem('runbooks-gitsync-token');
-				showSyncToast('error', 'Unauthorized — token rejected');
+				showSyncToast('error', 'Unauthorized: token rejected');
 			} else {
 				showSyncToast('error', data.error || 'Sync failed');
 			}
 		} catch (_) {
-			showSyncToast('error', 'Network error — sync failed');
+			showSyncToast('error', 'Network error: sync failed');
 		} finally {
 			notesSync.classList.remove('loading');
 			updateSyncDisabled();
@@ -1550,7 +1550,7 @@ function passkeyErrorMessage(err) {
 	const fallbacks = {
 		NotAllowedError:
 			'The passkey request was cancelled or timed out. Try again, or use the device where the passkey already lives.',
-		InvalidStateError: 'That passkey is already registered on this device — try signing in instead.',
+		InvalidStateError: 'That passkey is already registered on this device, try signing in instead.',
 		AbortError: 'The passkey request was interrupted. Please try again.',
 		SecurityError: 'This browser blocked the passkey request. Check that the site is served over HTTPS.',
 	};
@@ -1756,7 +1756,7 @@ if (adminStatus) {
 	const createAdminInvite = async body => {
 		try {
 			const data = await authPost('/api/auth/v1/invites', body);
-			showAdminStatus('Invite link created — it can only be used once.');
+			showAdminStatus('Invite link created. It can only be used once.');
 			showAdminUrl(data.url);
 		} catch (err) {
 			showLiveAlert('Could not create the invite', err);
@@ -1930,7 +1930,7 @@ if (accountForm) {
 				document.querySelector('[data-apikey-value]').textContent = result.raw;
 				document.querySelector('[data-apikey-reveal]').hidden = false;
 				createAPIKey.reset();
-				authStatus('Key created. Copy it now — it is shown once.');
+				authStatus('Key created. Copy it now; it is shown once.');
 			} catch (err) {
 				showLiveAlert('Could not create the key', err);
 			} finally {

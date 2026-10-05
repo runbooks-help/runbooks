@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: FSL-1.1-MIT */
 
-/* Buttons — the design-system primitive. One base and three intents; a button
+/* Buttons: the design-system primitive. One base and three intents; a button
    is a button everywhere, so nothing re-declares padding or radius. */
 
 .btn {

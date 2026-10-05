@@ -312,7 +312,7 @@ func TestDuplicateCredentialIsConflict(t *testing.T) {
 
 // TestRegistrationRejectsChallengeWithoutUser pins the trust boundary: the user
 // comes from the challenge's session, so a challenge that names no user cannot be
-// finished — there is no caller-supplied id to fall back on.
+// finished; there is no caller-supplied id to fall back on.
 func TestRegistrationRejectsChallengeWithoutUser(t *testing.T) {
 	svc, st := newTestService(t)
 	ctx := context.Background()

@@ -5,7 +5,7 @@ package components
 import "runbooks/parser"
 
 // navLinks renders one category's runbook links, carrying the haystack the filter
-// matches against — the same helper the index filter uses.
+// matches against, the same helper the index filter uses.
 templ navLinks(runbooks []parser.RunbookMeta, active, system, category string) {
 	<nav class="nav-links">
 		for _, rb := range runbooks {

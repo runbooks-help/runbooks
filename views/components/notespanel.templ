@@ -28,7 +28,7 @@ templ NotesPanel(gitSyncEnabled bool) {
 							@templ.Raw(icons.Lucide("ellipsis"))
 						</button>
 						<div class="notes-menu" role="menu" hidden>
-							<button class="notes-export" type="button" role="menuitem" title="Download this record as a ZIP — no repo credential needed">Export · ZIP</button>
+							<button class="notes-export" type="button" role="menuitem" title="Download this record as a ZIP, no repo credential needed">Export · ZIP</button>
 							<button class="notes-print" type="button" role="menuitem">Print</button>
 							<div class="notes-menu-sep"></div>
 							<button class="notes-clear notes-menu-danger" type="button" role="menuitem">Clear…</button>
@@ -47,7 +47,7 @@ templ NotesPanel(gitSyncEnabled bool) {
 					@notesTool("italic", "italic", "Italic")
 					@notesTool("code", "code", "Inline code")
 					@notesTool("link", "link", "Link")
-					@notesTool("image", "image", "Add screenshot — or paste with Ctrl/⌘ V")
+					@notesTool("image", "image", "Add screenshot, or paste with Ctrl/⌘ V")
 					<span class="notes-tool-sep" aria-hidden="true"></span>
 					@notesTool("ul", "list", "Bulleted list")
 					@notesTool("ol", "list-ordered", "Numbered list")
@@ -65,7 +65,7 @@ templ NotesPanel(gitSyncEnabled bool) {
 					<dt>**bold**</dt><dd>strong emphasis</dd>
 					<dt>*italic*</dt><dd>emphasis</dd>
 					<dt>`code`</dt><dd>inline token</dd>
-					<dt>[text](url)</dt><dd>link — opens in a new tab</dd>
+					<dt>[text](url)</dt><dd>link, opens in a new tab</dd>
 					<dt>![alt](url)</dt><dd>image</dd>
 					<dt>- item</dt><dd>bulleted list</dd>
 					<dt>1. item</dt><dd>numbered list</dd>
@@ -77,7 +77,7 @@ templ NotesPanel(gitSyncEnabled bool) {
 				<p class="notes-cheatsheet-tip">Paste a screenshot with Ctrl/⌘ V, or use the image button.</p>
 			</div>
 		</div>
-		<textarea class="notes-textarea" spellcheck="false" placeholder="Markdown supported — paste a screenshot with Ctrl/⌘ V, or use the image button"></textarea>
+		<textarea class="notes-textarea" spellcheck="false" placeholder="Markdown supported, paste a screenshot with Ctrl/⌘ V, or use the image button"></textarea>
 		<div class="notes-preview" hidden></div>
 		<div class="notes-sync-toast" hidden role="status">
 			<span class="notes-sync-toast-msg"></span>

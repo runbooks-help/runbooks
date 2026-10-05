@@ -41,7 +41,7 @@ type searchField struct {
 
 // searchDoc is one indexed runbook. Every field's text lives in the two shared
 // buffers, so the index holds two copies of the body (case-preserved for snippets,
-// lowercase for matching) plus a small field table — not one string per field.
+// lowercase for matching) plus a small field table, not one string per field.
 type searchDoc struct {
 	meta     RunbookMeta
 	steps    []string // step titles, indexed by searchField.step

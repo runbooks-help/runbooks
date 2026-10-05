@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: FSL-1.1-MIT */
 
 /* Narrow layout: the notes column becomes an off-canvas drawer. Below 1200px the
-   460px notes column starves main — a portrait monitor, a 125% laptop, or a split
+   460px notes column starves main: a portrait monitor, a 125% laptop, or a split
    window. The rail is already the persistent left chrome at every width; only the
    notes panel is width-dependent. */
 

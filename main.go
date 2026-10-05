@@ -33,8 +33,8 @@ var version = "dev"
 
 // gitSyncNeedsBrowserToken reports whether the Sync UI must prompt for the shared
 // bearer token. With identity on, a signed-in session (or proxy assertion)
-// authorises and attributes the sync — and the page is already behind the read
-// gate — so the token is only the identity-off deployment's gate. It stays
+// authorises and attributes the sync, and the page is already behind the read
+// gate, so the token is only the identity-off deployment's gate. It stays
 // configured server-side either way, as the CI/automation fallback.
 func gitSyncNeedsBrowserToken(identityEnabled bool, apiToken string) bool {
 	return !identityEnabled && apiToken != ""
@@ -379,7 +379,7 @@ func (cs *contentState) buildMux(snap *contentSnapshot) *http.ServeMux {
 	mux.Handle("/api/git-sync/v1", gitSync)
 
 	// Body search reads the same content as the pages, so with identity on it sits
-	// behind the same read gate as the raw markdown and the llms index — a 401
+	// behind the same read gate as the raw markdown and the llms index: a 401
 	// JSON, not a login redirect. A read-scoped API key satisfies it.
 	search := http.HandlerFunc(handleSearch(snap.search))
 	if authn != nil {

@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: FSL-1.1-MIT */
 
 /*
- * LAYOUT PRIMITIVES — single source of truth for structural patterns.
+ * LAYOUT PRIMITIVES: single source of truth for structural patterns.
  *
  * Stack      flex column; data-gap="sm|md|lg"
  * Cluster    flex row wrap; for chips/actions; data-gap="sm|md|lg"

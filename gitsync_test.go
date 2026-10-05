@@ -153,7 +153,7 @@ func TestGitSync_Resync_Changed_CreatesSnapshot(t *testing.T) {
 		t.Fatalf("first sync: want 200, got %d: %s", w1.Code, w1.Body.String())
 	}
 
-	req.Notes = "Second sync — same day"
+	req.Notes = "Second sync, same day"
 	w2 := doRequest(t, handler, req)
 	if w2.Code != http.StatusOK {
 		t.Fatalf("second sync: want 200, got %d: %s", w2.Code, w2.Body.String())
@@ -184,7 +184,7 @@ func TestGitSync_Resync_Changed_CreatesSnapshot(t *testing.T) {
 		bodies.Write(b)
 		bodies.WriteByte('\n')
 	}
-	for _, want := range []string{"First sync", "Second sync — same day"} {
+	for _, want := range []string{"First sync", "Second sync, same day"} {
 		if !strings.Contains(bodies.String(), want) {
 			t.Errorf("snapshots must preserve %q", want)
 		}
@@ -513,10 +513,10 @@ func TestGitSyncNeedsBrowserToken(t *testing.T) {
 		apiToken        string
 		want            bool
 	}{
-		{"identity on, token set — session authorises", true, "secret", false},
-		{"identity off, token set — prompt", false, "secret", true},
-		{"identity off, no token — sync disabled", false, "", false},
-		{"identity on, no token — session authorises", true, "", false},
+		{"identity on, token set: session authorises", true, "secret", false},
+		{"identity off, token set: prompt", false, "secret", true},
+		{"identity off, no token: sync disabled", false, "", false},
+		{"identity on, no token: session authorises", true, "", false},
 	}
 	for _, tc := range cases {
 		if got := gitSyncNeedsBrowserToken(tc.identityEnabled, tc.apiToken); got != tc.want {

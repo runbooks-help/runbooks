@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: FSL-1.1-MIT
 
 // Package identity is the identity service: passkey ceremonies and sessions on
-// top of stores. It holds no HTTP and no configuration loading — callers hand it
+// top of stores. It holds no HTTP and no configuration loading; callers hand it
 // raw ceremony bodies and get back users and session tokens.
 package identity
 
@@ -87,7 +87,7 @@ func New(cfg Config, st stores.Store) (*Service, error) {
 		RPOrigins:     cfg.RPOrigins,
 		// A passkey is a discoverable credential: require a resident key so
 		// password managers offer to save one and our discoverable login can
-		// find it. Ask for attestation "none" — requesting attestation is what
+		// find it. Ask for attestation "none": requesting attestation is what
 		// makes the synced-passkey clients misbehave.
 		AuthenticatorSelection: protocol.AuthenticatorSelection{
 			ResidentKey:        protocol.ResidentKeyRequirementRequired,

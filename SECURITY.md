@@ -4,7 +4,7 @@
 
 Please report suspected vulnerabilities **privately**, not in a public issue.
 
-- **Preferred:** GitHub's private vulnerability reporting — open the repository's
+- **Preferred:** GitHub's private vulnerability reporting: open the repository's
   **Security** tab and choose **Report a vulnerability**. This opens a private
   advisory that only the maintainers can see.
 - **Alternative:** email [contact@runbooks.help](mailto:contact@runbooks.help).
@@ -19,7 +19,7 @@ impact, and a reproduction if you have one.
 This policy covers the Runbooks application in this repository: the Go server,
 its passkey identity and read-scoped agent surfaces, and the published container
 image. It does not cover an operator's own content or deployment, nor
-third-party dependencies (report those upstream — see `DEPENDENCIES.md`).
+third-party dependencies (report those upstream; see `DEPENDENCIES.md`).
 
 ## Supported versions
 

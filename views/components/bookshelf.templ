@@ -11,8 +11,8 @@ import (
 )
 
 // shelfBooksPerRow is how many books fit on one row. Every row is drawn at the
-// same width — a partial last row is padded with empty slots, like a real shelf
-// — so the framed bookcases stay uniform.
+// same width: a partial last row is padded with empty slots, like a real shelf,
+// so the framed bookcases stay uniform.
 const shelfBooksPerRow = 5
 
 // shelfRowsPerBookcase is how many rows stack in one bookcase before the next
@@ -26,7 +26,7 @@ var shelfGlyphs = [...]string{"░", "▒", "▓"}
 // Bookshelf is the index easter egg: the actual runbook catalogue drawn as
 // framed bookcases of shade-character books. It renders hidden and is revealed
 // by clicking the index <h1> (public/js/src/app.js). Categories and systems are
-// deliberately ignored here — flattening to one list is what lets every row stay
+// deliberately ignored here; flattening to one list is what lets every row stay
 // uniform. Nothing here is a `parser` decision.
 templ Bookshelf(groups []parser.SystemGroup) {
 	{{ runbooks := shelfRunbooks(groups) }}

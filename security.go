@@ -15,7 +15,7 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // securityHeaders sets the baseline response headers. The CSP permits only the
-// one inline script the shell needs — the pre-paint theme script — by hash; the
+// one inline script the shell needs (the pre-paint theme script) by hash; the
 // inline JSON blocks (runbook source, page config) are data, not scripts, so
 // script-src does not apply to them.
 func securityHeaders(next http.Handler) http.Handler {

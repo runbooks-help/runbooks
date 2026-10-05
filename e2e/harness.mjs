@@ -32,7 +32,7 @@ const shotDir = process.env.E2E_SCREENSHOT_DIR;
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export const atPath = (base, pathname) => (url) => url.origin === new URL(base).origin && url.pathname === pathname;
 
-// snap saves a screenshot when E2E_SCREENSHOT_DIR is set — for eyeballing UI
+// snap saves a screenshot when E2E_SCREENSHOT_DIR is set, for eyeballing UI
 // changes the assertions cannot judge. Pass { fullPage: true } to capture the
 // whole page rather than the viewport.
 export async function snap(page, name, opts = {}) {
@@ -76,11 +76,11 @@ async function waitForReady(base, child, logs, readyPath) {
 }
 
 // startApp boots the built binary on a free port. Options:
-//   identity   — SQLite identity on (default true); false boots a public,
+//   identity   = SQLite identity on (default true); false boots a public,
 //                no-database instance (a docs deployment).
-//   contentDir — CONTENT_DIR override (e.g. a fixture docs tree).
-//   publicURL  — set PUBLIC_URL to the instance base (canonical, sitemap).
-//   env        — extra environment variables.
+//   contentDir = CONTENT_DIR override (e.g. a fixture docs tree).
+//   publicURL  = set PUBLIC_URL to the instance base (canonical, sitemap).
+//   env        = extra environment variables.
 export async function startApp({ identity = true, contentDir, publicURL = false, env = {} } = {}) {
 	const port = await freePort();
 	const base = `http://localhost:${port}`;

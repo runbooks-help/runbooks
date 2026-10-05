@@ -86,8 +86,8 @@ func (s *Service) FinishLogin(ctx context.Context, token string, body []byte, us
 }
 
 // loginUserID picks the user an assertion belongs to: the challenge's user for
-// identifier-first, the assertion's user handle for a discoverable login, or —
-// when a discoverable assertion carries no handle — the credential's owner.
+// identifier-first, the assertion's user handle for a discoverable login, or the
+// credential's owner when a discoverable assertion carries no handle.
 func (s *Service) loginUserID(ctx context.Context, session *webauthn.SessionData, parsed *protocol.ParsedCredentialAssertionData) (string, error) {
 	if len(session.UserID) > 0 {
 		return string(session.UserID), nil

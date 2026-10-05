@@ -1,8 +1,8 @@
 # Runbooks
 
 A small Go web app that renders operational runbooks as interactive step-by-step
-pages. Runbooks are plain Markdown files with YAML frontmatter — **no database, no
-CMS**. One page per runbook, served by slug.
+pages. Runbooks are plain Markdown files with YAML frontmatter. There is no CMS, and
+content is never stored in a database. One page per runbook, served by slug.
 
 - **Repo:** `github.com/runbooks-help/runbooks`, local `~/Code/Personal/runbooks`.
 - **Licence:** FSL-1.1-MIT (source-available, no competing use, converts to MIT after
@@ -49,17 +49,17 @@ The app has its own visual identity. The living reference is `/styleguide` (dev-
 `mise.toml` `[env]`), organised by atomicity; `/styleguide/llms` is the agent mirror
 (embedded from `styleguide.llms.txt`).
 
-- **Palette** — seeded from the mallard, dark-first (`:root` is dark;
+- **Palette**: seeded from the mallard, dark-first (`:root` is dark;
   `html[data-theme="light"]` overrides). Roles, never raw colour; status is never the
   brand accent. See `tokens.css`.
-- **Fonts** — self-hosted Atkinson Hyperlegible Next + Mono (variable, latin), plus a
+- **Fonts**: self-hosted Atkinson Hyperlegible Next + Mono (variable, latin), plus a
   tiny `Shade Mono` subset (Noto Sans Mono, U+2500–U+2593) that pins the `░▒▓`
-  brand mark and the bookshelf glyphs and frame — Atkinson does not contain them,
+  brand mark and the bookshelf glyphs and frame, which Atkinson does not contain,
   so without it they render through the OS fallback.
   `--mono-weight` is 450, or 600 under `html[data-code-weight="bold"]`.
-- **Radii** — squared (4/6/8px); tickboxes are square, not circles.
-- **Badges** — bracketed `[ label ]`, not filled pills.
-- **Code surfaces stay dark in both themes** — use the constant `--code-*` tokens,
+- **Radii**: squared (4/6/8px); tickboxes are square, not circles.
+- **Badges**: bracketed `[ label ]`, not filled pills.
+- **Code surfaces stay dark in both themes**: use the constant `--code-*` tokens,
   never a theme role inside a code block (it renders dark-on-dark in light).
 - **Contextual chrome belongs to the context**, not the component (e.g. the sidebar
   footer divider is `.sidebar .appearance`), so a component can be shown elsewhere
@@ -87,10 +87,10 @@ views/markup/        inline text → HTML (Prose) and step-title → anchor (Slu
 views/icons/         vendored Lucide icon subset (Lucide)
 views/index.templ    welcome page at / (search + common-issue shortcuts + card catalogue)
 views/runbook.templ  runbook page (steps, vars panel, notes panel) + its private stepCard/renderBlock
-views/admin.templ    /admin — invite form + users table
+views/admin.templ    /admin: invite form + users table
 views/styleguide.templ  the design system at /styleguide
 views/auth.templ     /login, /setup, /invite/<token>, /recovery
-views/pageconfig.go  PageConfig — the runtime config embedded for the client
+views/pageconfig.go  PageConfig, the runtime config embedded for the client
 content/<system>/<category>/<file>.md   the runbooks themselves
 public/css/src/      source CSS (bundled → public/css/bundle.css, generated;
                      imports the shared design system's tokens.css)
@@ -119,12 +119,12 @@ The **filesystem is the taxonomy**. `content/<system>/<category>/<file>.md`:
 - `<category>` → subheading under the system.
 - `content/<system>/<file>.md` (one level) → under the system, no subheading.
 - Discovery is **recursive**: a runbook's system and category are the two directories
-  directly above it, so a leading wrapper is ignored — `content/testdata/mysql/backup/
+  directly above it, so a leading wrapper is ignored: `content/testdata/mysql/backup/
   x.md` groups as MySQL › Backup just like `content/mysql/backup/x.md`.
 - The **slug comes from frontmatter**, not the filename; the URL is `/<slug>`.
 
 Display names and sidebar order live in one manifest at the top of the tree,
-`content/_meta.yml` — an ordered list where **position is the order**:
+`content/_meta.yml`, an ordered list where **position is the order**:
 
 ```yaml
 - mysql:
@@ -139,7 +139,7 @@ carry a title the same way (`- dr: { title: Disaster Recovery }`). Unlisted
 directories are appended after the listed ones, title-cased, alphabetically. An
 entry whose directory is absent is ignored, so the file may describe a superset
 (e.g. the local, gitignored `content/testdata`). Nothing about naming or ordering
-lives in Go — it is a content edit only. Within a category, runbooks sort by the
+lives in Go; it is a content edit only. Within a category, runbooks sort by the
 optional frontmatter `order:` (lower first; absent = `defaultRunbookOrder` = 100),
 then title.
 
@@ -182,7 +182,7 @@ vars:
 ### Body syntax
 
 - `## Heading` → a numbered step. `### Heading` → subheading inside a step. Steps
-  are **collapsible** — the header toggles one, the toolbar has Expand all /
+  are **collapsible**: the header toggles one, the toolbar has Expand all /
   Collapse all, and a collapsed step shows a one-line preview. The runbook's
   **Contents** list is **optional and off by default** (the collapsed steps are the
   contents); `runbooks-steps` (`first`|`all`) and `runbooks-contents` (`on`|`off`)
@@ -191,7 +191,7 @@ vars:
   step at a time.
 - ` ```lang [Label] ` → code block; the bracket label renders a header with a
   per-block "done" checkbox. `lang` must match the parser's fence regex
-  (`[a-z]*` — lowercase only).
+  (`[a-z]*`, lowercase only).
 - `> [!info]` / `> [!warn]` / `> [!danger]` → notices. The marker is
   case-insensitive, and the GitHub alert keywords (`NOTE`, `TIP`, `IMPORTANT`,
   `WARNING`, `CAUTION`) are accepted and mapped onto info/warn/danger.
@@ -200,7 +200,7 @@ vars:
 - `---rollback` (or the GitHub-safe `<!-- rollback -->`) on its own line →
   everything after it is a separate rollback section (danger-styled, unnumbered).
 - A `##` heading renders as a **step** (numbered, tickable, collapsible) or a
-  **section** (unnumbered, anchored, always open) — one content model, mixable on a
+  **section** (unnumbered, anchored, always open): one content model, mixable on a
   page. `layout: sections` in frontmatter makes a page default to sections; the
   separators `---sections` / `---steps` (or the GitHub-safe `<!-- sections -->` /
   `<!-- steps -->`) switch how the headings that follow render. The comment form is
@@ -213,17 +213,17 @@ Authoring conventions that have bitten us:
   "Replication Lag (MTS Deadlock)", not "MTS Deadlock Recovery"). This is a
   runbook read under duress.
 - Put the diagnostic lookup in a `vars` entry with a `hint` rather than a literal
-  `<placeholder>` in the code — `<foo>` in a fence looks like real syntax.
+  `<placeholder>` in the code, since `<foo>` in a fence looks like real syntax.
 - Use `order:` to pull the most-likely-on-call runbook to the top of its category.
 
 ## Agent access
 
 Runbooks are read by LLMs two ways. A **local** agent clones the repo and reads
-`content/` directly (frontmatter included — no parsing needed). A **remote**
+`content/` directly (frontmatter included, no parsing needed). A **remote**
 agent uses the read-only surface: `GET /llms.txt` (generated index, `llms.go`),
 `GET /<slug>.md` (raw `RunbookDef.Source`) and the existing
 `GET /api/runbooks/v1/search`. All three are public with identity off and gated
-by `requireRead` — session **or a read-scoped API key** — with identity on.
+by `requireRead` (session **or a read-scoped API key**) with identity on.
 
 API keys are minted self-service at `/account`, owned by a user, stored as
 `sha256(raw)` under an `rbk_` prefix, and revocable; a key is read-only by
@@ -235,8 +235,8 @@ frontmatter is a startup error, so it breaks boot. This file is the signpost.
 
 ## Build pipeline and generated files
 
-- **templ**: edit `views/*.templ`. `views/*_templ.go` is generated and **gitignored** —
-  never hand-edit it; it is rebuilt by `mise run build` and by CI/Docker
+- **templ**: edit `views/*.templ`. `views/*_templ.go` is generated and **gitignored**.
+  Never hand-edit it; it is rebuilt by `mise run build` and by CI/Docker
   (`go tool templ generate ./...`), so run `mise run generate` after changing a
   `.templ`.
 - **CSS**: `public/css/src/main.css` `@import`s `fonts`, `tokens`, `layouts`,
@@ -252,13 +252,13 @@ frontmatter is a startup error, so it breaks boot. This file is the signpost.
   image paste, ZIP export, sync), notes resize, theme switcher.
 - **Embedding**: `main.go` `//go:embed public` embeds *assets only*. **`content/`
   is read from disk at runtime** (`parser.LoadDir("content")`), so content edits
-  need no rebuild — and the container `COPY`s `content/` alongside the binary.
+  need no rebuild, and the container `COPY`s `content/` alongside the binary.
 
 ## Gotchas
 
 - **`content/` in this repo is public demo material only** (the `playground/`
   gallery). A deployment's real runbooks are its own content root or mount, never
-  this repository — do not commit private operational content here.
+  this repository; do not commit private operational content here.
 - **CI regenerates the asset bundles and verifies `THIRD_PARTY_NOTICES.md` is
   committed and current**: `check.yml` builds `public/css/bundle.css` /
   `public/js/bundle.js` from source and fails if `THIRD_PARTY_NOTICES.md` differs
@@ -266,7 +266,7 @@ frontmatter is a startup error, so it breaks boot. This file is the signpost.
 - **Build outputs are gitignored** (`/runbooks`, `/tmp/`, `public/css/bundle.css`,
   `public/js/bundle.js`). `mise run build` produces the binary and both bundles,
   `air` writes `tmp/`. Never commit them.
-- **`content/` is empty in a fresh checkout.** That is fine — the index renders a
+- **`content/` is empty in a fresh checkout.** That is fine: the index renders a
   welcome page. Add a runbook under `content/<system>/<category>/<file>.md` to populate it.
 - `mise run build` regenerates `public/css/bundle.css` and `public/js/*.js`. A bare
   `go build ./...` / `go run .` embeds whatever bundles are on disk, so run
@@ -275,9 +275,9 @@ frontmatter is a startup error, so it breaks boot. This file is the signpost.
   unknown paths 404. The index is generated from `parser.CommonIssues` +
   `GroupBySystem`, so it needs no content file of its own.
 - stylelint: `declaration-no-important` is on (two documented exceptions in
-  `.stylelintrc.json` — `code.css` over the syntax highlighter, `responsive.css` the
+  `.stylelintrc.json`: `code.css` over the syntax highlighter, `responsive.css` the
   override layer), and `declaration-property-unit-allowed-list` bans raw px in
-  `margin`/`padding`/`gap` — spacing comes from tokens (use `--space-hair` below
+  `margin`/`padding`/`gap`; spacing comes from tokens (use `--space-hair` below
   `--space-1`). Prettier uses tabs, width 100.
 - **E2E virtual-authenticator options**: Chromium's `WebAuthn.addVirtualAuthenticator`
   names the backup flags `defaultBackupEligibility` / `defaultBackupState`; the
@@ -299,8 +299,8 @@ frontmatter is a startup error, so it breaks boot. This file is the signpost.
 - `LICENSE` is the FSL-1.1-MIT text; `DEPENDENCIES.md` inventories every distributed
   dependency and its licence; `NOTICE` embeds the OFL text for the fonts and the
   MPL-2.0 notice for `go-sql-driver/mysql` (compatible via MPL §3.3 Larger Work).
-- `THIRD_PARTY_NOTICES.md` is **generated** (`mise run notices`, `cmd/notices`) —
-  never hand-edit it; CI fails on drift. The JS and font licence texts are committed
+- `THIRD_PARTY_NOTICES.md` is **generated** (`mise run notices`, `cmd/notices`).
+  Never hand-edit it; CI fails on drift. The JS and font licence texts are committed
   beside the assets.
 - `mise run sbom` / `sbom:image` emit SPDX 2.3 + CycloneDX; CI
   uploads them as the `sbom` artifact and, on `v*` tags, keyless-attests the SPDX

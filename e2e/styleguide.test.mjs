@@ -2,7 +2,7 @@
 
 // Styleguide E2E: renders the design system inside the app shell and captures
 // each section, so a visual change can be eyeballed from one run. Screenshots are
-// the point — there is little to assert beyond the page rendering.
+// the point; there is little to assert beyond the page rendering.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { startApp, startBrowser, bootAdmin, snap, reportFailure, holdIfAsked } from "./harness.mjs";

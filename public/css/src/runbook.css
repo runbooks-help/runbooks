@@ -2,7 +2,7 @@
 
 /* Runbook page components. */
 
-/* Contents — the step list at the top of a runbook (three or more steps). */
+/* Contents: the step list at the top of a runbook (three or more steps). */
 .toc {
 	max-width: 1440px;
 	margin-bottom: var(--space-5);
@@ -130,7 +130,7 @@
 }
 
 /* The runbook body is one scroller: the title and the notice leave the viewport
-   as you read. Only the bar — the inputs and the notes toggle — sticks. */
+   as you read. Only the bar (the inputs and the notes toggle) sticks. */
 .runbook-scroll {
 	flex: 1;
 	min-height: 0;

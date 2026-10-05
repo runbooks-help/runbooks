@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: FSL-1.1-MIT */
 
-/* Variables — a runbook's runtime inputs. Two or fewer render inline in the
+/* Variables: a runbook's runtime inputs. Two or fewer render inline in the
    sticky bar; more collapse to a one-line summary whose Edit opens the editor
    dialog (a table of label + value). No separate "Variables" heading. */
 
@@ -99,7 +99,7 @@
 	flex-shrink: 0;
 }
 
-/* The editor dialog — a right drawer, and a full-screen sheet below 640px
+/* The editor dialog: a right drawer, and a full-screen sheet below 640px
    (responsive.css). Native <dialog> gives the backdrop, focus trap and Esc. */
 dialog.vars-editor {
 	position: fixed;

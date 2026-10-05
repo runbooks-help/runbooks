@@ -6,10 +6,10 @@ future licence). Spec: `runbooks-commercial-model.md`; governance:
 `runbooks-governance.md`.
 
 - Date: 2026-10-04
-- Scope: what actually ships — the Go binary, the vendored browser JS and
+- Scope: what actually ships: the Go binary, the vendored browser JS and
   icons, the self-hosted fonts, and the container base. Build/test-only tooling
   is recorded too, because it affects CI and reproducibility.
-- Posture: FSL is source-available, not OSI-open — it carries a two-year
+- Posture: FSL is source-available, not OSI-open; it carries a two-year
   competing-use restriction, then converts to MIT. **Copyleft dependencies cannot
   be combined with it** (their terms forbid adding that further restriction), so
   every distributed dependency must be permissive (MIT / BSD / Apache-2.0 / ISC)
@@ -18,7 +18,7 @@ future licence). Spec: `runbooks-commercial-model.md`; governance:
 ## Result
 
 **No distributed dependency is incompatible.** One is weak copyleft and is
-resolved by the Larger Work clause — see the note below. Nothing needs replacing
+resolved by the Larger Work clause; see the note below. Nothing needs replacing
 or rewriting.
 
 | Class | Count | Licences |
@@ -28,7 +28,7 @@ or rewriting.
 | Vendored icons | 1 | ISC (Feather-derived subset MIT) |
 | Self-hosted fonts | 2 | OFL-1.1 |
 | Build/test-only Go modules | 58 | MIT, BSD-2/3-Clause, Apache-2.0, ISC, MPL-2.0 (1, not linked) |
-| Build tooling (non-Go) | — | MIT, Apache-2.0 |
+| Build tooling (non-Go) | n/a | MIT, Apache-2.0 |
 
 ### The one weak-copyleft dependency
 
@@ -38,8 +38,8 @@ It is compatible with shipping a product under FSL:
 - MPL 2.0 §3.3 ("Distribution of a Larger Work") lets us distribute the combined
   binary under terms of our choice (FSL), provided we meet the MPL conditions for
   the driver itself.
-- Those conditions: keep the driver under MPL-2.0, keep its notices, and — when
-  distributing the executable — make the driver's source available and do not let
+- Those conditions: keep the driver under MPL-2.0, keep its notices and, when
+  distributing the executable, make the driver's source available and do not let
   our terms restrict the recipient's rights in the driver's source (§3.1, §3.2).
   The driver is **unmodified**, so pointing at upstream satisfies source
   availability; we ship the MPL text in `NOTICE`.
@@ -55,9 +55,9 @@ driver is the correct call.
 
 Linked into the `runbooks` binary (from `go list -deps .`). Every one is
 permissive except the noted MPL driver. The git transport is part of this set:
-`go-git` (Apache-2.0) and its tree — `go-git/go-billy`, `ProtonMail/go-crypto`,
-`skeema/knownhosts`, `xanzy/ssh-agent`, `pjbgf/sha1cd`, `filepath-securejoin`, …
-— replaced shelling out to a system `git` binary, so neither the container nor a
+`go-git` (Apache-2.0) and its tree (`go-git/go-billy`, `ProtonMail/go-crypto`,
+`skeema/knownhosts`, `xanzy/ssh-agent`, `pjbgf/sha1cd`, `filepath-securejoin`, …)
+replaced shelling out to a system `git` binary, so neither the container nor a
 bare-binary self-host needs git installed.
 
 | Module | Version | Licence |
@@ -118,14 +118,14 @@ Checked in and served as-is; not bundled.
 
 | File | Version | Licence | Elected |
 |---|---|---|---|
-| `highlight.min.js` | 11.11.1 | BSD-3-Clause | — |
-| `marked.min.js` | 15.0.12 | MIT | — |
+| `highlight.min.js` | 11.11.1 | BSD-3-Clause | n/a |
+| `marked.min.js` | 15.0.12 | MIT | n/a |
 | `purify.min.js` | 3.2.4 | Apache-2.0 **or** MPL-2.0 | **Apache-2.0** |
 | `jszip.min.js` | 3.10.1 | MIT **or** GPLv3 | **MIT** (bundled pako is MIT) |
 
 ## 3. Vendored icons (`views/`)
 
-Server-rendered inline SVG — a subset of [Lucide](https://lucide.dev) 1.49.0,
+Server-rendered inline SVG: a subset of [Lucide](https://lucide.dev) 1.49.0,
 ISC-licensed, with some icons derived from Feather (MIT). The path data is
 compiled into the binary via `views/icons/icons.go`; the licence text is
 `public/js/vendor/lucide.LICENSE` and ships in `THIRD_PARTY_NOTICES.md`. No icon
@@ -147,7 +147,7 @@ ships there too.
 | `atkinson-hyperlegible-mono-latin-wght-normal.woff2` | Atkinson Hyperlegible Mono | OFL-1.1 |
 
 Both are © Braille Institute of America, licensed under the SIL Open Font
-License 1.1. The OFL text must accompany the fonts — see `NOTICE`.
+License 1.1. The OFL text must accompany the fonts; see `NOTICE`.
 
 ## 5. Build/test-only Go modules
 
@@ -216,7 +216,7 @@ Not distributed, but part of the build/CI story.
 ## 7. Container
 
 The runtime image is stock `alpine:3` plus `ca-certificates` from Alpine's
-package index — the go-git transport removed the `git` and `openssh-client`
+package index; the go-git transport removed the `git` and `openssh-client`
 packages the image used to carry. Alpine packages carry their own licences
 (mostly MIT / BSD / GPL where Alpine permits it) and are the base image's
 responsibility, not linked into `runbooks`; per-package licence metadata is
@@ -239,7 +239,7 @@ This file is its human-readable companion.
 ## Third-party licence texts
 
 `THIRD_PARTY_NOTICES.md` reproduces the full licence text and copyright for every
-distributed component. It is generated — do not edit it by hand:
+distributed component. It is generated; do not edit it by hand:
 
 ```bash
 mise run notices

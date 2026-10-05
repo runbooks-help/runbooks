@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: FSL-1.1-MIT */
 
-/* Form controls — the field atom. A label, a control and an optional hint.
+/* Form controls: the field atom. A label, a control and an optional hint.
    Text inputs and selects share one control treatment, so a form is never
    hand-styled per page.
 

@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: FSL-1.1-MIT */
 
-/* Alert — interactive feedback. Intent (danger, warn, info, success) is
+/* Alert: interactive feedback. Intent (danger, warn, info, success) is
    independent of weight (inline, panel, banner): the intent sets the colour, the
    weight sets the frame. Panel is the default and carries no modifier. Status is
    never the brand accent, and every tint derives from a role via color-mix, so
@@ -74,7 +74,7 @@
 	overflow-wrap: anywhere;
 }
 
-/* Inline weight — field and form validation: no frame, just a rule against the
+/* Inline weight: field and form validation. No frame, just a rule against the
    input it belongs to, so it does not compete with the page. */
 .alert-inline {
 	padding: var(--space-1) 0 var(--space-1) var(--space-3);
@@ -84,7 +84,7 @@
 	border-radius: 0;
 }
 
-/* Banner weight — a blocking condition. The frame belongs here; the bleed into a
+/* Banner weight: a blocking condition. The frame belongs here; the bleed into a
    hosting card belongs to the context (see .auth-card in auth.css), so the
    same banner can be shown anywhere without a negative margin. */
 .alert-banner {

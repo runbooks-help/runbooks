@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: FSL-1.1-MIT
 
 // Docs-site E2E: a public, no-database instance serving a sections-based content
-// root. Covers the fold's productised surface — sections vs numbered steps, the
+// root. Covers the fold's productised surface: sections vs numbered steps, the
 // page lead, prev/next, the inline glossary popup, and the crawler surface
-// (canonical/OpenGraph, sitemap, robots) — none of which the styleguide can
+// (canonical/OpenGraph, sitemap, robots), none of which the styleguide can
 // exercise as real pages.
 import { test } from "node:test";
 import assert from "node:assert/strict";

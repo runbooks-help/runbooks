@@ -3,7 +3,7 @@ name: Docs site
 # The public docs site is a derived image: the runtime plus a build-time seed of
 # runbooks-help/runbooks-docs. It is not a release artifact (the official image
 # ships no content). Scaleway Serverless Containers deploy it, pulling from the
-# Scaleway Container Registry — the GHCR package is private, so Scaleway cannot
+# Scaleway Container Registry; the GHCR package is private, so Scaleway cannot
 # pull it directly. See specs/runbooks/docs-hosting/README.md.
 on:
   push:

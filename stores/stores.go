@@ -3,8 +3,8 @@
 // Package stores holds the identity persistence contract and an implementation
 // per database under subpackages.
 //
-// The contract is the Store interface — composed of UserStore, CredentialStore,
-// SessionStore and ChallengeStore — with the types it exchanges in types.go and
+// The contract is the Store interface, composed of UserStore, CredentialStore,
+// SessionStore and ChallengeStore, with the types it exchanges in types.go and
 // the errors in errors.go.
 package stores
 

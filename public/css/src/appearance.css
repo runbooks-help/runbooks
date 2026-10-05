@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: FSL-1.1-MIT */
 
-/* Appearance — the floating panel of reading preferences (theme, code weight,
+/* Appearance: the floating panel of reading preferences (theme, code weight,
    reading size, steps). One component: box, title, four preference rows. It is
-   summoned from a cogwheel — in the rail (always visible) or the sidebar
-   footer — and anchored beside whichever summoned it; that anchoring is
+   summoned from a cogwheel: in the rail (always visible) or the sidebar
+   footer, and anchored beside whichever summoned it; that anchoring is
    contextual chrome owned by the drawer state, not the component. */
 .appearance {
 	position: fixed;

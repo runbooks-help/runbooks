@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: FSL-1.1-MIT
 
 // Package gitrepo wraps go-git for the two places Runbooks touches a remote:
-// reading runbook content and writing notes records. It is pure Go — no system
+// reading runbook content and writing notes records. It is pure Go, with no system
 // git binary.
 package gitrepo
 
@@ -225,7 +225,7 @@ func initEmpty(dir, repo, branch string) (*git.Repository, error) {
 	if _, err := r.CreateRemote(&config.RemoteConfig{Name: "origin", URLs: []string{repo}}); err != nil {
 		return nil, fmt.Errorf("set origin: %w", err)
 	}
-	// An empty repo has an unborn HEAD, so the branch cannot be checked out —
+	// An empty repo has an unborn HEAD, so the branch cannot be checked out:
 	// point HEAD at it and let the first commit create it.
 	if err := r.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, plumbing.NewBranchReferenceName(branch))); err != nil {
 		return nil, fmt.Errorf("set head: %w", err)

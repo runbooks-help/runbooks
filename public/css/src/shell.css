@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: FSL-1.1-MIT */
 
-/* App shell — rail + main content grid. The sidebar is a summoned overlay, not a
+/* App shell: rail + main content grid. The sidebar is a summoned overlay, not a
    column, so main keeps its width at every viewport. */
 
 body {
@@ -176,7 +176,7 @@ body[data-drawer] .drawer-scrim {
 	color: var(--accent-strong);
 }
 
-/* Flat nav headings — the styleguide's own section navigation. The runbook tree
+/* Flat nav headings: the styleguide's own section navigation. The runbook tree
    below uses .nav-row / .nav-chev instead. */
 .nav-system {
 	font-size: var(--text-sm);
@@ -203,7 +203,7 @@ body[data-drawer] .drawer-scrim {
 	padding: var(--space-3) var(--space-4) var(--space-1);
 }
 
-/* Runbook tree — a filter field over collapsible systems and categories. The
+/* Runbook tree: a filter field over collapsible systems and categories. The
    whole tree is rendered and collapse is a class, so a filter can reach every
    runbook; the branch owning the active runbook opens on load. */
 .nav-filter {
@@ -385,7 +385,7 @@ body[data-drawer] .drawer-scrim {
 	gap: var(--space-hair);
 }
 
-/* The runbook links a category owns — a hairline rail marks the nesting. This is
+/* The runbook links a category owns: a hairline rail marks the nesting. This is
    the component's own layout, not the sidebar's: the styleguide hosts the same
    nav in a .sg-sidebar frame, so it must not be keyed to .sidebar. */
 .nav-links {
@@ -437,7 +437,7 @@ nav a.active {
 	/* Keep the reading column centred at every width, not only in zen: the width
 	   fills the track and auto margins split the dead space either side of the
 	   column instead of piling it all on the right. Zen gets the same centring
-	   for free — its grid leaves .main as the only item in a 1fr track. The
+	   for free; its grid leaves .main as the only item in a 1fr track. The
 	   explicit width matters: auto margins alone stop a grid item stretching, so
 	   it would shrink-wrap its content and narrow the page once the index
 	   catalogue filters down to nothing. */

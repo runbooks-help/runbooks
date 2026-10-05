@@ -378,7 +378,7 @@ var (
 // manifestFile). Results are sorted by system (order, title), then category
 // (order, title), then runbook order and title.
 //
-// exclude lists paths (relative to dir) the walk skips — the git-sync records
+// exclude lists paths (relative to dir) the walk skips: the git-sync records
 // folder, when content lives at the root of a repo that also holds records.
 func LoadDir(dir string, exclude ...string) ([]RunbookDef, error) {
 	man, err := loadManifest(filepath.Join(dir, manifestFile))

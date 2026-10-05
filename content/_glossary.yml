@@ -15,13 +15,13 @@
   link: https://dev.mysql.com/doc/refman/8.0/en/replication-gtids.html
 - term: ACID
   expansion: Atomicity, Consistency, Isolation, Durability
-  description: The four guarantees a transactional database makes. Relaxing durability (skipping fsyncs) trades a few seconds of crash exposure for write speed — safe on a replica, never on a primary.
+  description: The four guarantees a transactional database makes. Relaxing durability (skipping fsyncs) trades a few seconds of crash exposure for write speed; safe on a replica, never on a primary.
 - term: DBA
   expansion: Database Administrator
   description: The person who owns the database cluster and its recovery procedures.
 - term: RAID
   expansion: Redundant Array of Independent Disks
-  description: A disk layout that trades capacity and write speed for redundancy or throughput. RAID 1 mirrors, RAID 6 survives two failures, RAID 10 mirrors striped pairs — the layout changes how a busy replica behaves under write load.
+  description: A disk layout that trades capacity and write speed for redundancy or throughput. RAID 1 mirrors, RAID 6 survives two failures, RAID 10 mirrors striped pairs; the layout changes how a busy replica behaves under write load.
 
 # Kubernetes / infrastructure
 - term: CCM
@@ -47,7 +47,7 @@
   description: The programmatic surface one service exposes to another. A token that authenticates an API is a secret and never belongs in a repository.
 - term: CMS
   expansion: Content Management System
-  description: A database-backed system for authoring content. Runbooks deliberately have none — the filesystem of Markdown files is the taxonomy.
+  description: "A database-backed system for authoring content. Runbooks deliberately have none: the filesystem of Markdown files is the taxonomy."
 - term: YAML
   expansion: YAML Ain't Markup Language
   description: The human-readable data serialisation format used for runbook frontmatter and the sidebar manifest.

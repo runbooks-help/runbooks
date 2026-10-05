@@ -14,7 +14,7 @@ import (
 // dialog, so the bar never grows past one row however many inputs a runbook has.
 const varsInlineThreshold = 2
 
-// VarsPanel renders a runbook's runtime inputs — no "Variables" heading. Two or
+// VarsPanel renders a runbook's runtime inputs, no "Variables" heading. Two or
 // fewer render as a wrapping row in the sticky bar; more collapse to a one-line
 // summary whose Edit control opens the editor dialog (a table of label + value,
 // full-screen sheet on narrow viewports).
@@ -78,7 +78,7 @@ templ VarsPanel(fields []parser.VarField) {
 	</div>
 }
 
-// varField is the inline field — label above input, with its hint popover.
+// varField is the inline field: label above input, with its hint popover.
 templ varField(f parser.VarField) {
 	<div class="var-field">
 		<span class="var-label-row">

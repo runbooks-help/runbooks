@@ -6,6 +6,6 @@ gremlins unleash ./identity
 gremlins unleash ./contentsource
 gremlins unleash ./internal/gitrepo
 # The database-backed stores share one database, so the mutants must run
-# serially — parallel runs would race on the tables they reset.
+# serially; parallel runs would race on the tables they reset.
 STORES_MYSQL_DSN="root:root@tcp(127.0.0.1:3307)/runbooks_identity" gremlins unleash --workers 1 ./stores/mysql
 STORES_POSTGRES_DSN="postgres://postgres:postgres@127.0.0.1:5433/runbooks_identity?sslmode=disable" gremlins unleash --workers 1 ./stores/postgres

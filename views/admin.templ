@@ -8,7 +8,7 @@ import (
 	"runbooks/views/components"
 )
 
-// AdminPage manages people — inside the app shell, so it reads as part of the
+// AdminPage manages people: inside the app shell, so it reads as part of the
 // runbooks application rather than a standalone card.
 templ AdminPage(groups []parser.SystemGroup, users []stores.User, isAdmin, identityEnabled bool) {
 	@components.Shell("Admin") {

@@ -9,7 +9,7 @@ node = "latest"
 [env]
 PORT = "8091"
 # Personal/secret dev values (the notes repo, commit identity, GITSYNC_API_TOKEN,
-# …) load from the git-ignored .env — copy .env.example and fill it in. SSH
+# …) load from the git-ignored .env; copy .env.example and fill it in. SSH
 # remotes otherwise use the ambient SSH agent, so no key is needed locally.
 # Values set explicitly below win over the file.
 _.file = ".env"
@@ -22,7 +22,7 @@ GITSYNC_BRANCH = "main"
 GITSYNC_BASE_PATH = "runs"
 
 # Identity dev config (see https://docs.runbooks.help/identity).
-# An empty driver leaves the app PUBLIC (no passkeys, no gating) — used to share
+# An empty driver leaves the app PUBLIC (no passkeys, no gating); used to share
 # the dev UI for feedback. To exercise passkeys again, set the driver to sqlite and
 # uncomment the rest: open http://localhost:8091/setup and paste the bootstrap token.
 # IDENTITY_DB_DRIVER = ""

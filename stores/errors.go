@@ -7,7 +7,7 @@ import "errors"
 // ErrNotFound is returned when a single-row read matches nothing.
 var ErrNotFound = errors.New("stores: not found")
 
-// ConflictError reports a uniqueness violation — an email or credential id that
+// ConflictError reports a uniqueness violation: an email or credential id that
 // is already registered. The underlying error is kept for inspection.
 type ConflictError struct {
 	err error
