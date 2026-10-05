@@ -152,6 +152,15 @@
 	margin-inline: auto;
 }
 
+/* The notice insets to the reading column on top of the shared centring: its
+   own inline margins would cancel the auto margins above, so it sets the inset
+   as a width instead. */
+.runbook-scroll > .runbook-notice {
+	width: calc(100% - 2 * var(--space-6));
+	max-width: calc(1440px - 2 * var(--space-6));
+	margin-inline: auto;
+}
+
 .runbook-scroll .content {
 	flex: 0 0 auto;
 	overflow: visible;
