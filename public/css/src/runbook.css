@@ -130,7 +130,13 @@
 }
 
 /* The runbook body is one scroller: the title and the notice leave the viewport
-   as you read. Only the bar (the inputs and the notes toggle) sticks. */
+   as you read. Only the bar (the inputs and the notes toggle) sticks. The main
+   column spans the whole track so the wheel scrolls in the dead space either
+   side of the reading column; the column itself stays centred below. */
+.main:has(> .runbook-scroll) {
+	max-width: none;
+}
+
 .runbook-scroll {
 	flex: 1;
 	min-height: 0;
@@ -138,6 +144,12 @@
 	display: flex;
 	flex-direction: column;
 	scroll-padding-top: var(--space-6);
+}
+
+.runbook-scroll > * {
+	width: 100%;
+	max-width: 1440px;
+	margin-inline: auto;
 }
 
 .runbook-scroll .content {
@@ -173,7 +185,9 @@
 	display: none;
 	align-items: center;
 	gap: var(--space-3);
+	width: 100%;
 	max-width: 1440px;
+	margin-inline: auto;
 	padding: var(--space-3) var(--space-5);
 	margin-bottom: var(--space-4);
 	border-bottom: 1px solid var(--border);
