@@ -143,14 +143,16 @@ async function main() {
 		// Ticking every block in a step ticks the step itself. The default reading
 		// preference opens only the first step, so expand this one first.
 		const codeStep = page.locator("#code-blocks");
-		await smoothScrollTo(page, codeStep, "center"); // the one deliberate pan
+		await smoothScrollTo(page, codeStep, "center");
 		await press(ctx, codeStep.locator(".step-toggle"));
 		await beat(500);
 		const checks = codeStep.locator(".block-check");
 		const count = await checks.count();
 		assert.ok(count > 0, "the code step has labelled blocks to tick");
 		for (let i = 0; i < count; i++) {
-			await press(ctx, checks.nth(i), { block: "nearest", pause: 160 });
+			// Centre each box before ticking it. The step is taller than the viewport,
+			// so with "nearest" the lower boxes would be ticked at the bottom edge.
+			await press(ctx, checks.nth(i), { block: "center", pause: 160 });
 			await beat(380);
 		}
 		assert.equal(

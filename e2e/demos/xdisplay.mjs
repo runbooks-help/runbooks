@@ -92,6 +92,14 @@ export async function startDisplay({ size = { width: 1280, height: 800 }, chrome
 	});
 	const context = await browser.newContext({ viewport: size });
 	const page = await context.newPage();
+	// Track the real pointer's page coordinates on every navigation. This is an
+	// init script rather than a one-shot evaluate because the reader reloads the
+	// page: a listener installed once would be dropped by the reload, leaving
+	// `__demoPointer` null so every travel jumps instantly to its target.
+	await page.addInitScript(() => {
+		window.__demoPointer = null;
+		addEventListener("mousemove", (e) => (window.__demoPointer = { x: e.clientX, y: e.clientY }), true);
+	});
 	if (url) await page.goto(url);
 
 	// The page rect inside the X screen, measured by asking the page where it
@@ -99,10 +107,6 @@ export async function startDisplay({ size = { width: 1280, height: 800 }, chrome
 	// geometry (chrome height, borders) is exactly the kind of thing that drifts.
 	let origin = null;
 	async function calibrate() {
-		await page.evaluate(() => {
-			window.__demoPointer = null;
-			addEventListener("mousemove", (e) => (window.__demoPointer = { x: e.clientX, y: e.clientY }), true);
-		});
 		const at = await page.evaluate(() => ({ x: Math.round(innerWidth / 2), y: Math.round(innerHeight / 2) }));
 		for (const probe of [at, { x: at.x + 40, y: at.y + 40 }]) {
 			x("mousemove", String(probe.x), String(probe.y));
@@ -126,13 +130,19 @@ export async function startDisplay({ size = { width: 1280, height: 800 }, chrome
 		x: Math.min(Math.max(root.x, origin.x + 1), origin.x + size.width - 2),
 		y: Math.min(Math.max(root.y, origin.y + 1), origin.y + size.height - 2),
 	});
-	const at = (p) => x("mousemove", String(clamp(toRoot(p)).x), String(clamp(toRoot(p)).y));
+	let lastPage = null;
+	const at = (p) => {
+		lastPage = p;
+		x("mousemove", String(clamp(toRoot(p)).x), String(clamp(toRoot(p)).y));
+	};
 
 	// move takes page coordinates and travels, so the pointer is seen to arrive
 	// rather than teleport. The easing and the pacing are what make it read as a
 	// cursor rather than an edit: at rest at both ends, and slower over distance.
 	async function move(pagePoint, duration) {
-		const from = await page.evaluate(() => window.__demoPointer).catch(() => null);
+		// Prefer what the page actually saw; fall back to the last commanded point so
+		// a lost listener degrades to a short travel rather than a teleport.
+		const from = (await page.evaluate(() => window.__demoPointer).catch(() => null)) ?? lastPage;
 		const distance = from ? Math.hypot(pagePoint.x - from.x, pagePoint.y - from.y) : 0;
 		const ms = duration ?? Math.min(900, 280 + distance * 0.8);
 		const steps = Math.max(6, Math.round(ms / 24));

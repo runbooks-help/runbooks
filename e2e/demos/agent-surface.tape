@@ -23,7 +23,7 @@ Show
 Type "curl -s localhost:8090/llms.txt | head -n 6"
 Enter
 Sleep 2.5s
-Type "curl -s localhost:8090/mts-deadlock-recovery.md | head -n 10"
+Type "curl -s localhost:8090/replication-lag.md | head -n 10"
 Enter
 Sleep 3s
 Type "curl -s -G --data-urlencode 'q=replication lag' localhost:8090/api/runbooks/v1/search | jq '{count, top: [.results[0:3][].slug]}'"

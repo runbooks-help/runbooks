@@ -35,7 +35,7 @@ the file.
 | `mise run test:e2e` | Browser E2E behind `e2e/harness.mjs` (shared boot + Chromium + virtual authenticator): `passkey.test.mjs` (identity), `runbook.test.mjs` (page interactions), `styleguide.test.mjs` (design-system screenshots). `E2E_SCREENSHOT_DIR=…` writes the screenshots. Needs a system Chromium (`CHROMIUM=/path` to override); `playwright-core` installs into `e2e/` on demand. |
 | `mise run test:e2e:headed` | The same tests in visible windows. `E2E_SLOWMO=ms` paces the actions, `E2E_HOLD_MS=ms` holds at the end of each test (default: run straight through). |
 | `mise run test:e2e:inspect` | Headed with the **Playwright Inspector** (`page.pause()` breakpoints before the setup, invite-enrol and recovery submits). Step over / resume from the inspector window. |
-| `mise run record:demos` | Record the landing-page demo clips into `dist/demos/` (`DEMO_OUT` to move them): the browser flow as a CDP screencast (`e2e/demos/reader.mjs` + `screencast.mjs`, which assert what they film), the terminal flows as `vhs` tapes. Generated output; the rendered bytes are committed in the `runbooks-site` repo under `media/`. |
+| `mise run record:demos` | Record the landing-page demo clips into `dist/demos/` (`DEMO_OUT` to move them): the browser flow on its own Xvfb display, driven by Playwright and pointed with `xdotool` (`e2e/demos/reader.mjs` + `xdisplay.mjs`, which assert what they film), the terminal flows as `vhs` tapes. Generated output; the rendered bytes are committed in the `runbooks-site` repo under `media/`. |
 
 The verification gate before handing work back is `gofumpt -l .`, `go vet ./...`,
 `mise run test`, and `mise run build`. The store contract also runs live against
@@ -101,7 +101,7 @@ public/design-system/  fetched from the pinned design-system release: tokens.css
 public/js/src/       source JS (bundled → public/js/bundle.js, generated)
 public/js/vendor/    marked, highlight.js, jszip (checked in, not bundled)
 e2e/                 browser E2E: harness.mjs + passkey/runbook/styleguide suites
-                     demos/: the recorded marketing clips (reader.mjs, screencast.mjs + vhs tapes)
+                     demos/: the recorded marketing clips (reader.mjs, xdisplay.mjs + vhs tapes)
 cmd/css, cmd/js      esbuild wrappers (see build pipeline below)
 cmd/notices          generates THIRD_PARTY_NOTICES.md (mise run notices)
 cmd/designsystem     fetches the pinned design system (mise run design-system)

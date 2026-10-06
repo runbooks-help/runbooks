@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-#MISE description="Record the landing-page demo clips into dist/demos (browser flow via CDP screencast, terminal flows via vhs)"
+#MISE description="Record the landing-page demo clips into dist/demos (browser flow on Xvfb via xdotool, terminal flows via vhs)"
 #MISE depends=["build"]
 #
 # The clips are generated artefacts of the marketing site, not of the app: only
 # the rendered bytes belong in runbooks-site, under media/. The browser clip is a
 # recording driven by e2e/demos/reader.mjs (which asserts what it films) and
-# encoded by e2e/demos/screencast.mjs; the terminal clips are vhs tapes that drive
-# a throwaway container.
+# captured from an Xvfb display by e2e/demos/xdisplay.mjs; the terminal clips are
+# vhs tapes that drive a throwaway container.
 set -euo pipefail
 
 out="${DEMO_OUT:-dist/demos}"
@@ -23,6 +23,14 @@ if ! command -v docker >/dev/null 2>&1; then
 	export PATH="$shim:$PATH"
 fi
 
+# The terminal clips hardcode port 8090, so a dev server left running there makes
+# the container fail to start and the clip records the failure instead of the
+# demo. Refuse to record rather than ship that.
+if ss -ltnH 2>/dev/null | grep -q ':8090 '; then
+	echo "record:demos: port 8090 is already in use; stop the dev server first" >&2
+	exit 1
+fi
+
 npm --prefix e2e install --silent
 
 # The container both terminal clips use; remove it before and after, so a run
@@ -34,8 +42,8 @@ cleanup() {
 trap 'cleanup; [ -z "$shim" ] || rm -rf "$shim"' EXIT
 cleanup
 
-# The browser clip drops its own lead-in while recording (reader.mjs, `skip`), so
-# the published file is the recording rather than a cut of it.
+# The browser recorder starts the capture itself, after the page is set up, so the
+# published file is the whole recording rather than a cut of it.
 DEMO_OUT="$out" node e2e/demos/reader.mjs
 
 # vhs owns its own ffmpeg pipeline and writes Raw WebM.
@@ -44,7 +52,7 @@ cleanup # free the name the next clip starts a container under
 vhs e2e/demos/agent-surface.tape
 
 # The terminal clips are transcoded here: vhs encodes loosely, and the browser
-# clip is already final (its own recorder encodes the lossless frames once).
+# clip is already final (its recorder captures and encodes in one pass).
 for name in quickstart agent-surface; do
 	src="$raw/$name.webm"
 	[ -f "$src" ] || {
@@ -58,16 +66,13 @@ done
 
 for name in reader quickstart agent-surface; do
 	# The poster is the reduced-motion fallback, so take it from a moment with
-	# the point of the clip on screen rather than the first frame. The browser
-	# clip's offset is against the published clip, whose first 4s the recorder
-	# never wrote.
+	# the point of the clip on screen rather than the first frame. Offsets are
+	# seconds into the published clip; adjust when the recorded timeline shifts.
 	src="$out/$name.mp4"
 	case "$name" in
-		# 14s into the file is the ticked-blocks moment (18s into the recording,
-		# minus the 4s lead-in reader.mjs drops before writing anything).
-		reader) poster_at=14 ;;
-		quickstart) poster_at=6 ;;
-		agent-surface) poster_at=9 ;;
+		reader) poster_at=14 ;;       # the ticked-blocks moment
+		quickstart) poster_at=9 ;;    # /llms.txt answering
+		agent-surface) poster_at=14 ;; # the search result
 	esac
 	ffmpeg -y -loglevel error -ss "$poster_at" -i "$src" -frames:v 1 -q:v 2 "$out/$name-poster.jpg"
 done
