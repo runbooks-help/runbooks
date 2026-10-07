@@ -73,9 +73,9 @@ Any lower-case language tag is accepted; this fence has no bracketed label.
 curl -H "Authorization: Bearer {{API_TOKEN}}" "https://{{HOST}}/healthz"
 ```
 
-## Notices and branch
+## Notices, branch and lookalikes
 
-All three notice variants, then a decision callout.
+All three notice variants, then a decision callout and a lookalike.
 
 > [!info] This is an info notice: context, links and read-only remarks.
 
@@ -87,6 +87,10 @@ All three notice variants, then a decision callout.
 > - If the replica's IO thread is running, continue to the next step.
 > - If it has stopped, rebuild from the nightly snapshot instead.
 > - If neither, page the on-call DBA.
+
+> [!lookalike] GTID gap on the replica
+> Looks like: a deadlock, but the deadlock counter is flat.
+> Rule out by: `Seconds_Behind_Source` climbing with zero lock waits.
 
 ---rollback
 

@@ -3,6 +3,7 @@
 package parser
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/yuin/goldmark"
@@ -25,6 +26,7 @@ const (
 	pieceMarkdown pieceKind = iota
 	pieceNotice
 	pieceBranch
+	pieceLookalike
 )
 
 type piece struct {
@@ -32,7 +34,8 @@ type piece struct {
 	raw     string // pieceMarkdown: a markdown source chunk
 	variant string // pieceNotice
 	message string // pieceNotice
-	body    string // pieceBranch
+	body    string // pieceBranch, pieceLookalike
+	title   string // pieceLookalike
 }
 
 // region is one step (or the intro) with its blocks in source order. Product
@@ -49,8 +52,12 @@ type region struct {
 // convertBody reproduces Parse's body walk on top of goldmark. It returns the
 // intro blocks and the numbered/section steps, split into the forward and
 // rollback regions.
-func convertBody(body string, sections bool) (intro []Block, steps, rollback []Step) {
-	for _, r := range scanRegions(body, sections) {
+func convertBody(body string, sections bool) (intro []Block, steps, rollback []Step, err error) {
+	regions, err := scanRegions(body, sections)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	for _, r := range regions {
 		blocks := r.convert()
 		if !r.isStep {
 			// Legacy keeps only prose in the intro; other block kinds before
@@ -69,7 +76,7 @@ func convertBody(body string, sections bool) (intro []Block, steps, rollback []S
 		}
 		steps = append(steps, s)
 	}
-	return intro, steps, rollback
+	return intro, steps, rollback, nil
 }
 
 func (r region) convert() []Block {
@@ -80,6 +87,8 @@ func (r region) convert() []Block {
 			blocks = append(blocks, Block{Kind: KindNotice, Variant: p.variant, Message: p.message})
 		case pieceBranch:
 			blocks = append(blocks, Block{Kind: KindBranch, Body: p.body})
+		case pieceLookalike:
+			blocks = append(blocks, Block{Kind: KindLookalike, Title: p.title, Body: p.body})
 		case pieceMarkdown:
 			blocks = append(blocks, convertMarkdown(p.raw)...)
 		}
@@ -90,17 +99,20 @@ func (r region) convert() []Block {
 // scanRegions splits the body into step/intro regions, absorbing the product
 // directives and admonitions. Fences are tracked so a `##` or `---` inside a
 // code block never starts a step or a directive.
-func scanRegions(body string, sections bool) []region {
+func scanRegions(body string, sections bool) ([]region, error) {
 	var (
-		regions  []region
-		cur      = region{section: sections}
-		md       []string
-		inNotice bool
-		noticeVn string
-		noticeLn []string
-		inBranch bool
-		branchLn []string
-		fence    int
+		regions        []region
+		cur            = region{section: sections}
+		md             []string
+		inNotice       bool
+		noticeVn       string
+		noticeLn       []string
+		inBranch       bool
+		branchLn       []string
+		inLookalike    bool
+		lookalikeTitle string
+		lookalikeLn    []string
+		fence          int
 	)
 	rollback := false
 
@@ -127,7 +139,14 @@ func scanRegions(body string, sections bool) []region {
 		}
 		inBranch, branchLn = false, nil
 	}
-	flushAll := func() { flushMarkdown(); flushNotice(); flushBranch() }
+	flushLookalike := func() {
+		if !inLookalike {
+			return
+		}
+		cur.pieces = append(cur.pieces, piece{kind: pieceLookalike, title: lookalikeTitle, body: strings.Join(lookalikeLn, "\n")})
+		inLookalike, lookalikeTitle, lookalikeLn = false, "", nil
+	}
+	flushAll := func() { flushMarkdown(); flushNotice(); flushBranch(); flushLookalike() }
 	closeRegion := func() {
 		flushAll()
 		if cur.isStep || len(cur.pieces) > 0 {
@@ -151,18 +170,25 @@ func scanRegions(body string, sections bool) []region {
 		}
 
 		if inNotice {
-			if m := blockquoteRe.FindStringSubmatch(line); m != nil && !noticeRe.MatchString(line) && !branchStartRe.MatchString(line) {
+			if m := blockquoteRe.FindStringSubmatch(line); m != nil && !noticeRe.MatchString(line) && !branchStartRe.MatchString(line) && !lookalikeStartRe.MatchString(line) {
 				noticeLn = append(noticeLn, m[1])
 				continue
 			}
 			flushNotice()
 		}
 		if inBranch {
-			if m := blockquoteRe.FindStringSubmatch(line); m != nil {
+			if m := blockquoteRe.FindStringSubmatch(line); m != nil && !noticeRe.MatchString(line) && !branchStartRe.MatchString(line) && !lookalikeStartRe.MatchString(line) {
 				branchLn = append(branchLn, m[1])
 				continue
 			}
 			flushBranch()
+		}
+		if inLookalike {
+			if m := blockquoteRe.FindStringSubmatch(line); m != nil && !noticeRe.MatchString(line) && !branchStartRe.MatchString(line) && !lookalikeStartRe.MatchString(line) {
+				lookalikeLn = append(lookalikeLn, m[1])
+				continue
+			}
+			flushLookalike()
 		}
 
 		if dir, ok := parseDirective(line); ok {
@@ -201,11 +227,22 @@ func scanRegions(body string, sections bool) []region {
 			branchLn = nil
 			continue
 		}
+		if m := lookalikeStartRe.FindStringSubmatch(line); m != nil {
+			flushMarkdown()
+			title := strings.TrimSpace(m[1])
+			if title == "" {
+				return nil, fmt.Errorf("lookalike marker needs a title: %q", line)
+			}
+			inLookalike = true
+			lookalikeTitle = title
+			lookalikeLn = nil
+			continue
+		}
 
 		md = append(md, line)
 	}
 	closeRegion()
-	return regions
+	return regions, nil
 }
 
 // fenceOpen reports the length of a backtick fence opening on a line, or 0.

@@ -111,6 +111,8 @@ func dumpBlocks(b *strings.Builder, blocks []Block) {
 			fmt.Fprintf(b, "  notice variant=%q message=%q\n", blk.Variant, blk.Message)
 		case KindBranch:
 			fmt.Fprintf(b, "  branch %q\n", blk.Body)
+		case KindLookalike:
+			fmt.Fprintf(b, "  lookalike title=%q body=%q\n", blk.Title, blk.Body)
 		case KindList:
 			fmt.Fprintf(b, "  list ordered=%v\n", blk.Ordered)
 			dumpListItems(b, blk.Items, "    ")

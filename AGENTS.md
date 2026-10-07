@@ -198,6 +198,9 @@ vars:
   case-insensitive, and the GitHub alert keywords (`NOTE`, `TIP`, `IMPORTANT`,
   `WARNING`, `CAUTION`) are accepted and mapped onto info/warn/danger.
 - `> [!branch]` + `> - item` → decision callout.
+- `> [!lookalike] <title>` + `> lines` → a lookalike: an alternative the
+  symptom also resembles, with the discriminator that rules it out. A block,
+  never a step.
 - `- item` bullet lists and `1. item` numbered lists; `| a | b |` tables.
 - `---rollback` (or the GitHub-safe `<!-- rollback -->`) on its own line →
   everything after it is a separate rollback section (danger-styled, unnumbered).

@@ -71,6 +71,40 @@
 	gap: var(--space-1);
 }
 
+/* A lookalike is a "maybe", not a status: a neutral left rule, a help icon and
+   a plain "Could also be:" lead carry the recognition, so it reads at a glance
+   without a status colour or out-shouting the step it belongs to. */
+.notice-lookalike {
+	background: rgba(172, 175, 196, 0.06);
+	border: none;
+	border-left: 3px solid var(--border-strong);
+	border-radius: var(--radius-sm);
+	flex-direction: column;
+	gap: var(--space-1);
+}
+
+.lookalike-title {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	font-size: var(--text-sm);
+}
+
+.lookalike-title .notes-tool-icon {
+	color: var(--muted);
+	flex-shrink: 0;
+}
+
+.lookalike-lead {
+	color: var(--muted);
+	font-weight: 500;
+}
+
+.lookalike-name {
+	color: var(--text);
+	font-weight: 600;
+}
+
 .notice-branch ul {
 	margin: 0;
 	padding: 0;
