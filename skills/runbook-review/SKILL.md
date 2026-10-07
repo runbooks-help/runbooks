@@ -15,10 +15,15 @@ runbook and never apply a proposal. A human decides, and edits the source.
 
 ## What you need
 
-- **The runbook source** — its raw markdown, frontmatter included.
-- **The notes** — the notes captured during executions of this runbook, one per
+- **The page source** — its raw markdown, frontmatter included. It may be a
+  runbook (numbered steps) or a docs/reference page (unnumbered sections); the
+  review is the same, and "step" below means the page's unit — a numbered step,
+  or a section.
+- **The notes** — the notes captured during executions of this page, one per
   execution (in a git-sync record, `notes.md` sits beside the `runbook.md` that
   was current at the time), or pasted into the prompt.
+- **There may be no notes.** A docs page that was never executed has none. Say
+  "no notes to review" and stop — do not invent findings to fill the gap.
 - Nothing else. Do not fetch logs, the running system, or history you were not
   given. Every proposal is grounded in a note.
 
@@ -115,7 +120,8 @@ Rules for the format:
   - `add:` + a fenced block (a new admonition, a new step);
   - `add var:` + a fenced block of the frontmatter var, then a `confirm:` line.
 - **One finding, one `###`**, same fields in the same order. The heading is a
-  short pointer (`where — change`); never prose where the lines will do.
+  short pointer (`where — change`), keyed to a step or a section; never prose
+  where the lines will do.
 - **Sections:** `## Findings` (every class, each a `###`), then `## Out of scope`,
   then `## No action`. Omit `Findings` when empty; keep the other two when they
   have entries.
@@ -126,6 +132,9 @@ Rules for the format:
 - **Evidence only.** Quote the note and date for every proposal. Do not invent a
   step, a root cause, or a fix you have no note for. A hallucinated step is worse
   than no step when someone is panicking at 03:00.
+- **Any page, not just a numbered runbook.** For a sections-layout page, key each
+  finding to the section title — the page has no numbers. The taxonomy and the
+  output format are unchanged.
 - **You may propose nothing.** If the notes hold no actionable change, say so
   explicitly under "No edit proposed". Manufactured work is a defect, not
   thoroughness.
