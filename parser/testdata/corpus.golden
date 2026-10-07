@@ -43,6 +43,35 @@ rollback: "Roll back the promotion" section=false
   code lang="bash" label="Demote the node" body="mysql -h \"{{HOST}}\" -e \"SET GLOBAL read_only = ON;\""
 rollback: "Confirm the rollback held" section=false
   prose "A second rollback step, so the spacing between consecutive danger cards is rendered and reviewable."
+===== ../content/playground/replication-lag.md =====
+intro:
+  prose "A replica using multi-threaded replication (MTS) can deadlock its SQL workers on a handler commit. The replica is up, the IO thread is healthy, and lag grows without bound. It does not clear on its own."
+  prose "If killing the worker does not clear the deadlock, or lag is still climbing after two attempts, stop the SQL thread and let it restart cleanly. This is disruptive: the replica serves stale reads until it catches up."
+  prose "If that still fails, the replica needs a rebuild from the primary. Escalate before rebuilding: a reseed is a full copy and takes the replica out of the pool."
+step: "Diagnosis" section=false
+  heading "Identify the MTS deadlock pattern"
+  prose "A healthy MTS replica shows most workers in `Waiting for an event from Coordinator`. A deadlocked one shows a specific constellation of blocked threads."
+  code lang="sql" label="Check processlist for the deadlock pattern" body="SHOW PROCESSLIST;"
+  table headers=["State" "Meaning"]
+    row ["`Waiting for source to send event`" "IO thread, healthy, reading the binlog"]
+    row ["`Waiting for dependent transaction to commit`" "Worker blocked on another worker's commit"]
+    row ["`waiting for handler commit`" "Worker stuck on a binlog flush or handler commit lock"]
+    row ["`Waiting for an event from Coordinator`" "Starved workers, nothing dispatched"]
+  prose "The signature: one or more workers in `waiting for handler commit`, another in `Waiting for dependent transaction to commit`, and the rest starved in `Waiting for an event from Coordinator`. The IO thread stays healthy; the problem is all on the SQL side."
+  heading "Confirm the lag is not just a big transaction"
+  code lang="bash" label="Check Seconds_Behind_Source" body="mysql -e \"SHOW REPLICA STATUS\\G\" | grep -E \"Replica_IO_Running|Replica_SQL_Running|Seconds_Behind\""
+  prose "`Seconds_Behind_Source` grows steadily and the SQL thread is running but making no progress. A single huge transaction looks similar, so check the engine status before killing anything."
+  code lang="sql" label="Look for ACTIVE (PREPARED) transactions" body="SHOW ENGINE INNODB STATUS\\G"
+  prose "If the `TRANSACTIONS` section shows one transaction holding the commit lock, this is not the MTS deadlock; let it finish and lag will drain."
+step: "Recovery" section=false
+  heading "Free the blocked worker"
+  prose "Killing the worker stuck in `waiting for handler commit` releases the lock; the coordinator re-dispatches and the workers drain."
+  code lang="sql" label="Release the blocked worker" body="KILL {{PROCESSLIST_ID}};"
+  code lang="sql" label="Watch the workers drain" body="SHOW PROCESSLIST;"
+  prose "Within a few seconds every worker should be back to `Waiting for an event from Coordinator` or `Waiting for dependent transaction to commit`, and `Seconds_Behind_Source` should fall."
+  heading "Confirm the replica caught up"
+  code lang="bash" label="Confirm lag is falling" body="mysql -e \"SHOW REPLICA STATUS\\G\" | grep Seconds_Behind"
+  prose "If the value is still climbing after the kill, repeat the diagnosis: a second worker may be stuck behind the first."
 ===== ../content/playground/writing-runbooks.md =====
 intro:
   prose "This page is a runbook about writing runbooks. Read it, copy the patterns, then delete it."
