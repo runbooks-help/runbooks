@@ -62,5 +62,7 @@ func renderLLMSIndex(groups []parser.SystemGroup) string {
 			b.WriteString("\n")
 		}
 	}
+	b.WriteString("## Skills\n\n")
+	b.WriteString(llmsSkillLine)
 	return b.String()
 }

@@ -360,6 +360,14 @@ func (cs *contentState) buildMux(snap *contentSnapshot) *http.ServeMux {
 	}
 	mux.Handle("/llms.txt", llmsIndex)
 
+	// The runbook-review agent skill is a read-only machine endpoint like
+	// llms.txt: session or read-scoped API key when identity is on.
+	reviewSkill := http.HandlerFunc(serveReviewSkill)
+	if authn != nil {
+		reviewSkill = authn.requireRead(reviewSkill)
+	}
+	mux.Handle("/skill/runbook-review.md", reviewSkill)
+
 	// robots.txt is public; the sitemap lists the same slugs as the pages, so
 	// with identity on it sits behind the read gate like llms.txt. The sitemap
 	// needs absolute URLs, so it exists only when PUBLIC_URL is set.
