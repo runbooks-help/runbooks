@@ -38,10 +38,32 @@ class decides its route.
 | **Lookalike** | "This symptom also looks like X but isn't." | A `> [!lookalike]` block. |
 | **Environment fact** | True for this deployment, not the shared runbook. | A labelled `var`/hint proposal, to confirm. |
 | **Out of scope** | Not a runbook concern (a noisy alert, the rota, tooling, process). | Named under Out of scope. Never an edit. |
-| **No action** | "Worked as written." | Recorded under No action. |
+| **No action** | "Worked as written." | Recorded under No action, with its outcome counts. |
 
 **Out of scope is a real, correct answer.** Say it plainly and move on. Forcing a
 non-runbook note into an edit is how a runbook acquires noise it can never fix.
+
+## Run outcomes (descriptive)
+
+A record's `notes.md` carries the completion timeline: each line ends in
+`<!-- runbooks:done -->` (the unit completed) or `<!-- runbooks:reopened -->`
+(un-ticked). Read the state from the comment, never the visible text; the line
+names its unit as `Step <n>: <title>` or `Block <s>.<b>: <label>`.
+
+Per snapshot, a step's outcome is:
+
+- **completed** — a `runbooks:done` with no later `runbooks:reopened`;
+- **reopened** — a `runbooks:reopened` with no later `runbooks:done`;
+- **skipped** — the snapshot has a timeline but no line for the step.
+
+Aggregate across snapshots and report what happened. That is all it is: a step
+completed ten times is not a good step, and a tick is not a read. Never turn an
+outcome count into a confidence or quality rating — the confidence you state for
+a finding comes from the notes' content, not from the counts.
+
+Match steps by title (the number is a hint; numbers shift when the page changes).
+A title that no longer exists is a finding: report it as removed or renamed.
+Block lines roll up under their step.
 
 ## Output: one markdown review
 
@@ -100,7 +122,7 @@ confirm: is the host stable per deployment, and is "run from the bastion" true o
 - "the alert paged the old payments rota" (2026-10-04, 2026-10-06) → alerting/rota config
 
 ## No action
-- Free the blocked worker: "worked as written" (2026-10-04)
+- Free the blocked worker: "worked as written" (2026-10-04) — completed 3/3, never reopened
 ````
 
 Rules for the format:
