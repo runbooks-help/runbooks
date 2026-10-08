@@ -137,16 +137,65 @@ func handleGitSync(cfg config) http.HandlerFunc {
 			json.NewEncoder(w).Encode(map[string]string{"status": "up_to_date"})
 			return
 		}
+		if sha == "" {
+			json.NewEncoder(w).Encode(map[string]string{"status": "saved"})
+			return
+		}
 		json.NewEncoder(w).Encode(map[string]string{"commit_sha": sha})
 	}
 }
 
+var runbookSlugRe = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
+
 func doGitSync(ctx context.Context, cfg config, job gitSyncJob) (string, bool, error) {
 	req := job.req
+	// The slug is the record directory name; reject anything that could climb
+	// out of the records root.
+	if !runbookSlugRe.MatchString(req.RunbookSlug) {
+		return "", false, fmt.Errorf("invalid runbook slug")
+	}
 
 	gitSyncMu.Lock()
 	defer gitSyncMu.Unlock()
 
+	files := snapshotFiles(req)
+	now := time.Now().UTC()
+
+	// A configured repo is the destination; otherwise write to the local folder.
+	if cfg.GitSyncRepo == "" {
+		return writeRecordsFolder(cfg.GitSyncDir, req.RunbookSlug, files, now)
+	}
+	return writeRecordsRepo(ctx, cfg, job, files, now)
+}
+
+// writeRecordsFolder writes one immutable snapshot into the local records
+// folder. There is no repository and no commit; the read surface serves it.
+func writeRecordsFolder(base, slug string, files map[string][]byte, now time.Time) (string, bool, error) {
+	prev, err := latestSnapshot(base, now.Format("20060102"), slug)
+	if err != nil {
+		return "", false, fmt.Errorf("read records failed")
+	}
+	if prev != "" && sameSnapshot(prev, files) {
+		return "", false, nil
+	}
+	dir, err := newSnapshotDir(base, now, slug)
+	if err != nil {
+		return "", false, fmt.Errorf("snapshot path failed")
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", false, fmt.Errorf("mkdir failed")
+	}
+	for name, data := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), data, 0o644); err != nil {
+			return "", false, fmt.Errorf("write %s failed", name)
+		}
+	}
+	return "", true, nil
+}
+
+// writeRecordsRepo commits one immutable snapshot into the configured repo.
+func writeRecordsRepo(ctx context.Context, cfg config, job gitSyncJob, files map[string][]byte, now time.Time) (string, bool, error) {
+	req := job.req
 	ws, err := os.MkdirTemp("", "runbooks-gitsync-*")
 	if err != nil {
 		return "", false, fmt.Errorf("workspace creation failed")
@@ -165,9 +214,7 @@ func doGitSync(ctx context.Context, cfg config, job gitSyncJob) (string, bool, e
 		return "", false, fmt.Errorf("clone failed")
 	}
 
-	files := snapshotFiles(req)
 	base := filepath.Join(ws, cfg.GitSyncBasePath)
-	now := time.Now().UTC()
 
 	// A record is one immutable snapshot per sync, so a re-sync that changes
 	// nothing is a no-op: compare against the latest snapshot of the same day
