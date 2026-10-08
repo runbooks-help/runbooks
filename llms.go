@@ -43,7 +43,9 @@ func renderLLMSIndex(groups []parser.SystemGroup) string {
 	var b strings.Builder
 	b.WriteString("# Runbooks\n\n")
 	b.WriteString("> Operational runbooks. Fetch any one as raw markdown by appending")
-	b.WriteString(" `.md` to its link; search every body at /api/runbooks/v1/search?q=…\n\n")
+	b.WriteString(" `.md` to its link; search every body at /api/runbooks/v1/search?q=…;")
+	b.WriteString(" read a runbook's execution records (the captured notes plus the runbook")
+	b.WriteString(" as executed) at /api/runbooks/v1/notes?slug=<slug>\n\n")
 	for _, g := range groups {
 		if g.Name != "" {
 			fmt.Fprintf(&b, "## %s\n\n", g.Name)

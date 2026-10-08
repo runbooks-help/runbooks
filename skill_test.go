@@ -87,6 +87,15 @@ func TestReviewSkillRoute(t *testing.T) {
 	}
 }
 
+// TestReviewSkillFetchesRecords pins the remote path: the skill must name the
+// records surface, or a remote agent has no way to reach the notes the review
+// is built on.
+func TestReviewSkillFetchesRecords(t *testing.T) {
+	if !strings.Contains(string(runbookReviewSkill), "/api/runbooks/v1/notes") {
+		t.Error("skill does not name the records surface; a remote reviewer cannot fetch the notes")
+	}
+}
+
 // TestLLMSIndexListsSkill pins discoverability: the skill is advertised in the
 // same index an agent already reads.
 func TestLLMSIndexListsSkill(t *testing.T) {

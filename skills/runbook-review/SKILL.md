@@ -20,12 +20,19 @@ runbook and never apply a proposal. A human decides, and edits the source.
   review is the same, and "step" below means the page's unit — a numbered step,
   or a section.
 - **The notes** — the notes captured during executions of this page, one per
-  execution (in a git-sync record, `notes.md` sits beside the `runbook.md` that
-  was current at the time), or pasted into the prompt.
-- **There may be no notes.** A docs page that was never executed has none. Say
-  "no notes to review" and stop — do not invent findings to fill the gap.
+  execution. On an instance, fetch them: `GET /api/runbooks/v1/notes?slug=<slug>`
+  returns the snapshots newest first, each carrying its `notes` and the `runbook`
+  as executed; walk the pages with `?page=<n>&limit=<m>` (default 20, max 100).
+  Review the notes against the runbook they were written against, not a page that
+  has changed since. Without an instance, read the same snapshots from the
+  operator's records checkout (`notes.md` beside the `runbook.md` that was
+  current at the time), or take them pasted into the prompt.
+- **There may be no notes.** A page that was never executed has none; the surface
+  returns an empty list. Say "no notes to review" and stop — do not invent
+  findings to fill the gap.
 - Nothing else. Do not fetch logs, the running system, or history you were not
-  given. Every proposal is grounded in a note.
+  given. The records surface is the one fetch you make; every proposal is
+  grounded in a note.
 
 ## Classify every note first
 

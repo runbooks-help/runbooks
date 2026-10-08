@@ -35,6 +35,7 @@ func TestRenderLLMSIndex(t *testing.T) {
 		"### Replication",
 		"- [Replication Lag](/mts-deadlock.md): A worker deadlock stalls the replica.",
 		"- [Failover](/failover.md)",
+		"/api/runbooks/v1/notes?slug=<slug>",
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("llms index missing %q\n---\n%s", want, body)
