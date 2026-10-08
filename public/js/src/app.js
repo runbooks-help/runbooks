@@ -3,6 +3,7 @@
 // Variable substitution + copy-to-clipboard for runbook pages
 
 import { decodeBase64URL, encodeBase64URL } from './base64url.mjs';
+import { timelineEntry } from './timeline.mjs';
 
 const vars = {};
 const secretVars = new Set();
@@ -478,16 +479,14 @@ function localTimestamp(d) {
 }
 
 // Filled inputs are named by id only; values may be secrets and the notes get exported.
-function filledVarSuffix() {
-	const ids = Object.keys(vars).filter(name => vars[name]);
-	return ids.length ? ` (vars: ${ids.join(', ')})` : '';
+function filledVarIds() {
+	return Object.keys(vars).filter(name => vars[name]);
 }
 
 function stepTimelineEntry(card, done) {
 	const num = (card.querySelector('.step-num')?.textContent || '').trim();
 	const title = (card.querySelector('.step-title')?.textContent || '').trim();
-	const tail = done ? '' : ' (re-opened)';
-	return `- \`${localTimestamp(new Date())}\` ${done ? '✅' : '↩'} Step ${num}: ${title}${tail}${done ? filledVarSuffix() : ''}`;
+	return timelineEntry({ kind: 'Step', id: num, label: title, done, vars: filledVarIds(), at: localTimestamp(new Date()) });
 }
 
 function blockTimelineEntry(group, done) {
@@ -495,8 +494,7 @@ function blockTimelineEntry(group, done) {
 	const si = stepCards().indexOf(card) + 1;
 	const bi = [...card.querySelectorAll('.code-group')].indexOf(group) + 1;
 	const label = (group.querySelector('.code-label')?.textContent || '').trim();
-	const tail = done ? '' : ' (re-opened)';
-	return `- \`${localTimestamp(new Date())}\` ${done ? '☑' : '↩'} Block ${si}.${bi}: ${label}${tail}${done ? filledVarSuffix() : ''}`;
+	return timelineEntry({ kind: 'Block', id: `${si}.${bi}`, label, done, vars: filledVarIds(), at: localTimestamp(new Date()) });
 }
 
 const timelineLine = /^- `\d{4}-\d{2}-\d{2} /;
