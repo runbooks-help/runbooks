@@ -10,9 +10,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -137,16 +139,88 @@ func handleGitSync(cfg config) http.HandlerFunc {
 			json.NewEncoder(w).Encode(map[string]string{"status": "up_to_date"})
 			return
 		}
+		if sha == "" {
+			json.NewEncoder(w).Encode(map[string]string{"status": "saved"})
+			return
+		}
 		json.NewEncoder(w).Encode(map[string]string{"commit_sha": sha})
 	}
 }
 
+var runbookSlugRe = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
+
 func doGitSync(ctx context.Context, cfg config, job gitSyncJob) (string, bool, error) {
 	req := job.req
+	// The slug is the record directory name; reject anything that could climb
+	// out of the records root.
+	if !runbookSlugRe.MatchString(req.RunbookSlug) {
+		return "", false, fmt.Errorf("invalid runbook slug")
+	}
 
 	gitSyncMu.Lock()
 	defer gitSyncMu.Unlock()
 
+	files := snapshotFiles(req)
+	now := time.Now().UTC()
+
+	// A configured repo is the destination; otherwise write to the local folder.
+	if cfg.GitSyncRepo == "" {
+		return writeRecordsFolder(cfg.GitSyncDir, req.RunbookSlug, files, now)
+	}
+	return writeRecordsRepo(ctx, cfg, job, files, now)
+}
+
+// openRecordsRoot returns a root confined to dir, creating dir if needed. Every
+// name used against the root resolves beneath it, so a hostile snapshot name
+// cannot escape (os.Root, Go 1.24+).
+func openRecordsRoot(dir string) (*os.Root, error) {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return nil, err
+	}
+	return os.OpenRoot(dir)
+}
+
+// writeRecordsFolder writes one immutable snapshot into the local records
+// folder. There is no repository and no commit; the read surface serves it.
+func writeRecordsFolder(base, slug string, files map[string][]byte, now time.Time) (string, bool, error) {
+	root, err := openRecordsRoot(base)
+	if err != nil {
+		return "", false, fmt.Errorf("open records dir failed")
+	}
+	defer root.Close()
+
+	_, changed, err := writeSnapshot(root, slug, files, now)
+	return "", changed, err
+}
+
+// writeSnapshot writes one snapshot under root, skipping a re-sync that changes
+// nothing. It returns the snapshot name ("" when unchanged).
+func writeSnapshot(root *os.Root, slug string, files map[string][]byte, now time.Time) (string, bool, error) {
+	prev, err := latestSnapshot(root, now.Format("20060102"), slug)
+	if err != nil {
+		return "", false, fmt.Errorf("read records failed")
+	}
+	if prev != "" && sameSnapshot(root, prev, files) {
+		return "", false, nil
+	}
+	name, err := newSnapshotDir(root, now, slug)
+	if err != nil {
+		return "", false, fmt.Errorf("snapshot path failed")
+	}
+	if err := root.MkdirAll(name, 0o755); err != nil {
+		return "", false, fmt.Errorf("mkdir failed")
+	}
+	for fname, data := range files {
+		if err := root.WriteFile(path.Join(name, fname), data, 0o644); err != nil {
+			return "", false, fmt.Errorf("write %s failed", fname)
+		}
+	}
+	return name, true, nil
+}
+
+// writeRecordsRepo commits one immutable snapshot into the configured repo.
+func writeRecordsRepo(ctx context.Context, cfg config, job gitSyncJob, files map[string][]byte, now time.Time) (string, bool, error) {
+	req := job.req
 	ws, err := os.MkdirTemp("", "runbooks-gitsync-*")
 	if err != nil {
 		return "", false, fmt.Errorf("workspace creation failed")
@@ -165,32 +239,15 @@ func doGitSync(ctx context.Context, cfg config, job gitSyncJob) (string, bool, e
 		return "", false, fmt.Errorf("clone failed")
 	}
 
-	files := snapshotFiles(req)
-	base := filepath.Join(ws, cfg.GitSyncBasePath)
-	now := time.Now().UTC()
-
-	// A record is one immutable snapshot per sync, so a re-sync that changes
-	// nothing is a no-op: compare against the latest snapshot of the same day
-	// rather than letting a fresh timestamp mint a duplicate directory.
-	prev, err := latestSnapshot(base, now.Format("20060102"), req.RunbookSlug)
+	root, err := openRecordsRoot(filepath.Join(ws, cfg.GitSyncBasePath))
 	if err != nil {
-		return "", false, fmt.Errorf("read records failed")
+		return "", false, fmt.Errorf("open records dir failed")
 	}
-	if prev != "" && sameSnapshot(prev, files) {
+	defer root.Close()
+	if _, changed, err := writeSnapshot(root, req.RunbookSlug, files, now); err != nil {
+		return "", false, err
+	} else if !changed {
 		return "", false, nil
-	}
-
-	dir, err := newSnapshotDir(base, now, req.RunbookSlug)
-	if err != nil {
-		return "", false, fmt.Errorf("snapshot path failed")
-	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", false, fmt.Errorf("mkdir failed")
-	}
-	for name, data := range files {
-		if err := os.WriteFile(filepath.Join(dir, name), data, 0o644); err != nil {
-			return "", false, fmt.Errorf("write %s failed", name)
-		}
 	}
 
 	msg := fmt.Sprintf("notes: %s (%s)", req.RunbookTitle, req.RunbookSlug)
@@ -250,15 +307,12 @@ func snapshotFiles(req gitSyncRequest) map[string][]byte {
 	return files
 }
 
-// latestSnapshot returns the newest record directory for a UTC date and slug, or
-// "" when none exists. The timestamp prefixes sort lexically, so the greatest
-// name is the most recent.
-func latestSnapshot(base, date, slug string) (string, error) {
-	entries, err := os.ReadDir(base)
+// latestSnapshot returns the newest record directory name for a UTC date and
+// slug, or "" when none exists. The timestamp prefixes sort lexically, so the
+// greatest name is the most recent.
+func latestSnapshot(root *os.Root, date, slug string) (string, error) {
+	entries, err := fs.ReadDir(root.FS(), ".")
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return "", nil
-		}
 		return "", err
 	}
 	prefix, suffix := date+"T", "-"+slug
@@ -272,16 +326,13 @@ func latestSnapshot(base, date, slug string) (string, error) {
 			latest = name
 		}
 	}
-	if latest == "" {
-		return "", nil
-	}
-	return filepath.Join(base, latest), nil
+	return latest, nil
 }
 
 // sameSnapshot reports whether a record directory holds exactly the given files
 // and nothing else.
-func sameSnapshot(dir string, files map[string][]byte) bool {
-	entries, err := os.ReadDir(dir)
+func sameSnapshot(root *os.Root, name string, files map[string][]byte) bool {
+	entries, err := fs.ReadDir(root.FS(), name)
 	if err != nil {
 		return false
 	}
@@ -294,7 +345,7 @@ func sameSnapshot(dir string, files map[string][]byte) bool {
 		if !ok {
 			return false
 		}
-		got, err := os.ReadFile(filepath.Join(dir, e.Name()))
+		got, err := root.ReadFile(path.Join(name, e.Name()))
 		if err != nil || !bytes.Equal(got, want) {
 			return false
 		}
@@ -305,15 +356,15 @@ func sameSnapshot(dir string, files map[string][]byte) bool {
 
 // newSnapshotDir names a fresh record directory. The timestamp has second
 // precision, so two syncs in the same second bump forward rather than collide.
-func newSnapshotDir(base string, now time.Time, slug string) (string, error) {
+func newSnapshotDir(root *os.Root, now time.Time, slug string) (string, error) {
 	ts := now.Truncate(time.Second)
 	for {
-		dir := filepath.Join(base, ts.Format("20060102T150405Z")+"-"+slug)
-		switch _, err := os.Stat(dir); {
+		name := ts.Format("20060102T150405Z") + "-" + slug
+		switch _, err := root.Lstat(name); {
 		case err == nil:
 			ts = ts.Add(time.Second)
-		case errors.Is(err, os.ErrNotExist):
-			return dir, nil
+		case errors.Is(err, fs.ErrNotExist):
+			return name, nil
 		default:
 			return "", err
 		}

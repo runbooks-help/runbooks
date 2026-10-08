@@ -16,6 +16,8 @@ import (
 type config struct {
 	GitSyncRepo        string
 	GitSyncBranch      string
+	GitSyncDir         string
+	GitSyncCache       string
 	GitSyncBasePath    string
 	GitSyncAuthorName  string
 	GitSyncAuthorEmail string
@@ -72,6 +74,8 @@ func loadConfig() config {
 		ContentRefreshToken: os.Getenv("CONTENT_REFRESH_TOKEN"),
 		GitSyncRepo:         os.Getenv("GITSYNC_REPO"),
 		GitSyncBranch:       os.Getenv("GITSYNC_BRANCH"),
+		GitSyncDir:          os.Getenv("GITSYNC_DIR"),
+		GitSyncCache:        os.Getenv("GITSYNC_CACHE"),
 		GitSyncBasePath:     os.Getenv("GITSYNC_BASE_PATH"),
 		GitSyncAuthorName:   os.Getenv("GITSYNC_AUTHOR_NAME"),
 		GitSyncAuthorEmail:  os.Getenv("GITSYNC_AUTHOR_EMAIL"),
@@ -108,6 +112,14 @@ func loadConfig() config {
 	}
 	if cfg.GitSyncBranch == "" {
 		cfg.GitSyncBranch = "main"
+	}
+	// The records destination is a local folder by default, so a run is captured
+	// with no repository to configure. Set GITSYNC_DIR empty to turn it off.
+	if cfg.GitSyncDir == "" {
+		cfg.GitSyncDir = "data/runs"
+	}
+	if cfg.GitSyncCache == "" {
+		cfg.GitSyncCache = "data/records"
 	}
 	if cfg.GitSyncBasePath == "" {
 		cfg.GitSyncBasePath = "runbook_runs"
@@ -148,7 +160,15 @@ func loadConfig() config {
 	// is given, so a key is only needed where there is no agent (deployment/CI).
 	hasCredential := cfg.GitSyncToken != "" || cfg.GitSyncSSHKey != "" || sshRemote(cfg.GitSyncRepo)
 	hasEndpointAuth := cfg.GitSyncAPIToken != "" || cfg.IdentityEnabled
-	cfg.GitSyncEnabled = cfg.GitSyncRepo != "" && hasCredential && hasEndpointAuth
+	// A configured repo needs a credential; with no repo, the local folder is the
+	// destination. Either way the write route needs endpoint auth.
+	hasDestination := false
+	if cfg.GitSyncRepo != "" {
+		hasDestination = hasCredential
+	} else {
+		hasDestination = cfg.GitSyncDir != ""
+	}
+	cfg.GitSyncEnabled = hasDestination && hasEndpointAuth
 
 	// The content source is read-only to the app. Refuse a config where the notes
 	// sync target is the same repo as the content source: that would put the

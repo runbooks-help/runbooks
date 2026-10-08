@@ -395,6 +395,18 @@ func (cs *contentState) buildMux(snap *contentSnapshot) *http.ServeMux {
 	}
 	mux.Handle("/api/runbooks/v1/search", search)
 
+	// The execution records (captured notes plus the as-executed runbook) for the
+	// reviewer. Read-only, gated like the other agent surfaces.
+	records := newRecordsSource(cfg)
+	recordsIndex := http.HandlerFunc(records.index)
+	recordsFile := http.HandlerFunc(records.file)
+	if authn != nil {
+		recordsIndex = authn.requireRead(recordsIndex)
+		recordsFile = authn.requireRead(recordsFile)
+	}
+	mux.Handle("/api/runbooks/v1/notes", recordsIndex)
+	mux.Handle("/api/runbooks/v1/notes/", recordsFile)
+
 	mux.HandleFunc("/api/content/v1/refresh", cs.refreshHandler())
 
 	return mux
