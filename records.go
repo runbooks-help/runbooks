@@ -4,9 +4,12 @@ package main
 
 import (
 	"context"
+	"errors"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -26,10 +29,15 @@ type recordsSource struct {
 
 func newRecordsSource(cfg config) *recordsSource { return &recordsSource{cfg: cfg} }
 
-// root returns the directory that holds the snapshot folders, or "" when the
-// operator configured no records destination.
-func (s *recordsSource) root(ctx context.Context) (string, error) {
+var errRecordsDisabled = errors.New("records not configured")
+
+// base resolves the directory that holds the snapshot folders, or
+// errRecordsDisabled when the operator configured no destination.
+func (s *recordsSource) base(ctx context.Context) (string, error) {
 	if s.cfg.GitSyncRepo == "" {
+		if s.cfg.GitSyncDir == "" {
+			return "", errRecordsDisabled
+		}
 		return s.cfg.GitSyncDir, nil
 	}
 	s.mu.Lock()
@@ -45,6 +53,16 @@ func (s *recordsSource) root(ctx context.Context) (string, error) {
 		return "", err
 	}
 	return filepath.Join(s.cfg.GitSyncCache, s.cfg.GitSyncBasePath), nil
+}
+
+// openRoot confines reads beneath the records base. Every name used against the
+// root resolves inside it (os.Root), so a hostile path cannot escape.
+func (s *recordsSource) openRoot(ctx context.Context) (*os.Root, error) {
+	base, err := s.base(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return os.OpenRoot(base)
 }
 
 type recordSnapshot struct {
@@ -82,24 +100,28 @@ func (s *recordsSource) index(w http.ResponseWriter, r *http.Request) {
 	page := queryInt(r, "page", 1, 1, 1<<30)
 	limit := queryInt(r, "limit", 20, 1, 100)
 
-	root, err := s.root(r.Context())
-	if err != nil || root == "" {
+	root, err := s.openRoot(r.Context())
+	switch {
+	case errors.Is(err, errRecordsDisabled):
 		writeJSONError(w, http.StatusNotFound, "records not configured")
 		return
-	}
-
-	names, err := recordSnapshotDirs(root, slug)
-	if err != nil {
+	case errors.Is(err, fs.ErrNotExist):
+		writeJSON(w, http.StatusOK, recordsResponse{Snapshots: []recordSnapshot{}, Page: page, Limit: limit})
+		return
+	case err != nil:
 		writeJSONError(w, http.StatusInternalServerError, "could not read records")
 		return
 	}
+	defer root.Close()
+
+	names := recordSnapshotNames(root, slug)
 	total := len(names)
 	start := clamp((page-1)*limit, 0, total)
 	end := clamp(start+limit, 0, total)
 
 	out := recordsResponse{Snapshots: []recordSnapshot{}, Page: page, Limit: limit, Total: total}
 	for _, name := range names[start:end] {
-		out.Snapshots = append(out.Snapshots, readSnapshot(filepath.Join(root, name), name))
+		out.Snapshots = append(out.Snapshots, readSnapshot(root, name))
 	}
 	writeJSON(w, http.StatusOK, out)
 }
@@ -116,17 +138,14 @@ func (s *recordsSource) file(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusBadRequest, "invalid record path")
 		return
 	}
-	root, err := s.root(r.Context())
-	if err != nil || root == "" {
-		writeJSONError(w, http.StatusNotFound, "records not configured")
+	root, err := s.openRoot(r.Context())
+	if err != nil {
+		writeJSONError(w, http.StatusNotFound, "not found")
 		return
 	}
-	path := filepath.Join(root, parts[1]+"-"+parts[0], parts[2])
-	if !strings.HasPrefix(path, filepath.Clean(root)+string(os.PathSeparator)) {
-		writeJSONError(w, http.StatusBadRequest, "invalid record path")
-		return
-	}
-	data, err := os.ReadFile(path)
+	defer root.Close()
+
+	data, err := root.ReadFile(path.Join(parts[1]+"-"+parts[0], parts[2]))
 	if err != nil {
 		writeJSONError(w, http.StatusNotFound, "not found")
 		return
@@ -136,30 +155,27 @@ func (s *recordsSource) file(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(data)
 }
 
-// snapshotDirs lists a runbook's snapshot directories, newest first. The
-// timestamp prefix sorts lexically, so a descending string sort is chronological.
-func recordSnapshotDirs(root, slug string) ([]string, error) {
-	entries, err := os.ReadDir(root)
+// recordSnapshotNames lists a runbook's snapshot directories, newest first. The
+// timestamp prefix sorts lexically, so a descending sort is chronological.
+func recordSnapshotNames(root *os.Root, slug string) []string {
+	entries, err := fs.ReadDir(root.FS(), ".")
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
+		return nil
 	}
 	var names []string
 	for _, e := range entries {
-		if e.IsDir() && strings.HasSuffix(e.Name(), "-"+slug) && snapshotNameRe.MatchString(e.Name()) {
+		if e.IsDir() && snapshotNameRe.MatchString(e.Name()) && strings.HasSuffix(e.Name(), "-"+slug) {
 			names = append(names, e.Name())
 		}
 	}
 	sort.Sort(sort.Reverse(sort.StringSlice(names)))
-	return names, nil
+	return names
 }
 
 // readSnapshot reads one snapshot's notes and runbook, and lists its other files.
-func readSnapshot(dir, name string) recordSnapshot {
+func readSnapshot(root *os.Root, name string) recordSnapshot {
 	snap := recordSnapshot{TakenAt: snapshotNameRe.FindStringSubmatch(name)[1]}
-	entries, err := os.ReadDir(dir)
+	entries, err := fs.ReadDir(root.FS(), name)
 	if err != nil {
 		return snap
 	}
@@ -169,11 +185,11 @@ func readSnapshot(dir, name string) recordSnapshot {
 		}
 		switch e.Name() {
 		case "notes.md":
-			if b, err := os.ReadFile(filepath.Join(dir, e.Name())); err == nil {
+			if b, err := root.ReadFile(path.Join(name, e.Name())); err == nil {
 				snap.Notes = string(b)
 			}
 		case "runbook.md":
-			if b, err := os.ReadFile(filepath.Join(dir, e.Name())); err == nil {
+			if b, err := root.ReadFile(path.Join(name, e.Name())); err == nil {
 				snap.Runbook = string(b)
 			}
 		default:
