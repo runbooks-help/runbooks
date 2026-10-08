@@ -9,7 +9,10 @@ import (
 
 func parseBody(t *testing.T, body string) ([]Block, []Step, []Step) {
 	t.Helper()
-	intro, steps, rollback := convertBody(body, false)
+	intro, steps, rollback, err := convertBody(body, false)
+	if err != nil {
+		t.Fatalf("convertBody: %v", err)
+	}
 	return intro, steps, rollback
 }
 

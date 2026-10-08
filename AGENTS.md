@@ -103,6 +103,8 @@ public/js/vendor/    marked, highlight.js, jszip (checked in, not bundled)
 e2e/                 browser E2E: harness.mjs + passkey/runbook/styleguide suites
                      demos/: the recorded marketing clips (reader.mjs, xdisplay.mjs + vhs tapes)
 cmd/css, cmd/js      esbuild wrappers (see build pipeline below)
+skill.go             serves the embedded reviewer skill at /skill/runbook-review.md
+skills/runbook-review/SKILL.md  the shipped agent skill (propose, never apply)
 cmd/notices          generates THIRD_PARTY_NOTICES.md (mise run notices)
 cmd/designsystem     fetches the pinned design system (mise run design-system)
 mise-tasks/          file tasks, one executable per task (see Commands; mise.toml keeps [tools]/[env])
@@ -198,6 +200,9 @@ vars:
   case-insensitive, and the GitHub alert keywords (`NOTE`, `TIP`, `IMPORTANT`,
   `WARNING`, `CAUTION`) are accepted and mapped onto info/warn/danger.
 - `> [!branch]` + `> - item` → decision callout.
+- `> [!lookalike] <title>` + `> lines` → a lookalike: an alternative the
+  symptom also resembles, with the discriminator that rules it out. A block,
+  never a step.
 - `- item` bullet lists and `1. item` numbered lists; `| a | b |` tables.
 - `---rollback` (or the GitHub-safe `<!-- rollback -->`) on its own line →
   everything after it is a separate rollback section (danger-styled, unnumbered).
@@ -223,9 +228,11 @@ Authoring conventions that have bitten us:
 Runbooks are read by LLMs two ways. A **local** agent clones the repo and reads
 `content/` directly (frontmatter included, no parsing needed). A **remote**
 agent uses the read-only surface: `GET /llms.txt` (generated index, `llms.go`),
-`GET /<slug>.md` (raw `RunbookDef.Source`) and the existing
-`GET /api/runbooks/v1/search`. All three are public with identity off and gated
-by `requireRead` (session **or a read-scoped API key**) with identity on.
+`GET /<slug>.md` (raw `RunbookDef.Source`), `GET /api/runbooks/v1/search`, and
+`GET /skill/runbook-review.md` (the shipped reviewer agent skill,
+`skills/runbook-review/SKILL.md`, embedded via `skill.go`). All four are public
+with identity off and gated by `requireRead` (session **or a read-scoped API
+key**) with identity on.
 
 API keys are minted self-service at `/account`, owned by a user, stored as
 `sha256(raw)` under an `rbk_` prefix, and revocable; a key is read-only by

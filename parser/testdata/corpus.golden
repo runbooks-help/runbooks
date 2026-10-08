@@ -32,12 +32,13 @@ step: "Code blocks" section=false
   code lang="sql" label="Inspect the worker" body="SELECT id, time, state FROM information_schema.processlist WHERE id = {{PROCESSLIST_ID}};"
   code lang="text" label="A label-less fence" body="Any lower-case language tag is accepted; this fence has no bracketed label."
   code lang="bash" label="Uses the secret" body="curl -H \"Authorization: Bearer {{API_TOKEN}}\" \"https://{{HOST}}/healthz\""
-step: "Notices and branch" section=false
-  prose "All three notice variants, then a decision callout."
+step: "Notices, branch and lookalikes" section=false
+  prose "All three notice variants, then a decision callout and a lookalike."
   notice variant="info" message="This is an info notice: context, links and read-only remarks."
   notice variant="warn" message="This is a warning: a step that briefly stops writes, or a value to double-check."
   notice variant="danger" message="This is a danger notice: destructive. READ EVERY STEP BEFORE DOING ANYTHING."
   branch "- If the replica's IO thread is running, continue to the next step.\n- If it has stopped, rebuild from the nightly snapshot instead.\n- If neither, page the on-call DBA."
+  lookalike title="GTID gap on the replica" body="Looks like: a deadlock, but the deadlock counter is flat.\nRule out by: `Seconds_Behind_Source` climbing with zero lock waits."
 rollback: "Roll back the promotion" section=false
   prose "Rollback steps render after `---rollback`, in the danger styling and without a number."
   code lang="bash" label="Demote the node" body="mysql -h \"{{HOST}}\" -e \"SET GLOBAL read_only = ON;\""
@@ -118,6 +119,9 @@ step: "Notices and decisions" section=false
   notice variant="danger" message="Destructive. READ EVERY STEP BEFORE DOING ANYTHING."
   prose "A branch callout lists the decisions a reader might make:"
   branch "- If the check passed, continue.\n- If it failed, rebuild instead.\n- If neither, page the on-call."
+step: "Lookalikes" section=false
+  prose "A symptom can also look like something it is not. A `> [!lookalike]` block records that alternative: the title names the lookalike, the body carries the discriminator that rules it out. It is not a step — there is nothing to run, tick or collapse. Place it next to the step that raised the suspicion."
+  lookalike title="GTID gap on the replica" body="Looks like: a deadlock. `SHOW ENGINE INNODB STATUS` shows no conflicting transaction, but `Seconds_Behind_Source` climbs steadily.\nRule out by: zero lock waits while the delay grows.\nIf none match: see the stalled-replica runbook."
 step: "Rollback" section=false
   prose "`---rollback` on its own line closes the numbered steps and starts a separate, danger-styled, unnumbered section. This page ends with one, so you can see the styling:"
   code lang="text" label="The marker" body="---rollback"

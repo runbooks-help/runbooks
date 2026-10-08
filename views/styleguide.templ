@@ -273,6 +273,14 @@ templ StyleGuidePage(isAdmin, identityEnabled bool) {
 						</div>
 					</section>
 
+					<section class="sg-section" id="lookalike">
+						<h3>Lookalike <span class="sg-atom">atom</span></h3>
+						<p>A symptom's alternative that has to be ruled out, not run. Authored as <code>&gt; [!lookalike] Title</code> plus the discriminator. Never numbered, ticked or collapsed — it is not a step.</p>
+						<div class="sg-stack">
+							@components.Lookalike("GTID gap on the replica", "Looks like: a deadlock. `SHOW ENGINE INNODB STATUS` shows no conflicting transaction, but `Seconds_Behind_Source` climbs steadily.\nRule out by: zero lock waits while the delay grows.", nil)
+						</div>
+					</section>
+
 					<section class="sg-section" id="glossary">
 						<h3>Glossary term <span class="sg-atom">atom</span></h3>
 						<p>Terms come from <code>content/_glossary.yml</code>. A configured term highlights wherever prose renders and shows its expansion, detail and link on hover or focus. Code is never touched. Hover <abbr class="glossary-term" tabindex="0" data-glossary="MTS">MTS</abbr> to see the popup.</p>
@@ -527,6 +535,7 @@ templ styleGuideNav() {
 		<a href="#field">Field</a>
 		<a href="#dialog">Dialog</a>
 		<a href="#notice">Notice</a>
+		<a href="#lookalike">Lookalike</a>
 	</nav>
 	<p class="nav-section">Molecules</p>
 	<nav>

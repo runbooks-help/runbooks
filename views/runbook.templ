@@ -181,6 +181,8 @@ templ renderBlock(b parser.Block, terms []string) {
 			@components.Notice(b.Variant, b.Message, terms)
 		case parser.KindBranch:
 			@components.BranchBlock(b.Body, terms)
+		case parser.KindLookalike:
+			@components.Lookalike(b.Title, b.Body, terms)
 		case parser.KindHeading:
 			<h3 class="step-subheading" id={ markup.Slug(b.Text) }>@templ.Raw(markup.ProseGlossary(b.Text, terms))</h3>
 		case parser.KindList:

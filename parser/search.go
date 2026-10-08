@@ -116,6 +116,8 @@ func buildSearchDoc(def RunbookDef) searchDoc {
 				add(weightProse, si, b.Message)
 			case KindBranch:
 				add(weightProse, si, b.Body)
+			case KindLookalike:
+				add(weightProse, si, b.Title+"\n"+b.Body)
 			case KindHeading:
 				add(weightHeading, si, b.Text)
 			case KindList:

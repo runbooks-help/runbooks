@@ -27,13 +27,14 @@ type VarField struct {
 type BlockKind string
 
 const (
-	KindProse   BlockKind = "prose"
-	KindCode    BlockKind = "code"
-	KindNotice  BlockKind = "notice"
-	KindBranch  BlockKind = "branch"
-	KindTable   BlockKind = "table"
-	KindList    BlockKind = "list"
-	KindHeading BlockKind = "heading"
+	KindProse     BlockKind = "prose"
+	KindCode      BlockKind = "code"
+	KindNotice    BlockKind = "notice"
+	KindBranch    BlockKind = "branch"
+	KindLookalike BlockKind = "lookalike"
+	KindTable     BlockKind = "table"
+	KindList      BlockKind = "list"
+	KindHeading   BlockKind = "heading"
 )
 
 type Block struct {
@@ -44,6 +45,7 @@ type Block struct {
 	Body    string     // KindCode
 	Variant string     // KindNotice: "info", "warn", "danger"
 	Message string     // KindNotice
+	Title   string     // KindLookalike: the lookalike's name
 	Headers []string   // KindTable
 	Rows    [][]string // KindTable
 	Items   []ListItem // KindList
@@ -360,11 +362,12 @@ type RunbookDef struct {
 }
 
 var (
-	noticeRe      = regexp.MustCompile(`^>\s+\[!(?i)(info|note|tip|warn|warning|important|caution|danger|error)\]\s*(.*)$`)
-	branchStartRe = regexp.MustCompile(`^>\s+\[!branch\]\s*$`)
-	blockquoteRe  = regexp.MustCompile(`^>\s?(.*)$`)
-	fenceInfoRe   = regexp.MustCompile(`^([a-z]*)\s*(?:\[([^\]]*)\])?$`)
-	directiveRe   = regexp.MustCompile(`^(?:---(rollback|sections|steps)|<!--\s*(rollback|sections|steps)\s*-->)\s*$`)
+	noticeRe         = regexp.MustCompile(`^>\s+\[!(?i)(info|note|tip|warn|warning|important|caution|danger|error)\]\s*(.*)$`)
+	branchStartRe    = regexp.MustCompile(`^>\s+\[!branch\]\s*$`)
+	lookalikeStartRe = regexp.MustCompile(`^>\s+\[!(?i)lookalike\]\s*(.*)$`)
+	blockquoteRe     = regexp.MustCompile(`^>\s?(.*)$`)
+	fenceInfoRe      = regexp.MustCompile(`^([a-z]*)\s*(?:\[([^\]]*)\])?$`)
+	directiveRe      = regexp.MustCompile(`^(?:---(rollback|sections|steps)|<!--\s*(rollback|sections|steps)\s*-->)\s*$`)
 )
 
 // LoadDir reads every *.md under dir, at any depth. A runbook's system and
@@ -497,7 +500,10 @@ func Parse(data []byte) (RunbookDef, error) {
 		return RunbookDef{}, fmt.Errorf("frontmatter: %w", err)
 	}
 
-	intro, steps, rollback := convertBody(body, def.Layout == "sections")
+	intro, steps, rollback, err := convertBody(body, def.Layout == "sections")
+	if err != nil {
+		return RunbookDef{}, err
+	}
 	def.Intro, def.Steps, def.Rollback = intro, steps, rollback
 
 	def.Source = string(data)

@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: FSL-1.1-MIT
+
+package components
+
+import (
+	"runbooks/views/icons"
+	"runbooks/views/markup"
+)
+
+// Lookalike renders a [!lookalike] block: a symptom's alternative that has to be
+// ruled out. Structurally not a step — no number, no tick, no collapse. A help
+// icon and a plain "Could also be:" lead carry the recognition, with no status
+// colour, so it does not out-shout the step it belongs to.
+templ Lookalike(title, body string, terms []string) {
+	<div class="notice notice-lookalike">
+		<p class="lookalike-title">
+			@templ.Raw(icons.Lucide("circle-help"))
+			<span class="lookalike-lead">Could also be:</span>
+			<span class="lookalike-name">@templ.Raw(markup.ProseGlossary(title, terms))</span>
+		</p>
+		@templ.Raw(noticeHTML(body, terms))
+	</div>
+}

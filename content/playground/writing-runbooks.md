@@ -107,6 +107,18 @@ A branch callout lists the decisions a reader might make:
 > - If it failed, rebuild instead.
 > - If neither, page the on-call.
 
+## Lookalikes
+
+A symptom can also look like something it is not. A `> [!lookalike]` block
+records that alternative: the title names the lookalike, the body carries the
+discriminator that rules it out. It is not a step — there is nothing to run,
+tick or collapse. Place it next to the step that raised the suspicion.
+
+> [!lookalike] GTID gap on the replica
+> Looks like: a deadlock. `SHOW ENGINE INNODB STATUS` shows no conflicting transaction, but `Seconds_Behind_Source` climbs steadily.
+> Rule out by: zero lock waits while the delay grows.
+> If none match: see the stalled-replica runbook.
+
 ## Rollback
 
 `---rollback` on its own line closes the numbered steps and starts a separate,

@@ -7,8 +7,8 @@ content/testdata
 # Personal/secret dev values (injected by mise via [env] _.file = ".env")
 .env
 
-# Per-developer dev-task config for pi-devtasks
-/.pi/dev.json
+# Per-project pi state: dev-task config and subagent artifacts
+/.pi/
 
 # E2E harness dependencies (package.json / lockfile are committed)
 /e2e/node_modules/

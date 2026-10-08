@@ -69,6 +69,8 @@ func rewriteBlock(b *Block, rewrite func(string) string) {
 		b.Message = rewrite(b.Message)
 	case KindBranch:
 		b.Body = rewrite(b.Body)
+	case KindLookalike:
+		b.Body = rewrite(b.Body)
 	case KindList:
 		for j := range b.Items {
 			b.Items[j].Text = rewrite(b.Items[j].Text)
