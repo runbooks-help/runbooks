@@ -13,11 +13,11 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 
 	"runbooks/internal/gitrepo"
+	"runbooks/internal/pagination"
 )
 
 // recordsSource serves the execution records the app writes: a local folder by
@@ -74,9 +74,7 @@ type recordSnapshot struct {
 
 type recordsResponse struct {
 	Snapshots []recordSnapshot `json:"snapshots"`
-	Page      int              `json:"page"`
-	Limit     int              `json:"limit"`
-	Total     int              `json:"total"`
+	pagination.Response
 }
 
 var (
@@ -97,8 +95,7 @@ func (s *recordsSource) index(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusBadRequest, "invalid slug")
 		return
 	}
-	page := queryInt(r, "page", 1, 1, 1<<30)
-	limit := queryInt(r, "limit", 20, 1, 100)
+	page := pagination.Parse(r)
 
 	root, err := s.openRoot(r.Context())
 	switch {
@@ -106,7 +103,7 @@ func (s *recordsSource) index(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusNotFound, "records not configured")
 		return
 	case errors.Is(err, fs.ErrNotExist):
-		writeJSON(w, http.StatusOK, recordsResponse{Snapshots: []recordSnapshot{}, Page: page, Limit: limit})
+		writeJSON(w, http.StatusOK, recordsResponse{Snapshots: []recordSnapshot{}, Response: pagination.BuildResponse(page, 0)})
 		return
 	case err != nil:
 		writeJSONError(w, http.StatusInternalServerError, "could not read records")
@@ -115,11 +112,9 @@ func (s *recordsSource) index(w http.ResponseWriter, r *http.Request) {
 	defer root.Close()
 
 	names := recordSnapshotNames(root, slug)
-	total := len(names)
-	start := clamp((page-1)*limit, 0, total)
-	end := clamp(start+limit, 0, total)
+	start, end := page.Bounds(len(names))
 
-	out := recordsResponse{Snapshots: []recordSnapshot{}, Page: page, Limit: limit, Total: total}
+	out := recordsResponse{Snapshots: []recordSnapshot{}, Response: pagination.BuildResponse(page, len(names))}
 	for _, name := range names[start:end] {
 		out.Snapshots = append(out.Snapshots, readSnapshot(root, name))
 	}
@@ -218,24 +213,3 @@ func recordContentType(name string) string {
 }
 
 func safeFile(name string) bool { return safeFileRe.MatchString(name) }
-
-func queryInt(r *http.Request, key string, def, min, max int) int {
-	v, err := strconv.Atoi(r.URL.Query().Get(key))
-	if err != nil || v < min {
-		return def
-	}
-	if v > max {
-		return max
-	}
-	return v
-}
-
-func clamp(v, lo, hi int) int {
-	if v < lo {
-		return lo
-	}
-	if v > hi {
-		return hi
-	}
-	return v
-}
